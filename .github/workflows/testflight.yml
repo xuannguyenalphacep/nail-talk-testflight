@@ -56,10 +56,11 @@ jobs:
         shell: bash
         run: |
           flutter pub get
+          flutter precache --ios
           if ! command -v pod >/dev/null 2>&1; then
             sudo gem install cocoapods -N
           fi
-          find . -name "Podfile" -execdir pod install \;
+          (cd ios && pod install)
 
       - name: Initialize signing keychain
         shell: bash
@@ -72,7 +73,7 @@ jobs:
           APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_IDENTIFIER }}
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
         run: |
-          app-store-connect fetch-signing-files "$(xcode-project detect-bundle-id)" \
+          app-store-connect fetch-signing-files "com.kantek.nailtalk" \
             --platform IOS \
             --type IOS_APP_STORE \
             --certificate-key "@file:$RUNNER_TEMP/cert_key" \
@@ -82,7 +83,7 @@ jobs:
         shell: bash
         run: |
           keychain add-certificates
-          xcode-project use-profiles
+          xcode-project use-profiles --project ios/Runner.xcodeproj
 
       - name: Build IPA
         shell: bash
