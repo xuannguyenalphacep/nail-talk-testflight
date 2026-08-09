@@ -1,0 +1,47 @@
+name: social_hub_flutter
+description: Flutter super app for chat, movies, marketplace, jobs, and room share.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  provider: ^6.1.5
+  dio: ^5.9.0
+  flutter_secure_storage: ^9.2.4
+  shared_preferences: ^2.5.3
+  socket_io_client: ^3.1.2
+  intl: ^0.20.2
+  file_picker: ^10.3.3
+  url_launcher: ^6.3.2
+  device_info_plus: ^12.2.0
+  package_info_plus: ^9.0.0
+  uuid: ^4.5.1
+  collection: ^1.19.1
+  path_provider: ^2.1.5
+  open_filex: ^4.7.0
+  google_fonts: ^6.2.1
+  video_player: ^2.11.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/branding/app_icon.png
+    - assets/branding/brand_logo.png
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/app_icon.png
+  adaptive_icon_foreground: assets/branding/launcher_foreground.png
+  adaptive_icon_background: "#214D98"
