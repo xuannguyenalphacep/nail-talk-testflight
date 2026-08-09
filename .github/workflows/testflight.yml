@@ -26,10 +26,12 @@ jobs:
       - name: Install Codemagic CLI tools
         shell: bash
         run: |
-          python3 -m pip install --user codemagic-cli-tools
-          USER_BASE="$(python3 -m site --user-base)"
-          echo "$USER_BASE/bin" >> "$GITHUB_PATH"
-          export PATH="$USER_BASE/bin:$PATH"
+          python3 -m venv "$RUNNER_TEMP/codemagic-venv"
+          source "$RUNNER_TEMP/codemagic-venv/bin/activate"
+          python -m pip install --upgrade pip
+          python -m pip install codemagic-cli-tools
+          echo "$RUNNER_TEMP/codemagic-venv/bin" >> "$GITHUB_PATH"
+          export PATH="$RUNNER_TEMP/codemagic-venv/bin:$PATH"
           command -v app-store-connect
           command -v keychain
           command -v xcode-project
@@ -111,7 +113,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          export PATH="$(python3 -m site --user-base)/bin:$PATH"
+          export PATH="$RUNNER_TEMP/codemagic-venv/bin:$PATH"
           if command -v keychain >/dev/null 2>&1; then
             keychain use-login
           fi
