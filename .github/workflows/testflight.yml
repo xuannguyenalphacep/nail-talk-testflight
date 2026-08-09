@@ -20,6 +20,7 @@ jobs:
         run: |
           git clone https://github.com/flutter/flutter.git --depth 1 --branch stable "$HOME/flutter"
           echo "$HOME/flutter/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/flutter/bin:$PATH"
           flutter --version
 
       - name: Install Codemagic CLI tools
@@ -111,4 +112,6 @@ jobs:
         shell: bash
         run: |
           export PATH="$(python3 -m site --user-base)/bin:$PATH"
-          keychain use-login
+          if command -v keychain >/dev/null 2>&1; then
+            keychain use-login
+          fi
