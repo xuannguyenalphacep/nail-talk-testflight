@@ -24,7 +24,14 @@ jobs:
 
       - name: Install Codemagic CLI tools
         shell: bash
-        run: pip3 install codemagic-cli-tools
+        run: |
+          python3 -m pip install --user codemagic-cli-tools
+          USER_BASE="$(python3 -m site --user-base)"
+          echo "$USER_BASE/bin" >> "$GITHUB_PATH"
+          export PATH="$USER_BASE/bin:$PATH"
+          command -v app-store-connect
+          command -v keychain
+          command -v xcode-project
 
       - name: Restore App Store Connect key
         shell: bash
@@ -102,4 +109,6 @@ jobs:
       - name: Restore login keychain
         if: always()
         shell: bash
-        run: keychain use-login
+        run: |
+          export PATH="$(python3 -m site --user-base)/bin:$PATH"
+          keychain use-login
