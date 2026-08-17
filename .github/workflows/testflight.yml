@@ -18,7 +18,9 @@ jobs:
       - name: Set up Flutter
         shell: bash
         run: |
-          git clone https://github.com/flutter/flutter.git --depth 1 --branch stable "$HOME/flutter"
+          git clone https://github.com/flutter/flutter.git --filter=blob:none "$HOME/flutter"
+          cd "$HOME/flutter"
+          git checkout ff37bef603469fb030f2b72995ab929ccfc227f0
           echo "$HOME/flutter/bin" >> "$GITHUB_PATH"
           export PATH="$HOME/flutter/bin:$PATH"
           flutter --version
@@ -73,11 +75,7 @@ jobs:
           APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_IDENTIFIER }}
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
         run: |
-          app-store-connect fetch-signing-files "com.kantek.nailtalk" \
-            --platform IOS \
-            --type IOS_APP_STORE \
-            --certificate-key "@file:$RUNNER_TEMP/cert_key" \
-            --create
+          app-store-connect fetch-signing-files "com.kantek.nailtalk"             --platform IOS             --type IOS_APP_STORE             --certificate-key "@file:$RUNNER_TEMP/cert_key"             --create
 
       - name: Apply provisioning profiles
         shell: bash
@@ -88,11 +86,7 @@ jobs:
       - name: Build IPA
         shell: bash
         run: |
-          flutter build ipa \
-            --release \
-            --build-name=1.0.0 \
-            --build-number="${GITHUB_RUN_NUMBER}" \
-            --export-options-plist="$HOME/export_options.plist"
+          flutter build ipa             --release             --build-name=1.0.0             --build-number="${GITHUB_RUN_NUMBER}"             --export-options-plist="$HOME/export_options.plist"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
@@ -107,8 +101,7 @@ jobs:
           APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_IDENTIFIER }}
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
         run: |
-          app-store-connect publish \
-            --path "$(find "$PWD/build/ios/ipa" -name '*.ipa' | head -n 1)"
+          app-store-connect publish             --path "$(find "$PWD/build/ios/ipa" -name '*.ipa' | head -n 1)"
 
       - name: Restore login keychain
         if: always()
