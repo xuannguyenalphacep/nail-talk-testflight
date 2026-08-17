@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../controllers/chat_controller.dart';
 import '../controllers/session_controller.dart';
 import '../core/constants/app_constants.dart';
+import '../core/localization/app_localizer.dart';
 import '../core/utils/app_date_utils.dart';
 import '../core/utils/chat_content_utils.dart';
 import '../models/chat_message.dart';
@@ -18,6 +19,7 @@ import '../models/chat_user_option.dart';
 import '../services/attachment_open_service.dart';
 import 'attachment_preview_screen.dart';
 import '../widgets/app_logo.dart';
+import '../widgets/metro_ui.dart';
 import '../widgets/remote_image.dart';
 
 class ChatHomeScreen extends StatefulWidget {
@@ -156,8 +158,10 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
 
     _lastIncomingNoticeToken = token;
 
-    final roomTitle = controller.incomingNoticeRoomTitle ?? 'Chat';
-    final preview = controller.incomingNoticePreview ?? 'You have a new message.';
+    final roomTitle = controller.incomingNoticeRoomTitle ?? context.tr('Chat');
+    final preview =
+        controller.incomingNoticePreview ??
+        context.tr('You have a new message.');
     final roomId = controller.incomingNoticeRoomId;
     final messenger = ScaffoldMessenger.maybeOf(context);
 
@@ -186,7 +190,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
         action: roomId == null
             ? null
             : SnackBarAction(
-                label: 'Open',
+                label: context.tr('Open'),
                 onPressed: () {
                   final room = controller.findRoomById(roomId);
                   if (room != null) {
@@ -506,7 +510,9 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                                   ),
                                   const SizedBox(height: 3),
                                   Text(
-                                    'Tap a member to open a private chat.',
+                                    context.tr(
+                                      'Tap a member to open a private chat.',
+                                    ),
                                     style: const TextStyle(
                                       fontSize: 12,
                                       color: Color(0xFF6A7C97),
@@ -525,26 +531,32 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                           ConnectionState.waiting => const Center(
                             child: CircularProgressIndicator(),
                           ),
-                          _ when snapshot.hasError => const Center(
+                          _ when snapshot.hasError => Center(
                             child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 28),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 28,
+                              ),
                               child: Text(
-                                'Unable to load members right now.',
+                                context.tr('Unable to load members right now.'),
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Color(0xFF6A7C97),
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
                           ),
-                          _ when members.isEmpty => const Center(
+                          _ when members.isEmpty => Center(
                             child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 28),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 28,
+                              ),
                               child: Text(
-                                'This group does not have visible members yet.',
+                                context.tr(
+                                  'This group does not have visible members yet.',
+                                ),
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Color(0xFF6A7C97),
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -566,8 +578,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                                   borderRadius: BorderRadius.circular(18),
                                   onTap: () async {
                                     Navigator.of(context).pop();
-                                    await this
-                                        .context
+                                    await this.context
                                         .read<ChatController>()
                                         .createPrivateChat(member);
                                   },
@@ -579,8 +590,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                                           url: member.avatarUrl,
                                           name: member.name,
                                           radius: 23,
-                                          fallbackIcon:
-                                              Icons.person_rounded,
+                                          fallbackIcon: Icons.person_rounded,
                                         ),
                                         const SizedBox(width: 12),
                                         Expanded(
@@ -593,8 +603,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                                                     ? member.username
                                                     : member.name,
                                                 maxLines: 1,
-                                                overflow:
-                                                    TextOverflow.ellipsis,
+                                                overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.w800,
                                                   color: Color(0xFF223553),
@@ -606,8 +615,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                                                     ? member.email
                                                     : '@${member.username}',
                                                 maxLines: 1,
-                                                overflow:
-                                                    TextOverflow.ellipsis,
+                                                overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(
                                                   fontSize: 12,
                                                   color: Color(0xFF8090A9),
@@ -625,12 +633,13 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                                           ),
                                           decoration: BoxDecoration(
                                             color: const Color(0xFFE8F0FF),
-                                            borderRadius:
-                                                BorderRadius.circular(999),
+                                            borderRadius: BorderRadius.circular(
+                                              999,
+                                            ),
                                           ),
-                                          child: const Text(
-                                            'Message',
-                                            style: TextStyle(
+                                          child: Text(
+                                            context.tr('Message'),
+                                            style: const TextStyle(
                                               color: Color(0xFF316BFF),
                                               fontSize: 12,
                                               fontWeight: FontWeight.w800,
@@ -694,18 +703,18 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.push_pin_rounded,
                               color: Color(0xFF316BFF),
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text(
-                              'Pinned messages',
-                              style: TextStyle(
+                              context.tr('Pinned messages'),
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -716,10 +725,10 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                       const SizedBox(height: 8),
                       Expanded(
                         child: pins.isEmpty
-                            ? const Center(
+                            ? Center(
                                 child: Text(
-                                  'No data available',
-                                  style: TextStyle(
+                                  context.tr('No data available'),
+                                  style: const TextStyle(
                                     color: Color(0xFF6A7C97),
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -844,7 +853,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                 const SizedBox(height: 14),
                 ListTile(
                   leading: const Icon(Icons.reply_rounded),
-                  title: const Text('Reply'),
+                  title: Text(context.tr('Reply')),
                   onTap: () {
                     Navigator.of(context).pop();
                     setState(() => _replyingMessage = message);
@@ -856,7 +865,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                         ? Icons.push_pin_rounded
                         : Icons.push_pin_outlined,
                   ),
-                  title: Text(message.isPinned ? 'Unpin' : 'Pin'),
+                  title: Text(context.tr(message.isPinned ? 'Unpin' : 'Pin')),
                   onTap: () async {
                     Navigator.of(context).pop();
                     await chat.togglePin(message);
@@ -868,7 +877,9 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                         ? Icons.thumb_up_rounded
                         : Icons.thumb_up_outlined,
                   ),
-                  title: Text(message.likedByMe ? 'Remove like' : 'Like'),
+                  title: Text(
+                    context.tr(message.likedByMe ? 'Remove like' : 'Like'),
+                  ),
                   onTap: () async {
                     Navigator.of(context).pop();
                     await chat.toggleLike(message);
@@ -877,22 +888,24 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                 if (isMine && !message.isRecalled)
                   ListTile(
                     leading: const Icon(Icons.undo_rounded),
-                    title: const Text('Recall'),
+                    title: Text(context.tr('Recall')),
                     onTap: () async {
                       Navigator.of(context).pop();
                       final ok = await showDialog<bool>(
                         context: this.context,
                         builder: (context) => AlertDialog(
-                          title: const Text('Confirm'),
-                          content: const Text('Do you want to recall this message?'),
+                          title: Text(context.tr('Confirm')),
+                          content: Text(
+                            context.tr('Do you want to recall this message?'),
+                          ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text('Cancel'),
+                              child: Text(context.tr('Cancel')),
                             ),
                             FilledButton(
                               onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text('Recall'),
+                              child: Text(context.tr('Recall')),
                             ),
                           ],
                         ),
@@ -923,9 +936,30 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     return Consumer<ChatController>(
       builder: (context, chat, _) {
         final room = chat.activeRoom;
+        final canPop = Navigator.of(context).canPop();
 
         return Scaffold(
           appBar: AppBar(
+            automaticallyImplyLeading: false,
+            leading: room != null || canPop
+                ? IconButton(
+                    tooltip: context.tr('Back'),
+                    onPressed: () {
+                      if (room != null) {
+                        if (canPop) {
+                          Navigator.of(context).maybePop();
+                        } else {
+                          chat.clearActiveRoom();
+                        }
+                        return;
+                      }
+                      if (canPop) {
+                        Navigator.of(context).maybePop();
+                      }
+                    },
+                    icon: const Icon(Icons.arrow_back_rounded),
+                  )
+                : null,
             titleSpacing: 16,
             title: Row(
               children: [
@@ -943,7 +977,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                         ),
                       ),
                       Text(
-                        room?.title ?? 'Rooms',
+                        context.tr(room?.title ?? 'Community chat'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -958,12 +992,6 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
               ],
             ),
             actions: [
-              if (room != null)
-                IconButton(
-                  tooltip: 'Back',
-                  onPressed: chat.clearActiveRoom,
-                  icon: const Icon(Icons.arrow_back_rounded),
-                ),
               PopupMenuButton<String>(
                 onSelected: (value) async {
                   if (value == 'hidden') {
@@ -974,22 +1002,21 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                     await session.logout();
                   }
                 },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(value: 'hidden', child: Text('Hidden chats')),
-                  PopupMenuDivider(),
-                  PopupMenuItem(value: 'logout', child: Text('Sign out')),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'hidden',
+                    child: Text(context.tr('Hidden chats')),
+                  ),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: 'logout',
+                    child: Text(context.tr('Sign out')),
+                  ),
                 ],
               ),
             ],
           ),
-          body: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFFF7FAFF), Color(0xFFF2F6FD)],
-              ),
-            ),
+          body: MetroPageBackground(
             child: SafeArea(
               child: Column(
                 children: [
@@ -1057,58 +1084,115 @@ class _RoomListView extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
           child: Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: roomSearchController,
-                      onChanged: chat.setRoomSearch,
-                      decoration: const InputDecoration(
-                        hintText: 'Search rooms',
-                        prefixIcon: Icon(Icons.search_rounded),
+              SizedBox(
+                height: 188,
+                child: MetroImageFrame(
+                  borderColor: const Color(0xFF214D98),
+                  overlayTop: const Color(0x12000000),
+                  overlayBottom: const Color(0xD6151922),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const MetroBadge(label: 'Community chat'),
+                          const Spacer(),
+                          MetroBadge(
+                            label: '${rooms.length}',
+                            backgroundColor: const Color(0xFF214D98),
+                            foregroundColor: Colors.white,
+                            outlined: false,
+                          ),
+                        ],
                       ),
-                    ),
+                      const Spacer(),
+                      Text(
+                        context.tr('Community chat'),
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          color: Colors.white,
+                          fontSize: 28,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        context.tr(
+                          'Join admin-created groups, switch into private chats, and keep local conversations in one place.',
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.92),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  IconButton.filledTonal(
-                    onPressed: chat.refreshRooms,
-                    icon: const Icon(Icons.refresh_rounded),
-                  ),
-                ],
+                ),
               ),
               const SizedBox(height: 14),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
+              MetroInsetPanel(
+                borderColor: const Color(0xFF214D98),
+                child: Column(
                   children: [
-                    _FilterChipButton(
-                      label: 'Groups',
-                      selected: chat.roomFilter == RoomCollectionFilter.groups,
-                      onTap: () =>
-                          chat.setRoomFilter(RoomCollectionFilter.groups),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: roomSearchController,
+                            onChanged: chat.setRoomSearch,
+                            decoration: InputDecoration(
+                              hintText: context.tr('Search rooms'),
+                              prefixIcon: const Icon(Icons.search_rounded),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        MetroActionButton(
+                          icon: Icons.refresh_rounded,
+                          label: 'Refresh',
+                          onPressed: chat.refreshRooms,
+                        ),
+                      ],
                     ),
-                    _FilterChipButton(
-                      label: 'Direct chats',
-                      selected:
-                          chat.roomFilter == RoomCollectionFilter.privateChats,
-                      onTap: () =>
-                          chat.setRoomFilter(RoomCollectionFilter.privateChats),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _FilterChipButton(
+                          label: 'Groups',
+                          selected:
+                              chat.roomFilter == RoomCollectionFilter.groups,
+                          onTap: () =>
+                              chat.setRoomFilter(RoomCollectionFilter.groups),
+                        ),
+                        _FilterChipButton(
+                          label: 'Direct chats',
+                          selected:
+                              chat.roomFilter ==
+                              RoomCollectionFilter.privateChats,
+                          onTap: () => chat.setRoomFilter(
+                            RoomCollectionFilter.privateChats,
+                          ),
+                        ),
+                        _FilterChipButton(
+                          label: 'Favorites',
+                          selected:
+                              chat.roomFilter ==
+                              RoomCollectionFilter.bookmarked,
+                          onTap: () => chat.setRoomFilter(
+                            RoomCollectionFilter.bookmarked,
+                          ),
+                        ),
+                        if (chat.roomFilter == RoomCollectionFilter.hidden)
+                          _FilterChipButton(
+                            label: 'Hidden chats',
+                            selected:
+                                chat.roomFilter == RoomCollectionFilter.hidden,
+                            onTap: () =>
+                                chat.setRoomFilter(RoomCollectionFilter.hidden),
+                          ),
+                      ],
                     ),
-                    _FilterChipButton(
-                      label: 'Favorites',
-                      selected:
-                          chat.roomFilter == RoomCollectionFilter.bookmarked,
-                      onTap: () =>
-                          chat.setRoomFilter(RoomCollectionFilter.bookmarked),
-                    ),
-                    if (chat.roomFilter == RoomCollectionFilter.hidden)
-                      _FilterChipButton(
-                        label: 'Hidden chats',
-                        selected:
-                            chat.roomFilter == RoomCollectionFilter.hidden,
-                        onTap: () =>
-                            chat.setRoomFilter(RoomCollectionFilter.hidden),
-                      ),
                   ],
                 ),
               ),
@@ -1125,24 +1209,33 @@ class _RoomListView extends StatelessWidget {
                               width: 76,
                               height: 76,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEFF4FF),
-                                borderRadius: BorderRadius.circular(999),
+                                color: kMetroSurface,
+                                borderRadius: BorderRadius.circular(
+                                  kMetroRadius,
+                                ),
+                                border: Border.all(color: kMetroLine),
                               ),
                               child: const Icon(
                                 Icons.chat_bubble_outline_rounded,
                                 size: 34,
-                                color: Color(0xFF5C7CFA),
+                                color: kMetroInk,
                               ),
                             ),
                             const SizedBox(height: 16),
                             Text(
                               switch (chat.roomFilter) {
-                                RoomCollectionFilter.groups => 'No group chats yet',
-                                RoomCollectionFilter.privateChats =>
+                                RoomCollectionFilter.groups => context.tr(
+                                  'No group chats yet',
+                                ),
+                                RoomCollectionFilter.privateChats => context.tr(
                                   'No direct chats yet',
-                                RoomCollectionFilter.bookmarked =>
+                                ),
+                                RoomCollectionFilter.bookmarked => context.tr(
                                   'No favorite rooms yet',
-                                RoomCollectionFilter.hidden => 'No hidden chats yet',
+                                ),
+                                RoomCollectionFilter.hidden => context.tr(
+                                  'No hidden chats yet',
+                                ),
                               },
                               style: TextStyle(
                                 fontSize: 16,
@@ -1153,14 +1246,18 @@ class _RoomListView extends StatelessWidget {
                             const SizedBox(height: 8),
                             Text(
                               switch (chat.roomFilter) {
-                                RoomCollectionFilter.groups =>
+                                RoomCollectionFilter.groups => context.tr(
                                   'Browse admin-created public groups and tap one to join.',
-                                RoomCollectionFilter.privateChats =>
+                                ),
+                                RoomCollectionFilter.privateChats => context.tr(
                                   'Existing one-to-one chats will appear here.',
-                                RoomCollectionFilter.bookmarked =>
+                                ),
+                                RoomCollectionFilter.bookmarked => context.tr(
                                   'Rooms you favorite will appear here.',
-                                RoomCollectionFilter.hidden =>
+                                ),
+                                RoomCollectionFilter.hidden => context.tr(
                                   'Rooms you hide will appear here.',
+                                ),
                               },
                               textAlign: TextAlign.center,
                               style: const TextStyle(
@@ -1181,23 +1278,49 @@ class _RoomListView extends StatelessWidget {
                           final room = rooms[index];
                           final preview = room.lastMessage == null
                               ? room.canJoin
-                                    ? 'Tap to join this public group.'
+                                    ? context.tr(
+                                        'Tap to join this public group.',
+                                      )
                                     : (room.description.isNotEmpty
-                                          ? room.description
-                                          : 'No messages yet')
+                                          ? context.tr(room.description)
+                                          : context.tr('No messages yet'))
                               : ChatContentUtils.renderPlainText(
                                   room.lastMessage!.content,
                                 );
                           final metaLine = room.isGroup
-                              ? '${room.memberCount} members • ${room.isPublic ? 'Public group' : 'Private group'}'
+                              ? context.tr('{count} members • {type}', {
+                                  'count': '${room.memberCount}',
+                                  'type': context.tr(
+                                    room.isPublic
+                                        ? 'Public group'
+                                        : 'Private group',
+                                  ),
+                                })
                               : null;
+                          final borderColor = room.isGroup
+                              ? const Color(0xFF214D98)
+                              : const Color(0xFF2B9D6B);
+
                           return Material(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(22),
+                            color: Colors.transparent,
                             child: InkWell(
-                              borderRadius: BorderRadius.circular(22),
+                              borderRadius: BorderRadius.circular(kMetroRadius),
                               onTap: () => chat.openRoom(room),
-                              child: Padding(
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  color: kMetroSurface,
+                                  borderRadius: BorderRadius.circular(
+                                    kMetroRadius,
+                                  ),
+                                  border: Border.all(color: borderColor),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x0A000000),
+                                      blurRadius: 10,
+                                      offset: Offset(0, 5),
+                                    ),
+                                  ],
+                                ),
                                 padding: const EdgeInsets.all(14),
                                 child: Row(
                                   children: [
@@ -1222,9 +1345,11 @@ class _RoomListView extends StatelessWidget {
                                               decoration: BoxDecoration(
                                                 color: const Color(0xFF22C55E),
                                                 borderRadius:
-                                                    BorderRadius.circular(999),
+                                                    BorderRadius.circular(
+                                                      kMetroRadius,
+                                                    ),
                                                 border: Border.all(
-                                                  color: Colors.white,
+                                                  color: kMetroSurface,
                                                   width: 2,
                                                 ),
                                               ),
@@ -1275,19 +1400,30 @@ class _RoomListView extends StatelessWidget {
                                               height: 1.4,
                                             ),
                                           ),
-                                          if (metaLine != null) ...[
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              metaLine,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Color(0xFF90A0B8),
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                          ],
+                                          const SizedBox(height: 8),
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            children: [
+                                              if (metaLine != null)
+                                                MetroBadge(
+                                                  label: metaLine,
+                                                  backgroundColor: const Color(
+                                                    0xFFF0F3FA,
+                                                  ),
+                                                ),
+                                              if (room.canJoin)
+                                                const MetroBadge(
+                                                  label: 'Join',
+                                                  backgroundColor: Color(
+                                                    0xFFE8F6EF,
+                                                  ),
+                                                  foregroundColor: Color(
+                                                    0xFF0C8B55,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -1306,36 +1442,15 @@ class _RoomListView extends StatelessWidget {
                                                 : const Color(0xFF96A4BA),
                                           ),
                                         ),
-                                        if (room.canJoin)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 5,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFE8F6EF),
-                                              borderRadius:
-                                                  BorderRadius.circular(999),
-                                            ),
-                                            child: const Text(
-                                              'Join',
-                                              style: TextStyle(
-                                                color: Color(0xFF0C8B55),
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                            ),
-                                          )
-                                        else if (room.unreadCount > 0)
+                                        if (!room.canJoin &&
+                                            room.unreadCount > 0)
                                           Container(
                                             padding: const EdgeInsets.symmetric(
                                               horizontal: 9,
                                               vertical: 4,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFF316BFF),
-                                              borderRadius:
-                                                  BorderRadius.circular(999),
+                                              color: borderColor,
                                             ),
                                             child: Text(
                                               room.unreadCount.toString(),
@@ -1415,8 +1530,9 @@ class _RoomChatView extends StatelessWidget {
               margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
+                color: kMetroSurface,
+                borderRadius: BorderRadius.circular(kMetroRadius),
+                border: Border.all(color: kMetroLine),
               ),
               child: Row(
                 children: [
@@ -1446,9 +1562,16 @@ class _RoomChatView extends StatelessWidget {
                         Text(
                           room.isPrivate
                               ? (chat.isUserOnline(room.peerId)
-                                    ? 'Online'
-                                    : 'Private chat')
-                              : '${room.memberCount} members • ${room.isPublic ? 'Public group' : 'Group chat'}',
+                                    ? context.tr('Online')
+                                    : context.tr('Private chat'))
+                              : context.tr('{count} members • {type}', {
+                                  'count': '${room.memberCount}',
+                                  'type': context.tr(
+                                    room.isPublic
+                                        ? 'Public group'
+                                        : 'Group chat',
+                                  ),
+                                }),
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF6F8098),
@@ -1463,7 +1586,7 @@ class _RoomChatView extends StatelessWidget {
                     children: [
                       if (onShowMembers != null)
                         IconButton(
-                          tooltip: 'Members',
+                          tooltip: context.tr('Members'),
                           onPressed: onShowMembers,
                           icon: const Icon(Icons.groups_rounded),
                         ),
@@ -1471,7 +1594,7 @@ class _RoomChatView extends StatelessWidget {
                         clipBehavior: Clip.none,
                         children: [
                           IconButton(
-                            tooltip: 'Pinned messages',
+                            tooltip: context.tr('Pinned messages'),
                             onPressed: onShowPinnedMessages,
                             icon: const Icon(Icons.push_pin_rounded),
                           ),
@@ -1486,7 +1609,9 @@ class _RoomChatView extends StatelessWidget {
                                 ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF316BFF),
-                                  borderRadius: BorderRadius.circular(999),
+                                  borderRadius: BorderRadius.circular(
+                                    kMetroRadius,
+                                  ),
                                 ),
                                 child: Text(
                                   pinnedCount.toString(),
@@ -1515,16 +1640,24 @@ class _RoomChatView extends StatelessWidget {
                     itemBuilder: (context) => [
                       PopupMenuItem(
                         value: 'bookmark',
-                        child: Text(room.bookmarked ? 'Remove favorite' : 'Add to favorites'),
+                        child: Text(
+                          context.tr(
+                            room.bookmarked
+                                ? 'Remove favorite'
+                                : 'Add to favorites',
+                          ),
+                        ),
                       ),
                       PopupMenuItem(
                         value: chat.roomFilter == RoomCollectionFilter.hidden
                             ? 'unhide'
                             : 'hide',
                         child: Text(
-                          chat.roomFilter == RoomCollectionFilter.hidden
-                              ? 'Restore'
-                              : 'Hide',
+                          context.tr(
+                            chat.roomFilter == RoomCollectionFilter.hidden
+                                ? 'Restore'
+                                : 'Hide',
+                          ),
                         ),
                       ),
                     ],
@@ -1552,7 +1685,7 @@ class _RoomChatView extends StatelessWidget {
                                 ),
                               )
                             : const Icon(Icons.expand_less_rounded),
-                        label: const Text('Load older messages'),
+                        label: Text(context.tr('Load older messages')),
                       ),
                     ),
                   ...chronological.map(
@@ -1634,7 +1767,7 @@ class _RoomChatView extends StatelessWidget {
                               ),
                             ),
                             IconButton(
-                              tooltip: 'Cancel reply',
+                              tooltip: context.tr('Cancel reply'),
                               onPressed: onClearReply,
                               icon: const Icon(Icons.close_rounded),
                             ),
@@ -1671,7 +1804,7 @@ class _RoomChatView extends StatelessWidget {
                                       ? user.name
                                       : user.username);
                             final subtitle = user.mentionAll
-                                ? 'Everyone'
+                                ? context.tr('Everyone')
                                 : '@${user.loginId.isNotEmpty ? user.loginId : (user.mentionKey.isNotEmpty ? user.mentionKey : user.username)}';
                             return InkWell(
                               onTap: () => unawaited(onPickMention(user)),
@@ -1740,8 +1873,8 @@ class _RoomChatView extends StatelessWidget {
                             maxLines: 5,
                             textInputAction: TextInputAction.send,
                             onSubmitted: (_) => onSendText(),
-                            decoration: const InputDecoration(
-                              hintText: 'Type a message',
+                            decoration: InputDecoration(
+                              hintText: context.tr('Type a message'),
                             ),
                           ),
                         ),
@@ -1923,7 +2056,7 @@ class _MessageBubble extends StatelessWidget {
                       if (message.isPinned)
                         _MiniMessageBadge(
                           icon: Icons.push_pin_rounded,
-                          label: 'Pin',
+                          label: context.tr('Pin'),
                           foregroundColor: isMine
                               ? Colors.white
                               : const Color(0xFF316BFF),
@@ -2135,11 +2268,14 @@ class _MessageContent extends StatelessWidget {
     final decoded = ChatContentUtils.decodeFileContent(message.content).trim();
     if (decoded.isNotEmpty) return decoded;
     if (plainText.trim().isNotEmpty) return plainText.trim();
-    return message.isImage ? 'Image preview' : 'File preview';
+    return message.isImage
+        ? AppLocalizer.current.tr('Image preview')
+        : AppLocalizer.current.tr('File preview');
   }
 
   Future<void> _openFile(BuildContext context) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final errorMessage = AppLocalizer.current.tr('Unable to open the file.');
     try {
       await openAttachmentExternally(
         url: message.filePath!,
@@ -2148,12 +2284,12 @@ class _MessageContent extends StatelessWidget {
     } catch (_) {
       messenger?.hideCurrentSnackBar();
       messenger?.showSnackBar(
-        const SnackBar(
+        SnackBar(
           behavior: SnackBarBehavior.floating,
           backgroundColor: Color(0xFFBF3A3A),
           content: Text(
-            'Unable to open the file.',
-            style: TextStyle(fontWeight: FontWeight.w700),
+            errorMessage,
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
       );
@@ -2188,12 +2324,33 @@ class _FilterChipButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => onTap(),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(kMetroRadius),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? kMetroCoralSoft : kMetroSurface,
+          borderRadius: BorderRadius.circular(kMetroRadius),
+          border: Border.all(color: selected ? kMetroCoral : kMetroLine),
+          boxShadow: selected
+              ? const [
+                  BoxShadow(
+                    color: Color(0x10F36C84),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          context.tr(label),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: selected ? kMetroPrimary : kMetroInk,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ),
     );
   }
@@ -2227,7 +2384,8 @@ class _Avatar extends StatelessWidget {
       height: radius * 2,
       decoration: BoxDecoration(
         color: const Color(0xFFEAF1FB),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(kMetroRadius),
+        border: Border.all(color: kMetroLine),
       ),
       clipBehavior: Clip.antiAlias,
       child: RemoteImage(
@@ -2235,7 +2393,7 @@ class _Avatar extends StatelessWidget {
         width: radius * 2,
         height: radius * 2,
         fit: BoxFit.cover,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(kMetroRadius),
         errorFallback: fallback,
       ),
     );

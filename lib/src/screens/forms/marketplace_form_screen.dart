@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../controllers/social_hub_controller.dart';
+import '../../core/localization/app_localizer.dart';
 import '../../widgets/us_state_dropdown_field.dart';
 
 class MarketplaceFormScreen extends StatefulWidget {
@@ -69,28 +70,28 @@ class _MarketplaceFormScreenState extends State<MarketplaceFormScreen> {
     final controller = context.watch<SocialHubController>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Market Listing')),
+      appBar: AppBar(title: Text(context.tr('Create Market Listing'))),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
-              _Field(controller: _titleController, label: 'Title'),
+              _Field(controller: _titleController, label: context.tr('Title')),
               const SizedBox(height: 12),
               DropdownButtonFormField<int?>(
                 initialValue: _selectedCategoryId,
-                decoration: const InputDecoration(labelText: 'Category'),
+                decoration: InputDecoration(labelText: context.tr('Category')),
                 isExpanded: true,
                 items: [
-                  const DropdownMenuItem<int?>(
+                  DropdownMenuItem<int?>(
                     value: null,
-                    child: Text('No category'),
+                    child: Text(context.tr('No category')),
                   ),
                   ...controller.marketplaceCategories.map(
                     (category) => DropdownMenuItem<int?>(
                       value: category.id,
-                      child: Text(category.name),
+                      child: Text(context.tr(category.name)),
                     ),
                   ),
                 ],
@@ -101,20 +102,23 @@ class _MarketplaceFormScreenState extends State<MarketplaceFormScreen> {
               const SizedBox(height: 12),
               _Field(
                 controller: _descriptionController,
-                label: 'Description',
+                label: context.tr('Description'),
                 lines: 4,
               ),
               const SizedBox(height: 12),
               _Field(
                 controller: _priceController,
-                label: 'Price (USD)',
+                label: context.tr('Price (USD)'),
                 keyboard: TextInputType.number,
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
-                    child: _Field(controller: _cityController, label: 'City'),
+                    child: _Field(
+                      controller: _cityController,
+                      label: context.tr('City'),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -131,21 +135,23 @@ class _MarketplaceFormScreenState extends State<MarketplaceFormScreen> {
               const SizedBox(height: 12),
               _Field(
                 controller: _imageUrlsController,
-                label: 'Image URLs (comma or new line separated)',
+                label: context.tr('Image URLs (comma or new line separated)'),
                 lines: 3,
                 required: false,
               ),
               const SizedBox(height: 12),
-              _Field(controller: _phoneController, label: 'Phone'),
+              _Field(controller: _phoneController, label: context.tr('Phone')),
               const SizedBox(height: 12),
-              _Field(controller: _emailController, label: 'Email'),
+              _Field(controller: _emailController, label: context.tr('Email')),
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: controller.submitting ? null : _submit,
                   child: Text(
-                    controller.submitting ? 'Posting...' : 'Publish Listing',
+                    controller.submitting
+                        ? context.tr('Posting...')
+                        : context.tr('Publish Listing'),
                   ),
                 ),
               ),
@@ -180,7 +186,9 @@ class _Field extends StatelessWidget {
       minLines: lines,
       maxLines: lines,
       validator: required
-          ? (value) => value == null || value.trim().isEmpty ? 'Required' : null
+          ? (value) => value == null || value.trim().isEmpty
+                ? context.tr('Required')
+                : null
           : null,
       decoration: InputDecoration(labelText: label),
     );

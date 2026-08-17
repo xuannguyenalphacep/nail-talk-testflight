@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../controllers/social_hub_controller.dart';
+import '../../core/localization/app_localizer.dart';
 import '../../widgets/us_state_dropdown_field.dart';
 
 class PropertyFormScreen extends StatefulWidget {
@@ -91,7 +92,7 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
     };
 
     return Scaffold(
-      appBar: AppBar(title: Text(pageTitle)),
+      appBar: AppBar(title: Text(context.tr(pageTitle))),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -100,26 +101,28 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Post a room share, rental home, or housing request anywhere in the United States.',
+                context.tr(
+                  'Post a room share, rental home, or housing request anywhere in the United States.',
+                ),
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 12),
               SegmentedButton<String>(
-                segments: const [
+                segments: [
                   ButtonSegment<String>(
                     value: 'room_share',
-                    icon: Icon(Icons.people_alt_rounded),
-                    label: Text('Room share'),
+                    icon: const Icon(Icons.people_alt_rounded),
+                    label: Text(context.tr('Room share')),
                   ),
                   ButtonSegment<String>(
                     value: 'rent_out',
-                    icon: Icon(Icons.house_rounded),
-                    label: Text('Homes for rent'),
+                    icon: const Icon(Icons.house_rounded),
+                    label: Text(context.tr('Homes for rent')),
                   ),
                   ButtonSegment<String>(
                     value: 'looking_room',
-                    icon: Icon(Icons.search_rounded),
-                    label: Text('Looking for a room'),
+                    icon: const Icon(Icons.search_rounded),
+                    label: Text(context.tr('Looking for a room')),
                   ),
                 ],
                 selected: {_selectedMode},
@@ -130,16 +133,20 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
               const SizedBox(height: 12),
               _Field(
                 controller: _titleController,
-                label: _selectedMode == 'looking_room'
-                    ? 'Need Title'
-                    : 'Listing Title',
+                label: context.tr(
+                  _selectedMode == 'looking_room'
+                      ? 'Need Title'
+                      : 'Listing Title',
+                ),
               ),
               const SizedBox(height: 12),
               _Field(
                 controller: _descriptionController,
-                label: _selectedMode == 'looking_room'
-                    ? 'What you are looking for'
-                    : 'Description',
+                label: context.tr(
+                  _selectedMode == 'looking_room'
+                      ? 'What you are looking for'
+                      : 'Description',
+                ),
                 lines: 4,
               ),
               const SizedBox(height: 12),
@@ -148,7 +155,7 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
                   Expanded(
                     child: _Field(
                       controller: _priceController,
-                      label: 'Price',
+                      label: context.tr('Price'),
                       keyboard: TextInputType.number,
                     ),
                   ),
@@ -156,7 +163,7 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
                   Expanded(
                     child: _Field(
                       controller: _depositController,
-                      label: 'Deposit',
+                      label: context.tr('Deposit'),
                       keyboard: TextInputType.number,
                       required: false,
                     ),
@@ -167,7 +174,10 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: _Field(controller: _cityController, label: 'City'),
+                    child: _Field(
+                      controller: _cityController,
+                      label: context.tr('City'),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -184,35 +194,39 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
               const SizedBox(height: 12),
               _Field(
                 controller: _addressController,
-                label: _selectedMode == 'looking_room'
-                    ? 'Preferred Area / Address'
-                    : 'Address',
+                label: context.tr(
+                  _selectedMode == 'looking_room'
+                      ? 'Preferred Area / Address'
+                      : 'Address',
+                ),
                 required: _selectedMode != 'looking_room',
               ),
               const SizedBox(height: 12),
               _Field(
                 controller: _amenitiesController,
-                label: 'Amenities (comma separated)',
+                label: context.tr('Amenities (comma separated)'),
                 required: false,
               ),
               const SizedBox(height: 12),
               _Field(
                 controller: _imageUrlsController,
-                label: 'Image URLs (comma or new line separated)',
+                label: context.tr('Image URLs (comma or new line separated)'),
                 lines: 3,
                 required: false,
               ),
               const SizedBox(height: 12),
-              _Field(controller: _phoneController, label: 'Phone'),
+              _Field(controller: _phoneController, label: context.tr('Phone')),
               const SizedBox(height: 12),
-              _Field(controller: _emailController, label: 'Email'),
+              _Field(controller: _emailController, label: context.tr('Email')),
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: controller.submitting ? null : _submit,
                   child: Text(
-                    controller.submitting ? 'Posting...' : 'Publish Listing',
+                    controller.submitting
+                        ? context.tr('Posting...')
+                        : context.tr('Publish Listing'),
                   ),
                 ),
               ),
@@ -247,7 +261,9 @@ class _Field extends StatelessWidget {
       minLines: lines,
       maxLines: lines,
       validator: required
-          ? (value) => value == null || value.trim().isEmpty ? 'Required' : null
+          ? (value) => value == null || value.trim().isEmpty
+                ? context.tr('Required')
+                : null
           : null,
       decoration: InputDecoration(labelText: label),
     );

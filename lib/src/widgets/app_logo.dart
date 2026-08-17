@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../core/localization/app_localizer.dart';
+
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key, this.size = 56, this.showWordmark = true});
 
@@ -8,12 +10,14 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final semanticLabel = AppLocalizer.current.tr('Welcome to Nails Talk');
+
     if (showWordmark) {
       return Image.asset(
         'assets/branding/brand_logo.png',
         height: size,
         fit: BoxFit.contain,
-        semanticLabel: 'Nail Talk',
+        semanticLabel: semanticLabel,
       );
     }
 
@@ -22,7 +26,7 @@ class AppLogo extends StatelessWidget {
       width: size,
       height: size,
       fit: BoxFit.contain,
-      semanticLabel: 'Nail Talk',
+      semanticLabel: semanticLabel,
     );
   }
 }

@@ -1,83 +1,95 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../widgets/metro_ui.dart';
+
 class AppTheme {
   const AppTheme._();
 
   static ThemeData get light {
-    const seed = Color(0xFF1B74E4);
-    const accent = Color(0xFF0F8E7C);
-    const tertiary = Color(0xFF4F46E5);
-    const canvas = Color(0xFFF3F6FB);
-    const surface = Color(0xFFFFFFFF);
-    const ink = Color(0xFF16263C);
-    const muted = Color(0xFF6F8096);
-    const line = Color(0xFFE4EBF5);
+    const seed = kMetroPrimary;
+    const accent = kMetroCoral;
+    const canvas = kMetroCanvas;
+    const canvasDeep = kMetroCanvasDeep;
+    const surface = kMetroSurface;
+    const ink = kMetroInk;
+    const muted = kMetroMuted;
+    const line = kMetroLine;
 
     final scheme = ColorScheme.fromSeed(
       seedColor: seed,
       brightness: Brightness.light,
       primary: seed,
       secondary: accent,
-      tertiary: tertiary,
       surface: surface,
     );
 
     final base = ThemeData(useMaterial3: true, colorScheme: scheme);
-    final bodyTextTheme = GoogleFonts.plusJakartaSansTextTheme(base.textTheme);
+    final bodyTextTheme = GoogleFonts.outfitTextTheme(base.textTheme);
     final textTheme = bodyTextTheme.copyWith(
-      headlineMedium: GoogleFonts.sora(
-        fontSize: 30,
-        fontWeight: FontWeight.w700,
+      headlineMedium: GoogleFonts.outfit(
+        fontSize: 28,
+        fontWeight: FontWeight.w800,
         color: ink,
-        height: 1.06,
+        height: 1.02,
       ),
-      titleLarge: GoogleFonts.sora(
+      titleLarge: GoogleFonts.outfit(
         fontSize: 22,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w800,
         color: ink,
-        height: 1.14,
+        height: 1.08,
       ),
-      titleMedium: GoogleFonts.sora(
+      titleMedium: GoogleFonts.outfit(
         fontSize: 16,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w800,
         color: ink,
+        height: 1.1,
       ),
-      bodyLarge: GoogleFonts.plusJakartaSans(
+      bodyLarge: GoogleFonts.outfit(
         fontSize: 15,
-        height: 1.52,
+        height: 1.42,
         color: ink,
         fontWeight: FontWeight.w600,
       ),
-      bodyMedium: GoogleFonts.plusJakartaSans(
+      bodyMedium: GoogleFonts.outfit(
         fontSize: 14,
-        height: 1.55,
-        color: muted,
-        fontWeight: FontWeight.w500,
-      ),
-      bodySmall: GoogleFonts.plusJakartaSans(
-        fontSize: 12,
-        height: 1.45,
+        height: 1.38,
         color: muted,
         fontWeight: FontWeight.w600,
       ),
-      labelLarge: GoogleFonts.plusJakartaSans(
+      bodySmall: GoogleFonts.outfit(
+        fontSize: 12,
+        height: 1.28,
+        color: muted,
+        fontWeight: FontWeight.w700,
+      ),
+      labelLarge: GoogleFonts.outfit(
         fontSize: 14,
         fontWeight: FontWeight.w800,
-        letterSpacing: 0.05,
+        color: ink,
+        letterSpacing: 0.1,
       ),
     );
+
+    OutlineInputBorder inputBorder(Color color, {double width = 1.1}) {
+      return OutlineInputBorder(
+        borderRadius: BorderRadius.circular(2),
+        borderSide: BorderSide(color: color, width: width),
+      );
+    }
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: canvas,
+      canvasColor: canvasDeep,
       textTheme: textTheme,
+      splashFactory: InkSparkle.splashFactory,
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: const Color(0xFFF7FAFF),
+        backgroundColor: canvas,
         foregroundColor: ink,
         surfaceTintColor: Colors.transparent,
         titleTextStyle: textTheme.titleLarge,
@@ -87,58 +99,47 @@ class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(2),
           side: const BorderSide(color: line),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFFF9FBFF),
+        fillColor: surface,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 18,
+          horizontal: 14,
+          vertical: 14,
         ),
-        labelStyle: textTheme.bodyMedium,
+        labelStyle: textTheme.bodyMedium?.copyWith(color: ink),
         helperStyle: textTheme.bodySmall,
         hintStyle: textTheme.bodyMedium?.copyWith(
-          color: const Color(0xFF90A1B7),
+          color: const Color(0xFF8A8F97),
         ),
-        prefixIconColor: const Color(0xFF5E728C),
-        suffixIconColor: const Color(0xFF5E728C),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: Color(0xFFD8E2EF)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: Color(0xFFD8E2EF)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: seed, width: 1.6),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: Color(0xFFD3485A), width: 1.2),
-        ),
+        prefixIconColor: muted,
+        suffixIconColor: muted,
+        border: inputBorder(line),
+        enabledBorder: inputBorder(line),
+        focusedBorder: inputBorder(seed, width: 1.4),
+        errorBorder: inputBorder(const Color(0xFFB33A3A), width: 1.2),
+        focusedErrorBorder: inputBorder(const Color(0xFFB33A3A), width: 1.3),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 74,
-        indicatorColor: seed.withValues(alpha: 0.12),
+        height: 72,
+        indicatorColor: kMetroCoralSoft,
         backgroundColor: surface,
         surfaceTintColor: Colors.transparent,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return textTheme.bodySmall!.copyWith(
             fontWeight: FontWeight.w800,
-            color: selected ? ink : const Color(0xFF7C8DA2),
+            color: selected ? ink : muted,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            color: selected ? seed : const Color(0xFF7C8DA2),
-            size: selected ? 26 : 24,
+            color: selected ? seed : muted,
+            size: selected ? 24 : 22,
           );
         }),
       ),
@@ -146,14 +147,12 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: seed,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: const Color(0xFFB7CCEF),
+          disabledBackgroundColor: const Color(0xFFC7CFDF),
           disabledForegroundColor: Colors.white,
           elevation: 0,
-          minimumSize: const Size(0, 54),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
+          minimumSize: const Size(0, 50),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
           textStyle: textTheme.labelLarge,
         ),
       ),
@@ -162,16 +161,15 @@ class AppTheme {
           foregroundColor: ink,
           side: const BorderSide(color: line),
           backgroundColor: surface,
-          minimumSize: const Size(0, 50),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
+          minimumSize: const Size(0, 48),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
           textStyle: textTheme.labelLarge,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: seed,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
           textStyle: textTheme.labelLarge,
         ),
       ),
@@ -179,6 +177,9 @@ class AppTheme {
         backgroundColor: seed,
         foregroundColor: Colors.white,
         elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(2)),
+        ),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: ink,
@@ -186,7 +187,7 @@ class AppTheme {
           color: Colors.white,
           fontWeight: FontWeight.w700,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
         behavior: SnackBarBehavior.floating,
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
@@ -197,7 +198,7 @@ class AppTheme {
           side: const WidgetStatePropertyAll(BorderSide(color: line)),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return seed.withValues(alpha: 0.10);
+              return seed.withValues(alpha: 0.14);
             }
             return surface;
           }),
@@ -208,19 +209,24 @@ class AppTheme {
             return muted;
           }),
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
           ),
         ),
       ),
       chipTheme: ChipThemeData(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-        side: BorderSide.none,
-        backgroundColor: const Color(0xFFF1F5FB),
-        selectedColor: seed.withValues(alpha: 0.12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+        side: const BorderSide(color: line),
+        backgroundColor: surface,
+        selectedColor: kMetroCoralSoft,
         labelStyle: textTheme.bodySmall?.copyWith(
           color: ink,
           fontWeight: FontWeight.w800,
         ),
+      ),
+      dividerTheme: const DividerThemeData(color: line, thickness: 1, space: 1),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: seed,
+        linearTrackColor: Color(0xFFE2E5E8),
       ),
     );
   }

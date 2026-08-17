@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/localization/app_localizer.dart';
 import '../widgets/remote_image.dart';
 
 class AttachmentPreviewScreen extends StatelessWidget {
@@ -35,11 +36,11 @@ class AttachmentPreviewScreen extends StatelessWidget {
                   width: constraints.maxWidth,
                   height: constraints.maxHeight,
                   fit: BoxFit.contain,
-                  errorFallback: const Padding(
-                    padding: EdgeInsets.all(24),
+                  errorFallback: Padding(
+                    padding: const EdgeInsets.all(24),
                     child: Text(
-                      'Unable to display the image.',
-                      style: TextStyle(
+                      context.tr('Unable to display the image.'),
+                      style: const TextStyle(
                         color: Color(0xFF6A7C97),
                         fontWeight: FontWeight.w700,
                       ),

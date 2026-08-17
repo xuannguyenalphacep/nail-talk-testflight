@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../controllers/chat_controller.dart';
 import '../controllers/session_controller.dart';
 import '../controllers/social_hub_controller.dart';
 import '../core/constants/app_constants.dart';
+import '../core/localization/app_localizer.dart';
 import '../core/theme/app_theme.dart';
 import '../screens/login_screen.dart';
 import '../screens/social_hub_shell_screen.dart';
@@ -30,6 +32,7 @@ class _ChatMobileAppState extends State<ChatMobileApp>
   late final ChatSocketService _socketService;
   late final DeviceIdentityService _deviceIdentityService;
   late final PushNotificationService _pushNotificationService;
+  late final AppLocaleController _localeController;
   late final SessionController _sessionController;
   late final ChatController _chatController;
   late final SocialHubController _socialHubController;
@@ -45,6 +48,7 @@ class _ChatMobileAppState extends State<ChatMobileApp>
     _socketService = ChatSocketService();
     _deviceIdentityService = DeviceIdentityService(_storageService);
     _pushNotificationService = const PushNotificationService();
+    _localeController = AppLocaleController(_storageService);
     _sessionController = SessionController(
       apiService: _apiService,
       storageService: _storageService,
@@ -97,6 +101,9 @@ class _ChatMobileAppState extends State<ChatMobileApp>
         Provider<PushNotificationService>.value(
           value: _pushNotificationService,
         ),
+        ChangeNotifierProvider<AppLocaleController>.value(
+          value: _localeController,
+        ),
         ChangeNotifierProvider<SessionController>.value(
           value: _sessionController,
         ),
@@ -105,20 +112,29 @@ class _ChatMobileAppState extends State<ChatMobileApp>
           value: _socialHubController,
         ),
       ],
-      child: MaterialApp(
-        title: AppConstants.appName,
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        home: Consumer<SessionController>(
-          builder: (context, session, _) {
-            if (session.bootstrapping) {
-              return const _SplashScreen();
-            }
-            if (!session.isLoggedIn) {
-              return const LoginScreen();
-            }
-            return const SocialHubShellScreen();
-          },
+      child: Consumer<AppLocaleController>(
+        builder: (context, localeController, _) => MaterialApp(
+          title: AppConstants.appName,
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          locale: localeController.locale,
+          supportedLocales: const [Locale('vi'), Locale('en')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Consumer<SessionController>(
+            builder: (context, session, _) {
+              if (session.bootstrapping) {
+                return const _SplashScreen();
+              }
+              if (!session.isLoggedIn) {
+                return const LoginScreen();
+              }
+              return const SocialHubShellScreen();
+            },
+          ),
         ),
       ),
     );
@@ -139,16 +155,18 @@ class _SplashScreen extends StatelessWidget {
             colors: [Color(0xFFF6F9FF), Color(0xFFEAF2FF)],
           ),
         ),
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AppLogo(size: 94),
-              SizedBox(height: 22),
-              CircularProgressIndicator(),
-              SizedBox(height: 18),
+              const AppLogo(size: 94),
+              const SizedBox(height: 22),
+              const CircularProgressIndicator(),
+              const SizedBox(height: 18),
               Text(
-                'Launching ${AppConstants.appName}...',
+                context.tr('Launching {appName}...', {
+                  'appName': AppConstants.appName,
+                }),
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,

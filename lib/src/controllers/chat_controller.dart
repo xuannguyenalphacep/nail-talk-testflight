@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 
+import '../core/localization/app_localizer.dart';
 import '../core/utils/chat_content_utils.dart';
 import '../models/chat_message.dart';
 import '../models/chat_message_page.dart';
@@ -183,7 +184,7 @@ class ChatController extends ChangeNotifier {
         // Ignore secondary failures; keep the original socket error behavior.
       }
       if (_rooms.isEmpty) {
-        _error = 'Failed to load chat rooms.';
+        _error = AppLocalizer.current.tr('Failed to load chat rooms.');
       } else {
         _error = null;
       }
@@ -256,7 +257,7 @@ class ChatController extends ChangeNotifier {
         debugPrint('[ChatController] refreshRooms failed: $error');
       }
       if (!silent) {
-        _error = 'Failed to load chat rooms.';
+        _error = AppLocalizer.current.tr('Failed to load chat rooms.');
       }
     } finally {
       if (!silent) {
@@ -288,7 +289,7 @@ class ChatController extends ChangeNotifier {
             findRoomById(joinedRoom.id) ??
             joinedRoom.copyWith(isJoined: true, canJoin: false);
       } catch (_) {
-        _error = 'Failed to join this group.';
+        _error = AppLocalizer.current.tr('Failed to join this group.');
         notifyListeners();
         return;
       }
@@ -340,7 +341,7 @@ class ChatController extends ChangeNotifier {
         debugPrint('[ChatController] openRoom failed room=${room.id}');
       }
       if (cached == null || _messages.isEmpty) {
-        _error = 'Failed to load chat history.';
+        _error = AppLocalizer.current.tr('Failed to load chat history.');
       }
     } finally {
       _loadingMessages = false;
@@ -397,7 +398,7 @@ class ChatController extends ChangeNotifier {
       _messageLastPage = page.lastPage;
       _cacheMessagesForRoom(_activeRoom!.id);
     } catch (_) {
-      _error = 'Failed to load older messages.';
+      _error = AppLocalizer.current.tr('Failed to load older messages.');
     } finally {
       _loadingMessages = false;
       notifyListeners();
@@ -423,7 +424,7 @@ class ChatController extends ChangeNotifier {
       });
       _optimisticallyBumpRoom(room.id, text, user.id, user.name);
     } catch (_) {
-      _error = 'Failed to send the message.';
+      _error = AppLocalizer.current.tr('Failed to send the message.');
       notifyListeners();
     } finally {
       _sending = false;
@@ -459,7 +460,7 @@ class ChatController extends ChangeNotifier {
         user.name,
       );
     } catch (_) {
-      _error = 'Failed to send the file.';
+      _error = AppLocalizer.current.tr('Failed to send the file.');
       notifyListeners();
     } finally {
       _sending = false;
@@ -474,20 +475,59 @@ class ChatController extends ChangeNotifier {
   Future<void> openPrivateChatByUserId(int userId) async {
     final currentUserId = _sessionController.user?.id;
     if (userId <= 0 || currentUserId == null || userId == currentUserId) {
-      _error = 'Unable to start a chat with this account.';
+      _error = AppLocalizer.current.tr(
+        'Unable to start a chat with this account.',
+      );
       notifyListeners();
       return;
     }
 
     try {
       final roomId = await _apiService.createPrivateRoom(userId);
-      await refreshRooms();
-      final room = _rooms.firstWhere((item) => item.id == roomId);
+      await refreshRooms(silent: true);
+      await refreshHiddenRooms(silent: true);
+      var room = _findPrivateRoomForUser(userId, preferredRoomId: roomId);
+      if (room == null) {
+        await Future<void>.delayed(const Duration(milliseconds: 280));
+        await refreshRooms(silent: true);
+        await refreshHiddenRooms(silent: true);
+        room = _findPrivateRoomForUser(userId, preferredRoomId: roomId);
+      }
+      if (room == null) {
+        throw StateError('Private room was not returned for user $userId');
+      }
+      final hiddenMatch = _hiddenRooms.any((item) => item.id == room!.id);
+      if (hiddenMatch) {
+        await unhideRoom(room);
+        room = findRoomById(room.id) ?? room;
+      }
+      _roomFilter = RoomCollectionFilter.privateChats;
       await openRoom(room);
     } catch (_) {
-      _error = 'Failed to start the chat.';
+      _error = AppLocalizer.current.tr('Failed to start the chat.');
       notifyListeners();
     }
+  }
+
+  ChatRoom? _findPrivateRoomForUser(int userId, {int? preferredRoomId}) {
+    if (preferredRoomId != null && preferredRoomId > 0) {
+      final directMatch = findRoomById(preferredRoomId);
+      if (directMatch != null) {
+        return directMatch;
+      }
+    }
+
+    for (final room in _rooms) {
+      if (room.isPrivate && room.peerId == userId) {
+        return room;
+      }
+    }
+    for (final room in _hiddenRooms) {
+      if (room.isPrivate && room.peerId == userId) {
+        return room;
+      }
+    }
+    return null;
   }
 
   Future<List<ChatUserOption>> fetchGroupMembers(int roomId) async {
@@ -512,7 +552,7 @@ class ChatController extends ChangeNotifier {
       final room = _rooms.firstWhere((item) => item.id == roomId);
       await openRoom(room);
     } catch (_) {
-      _error = 'Failed to create the group.';
+      _error = AppLocalizer.current.tr('Failed to create the group.');
       notifyListeners();
     }
   }
@@ -525,7 +565,7 @@ class ChatController extends ChangeNotifier {
       await _apiService.renameGroup(roomId: room.id, name: name);
       _replaceRoom(room.copyWith(title: name));
     } catch (_) {
-      _error = 'Failed to rename the group.';
+      _error = AppLocalizer.current.tr('Failed to rename the group.');
       notifyListeners();
     }
   }
@@ -535,7 +575,7 @@ class ChatController extends ChangeNotifier {
       final bookmarked = await _socketService.toggleBookmark(room.id);
       _replaceRoom(room.copyWith(bookmarked: bookmarked));
     } catch (_) {
-      _error = 'Failed to update favorites.';
+      _error = AppLocalizer.current.tr('Failed to update favorites.');
       notifyListeners();
     }
   }
@@ -551,7 +591,7 @@ class ChatController extends ChangeNotifier {
       }
       notifyListeners();
     } catch (_) {
-      _error = 'Failed to hide the room.';
+      _error = AppLocalizer.current.tr('Failed to hide the room.');
       notifyListeners();
     }
   }
@@ -563,7 +603,7 @@ class ChatController extends ChangeNotifier {
       await refreshRooms();
       notifyListeners();
     } catch (_) {
-      _error = 'Failed to restore the room.';
+      _error = AppLocalizer.current.tr('Failed to restore the room.');
       notifyListeners();
     }
   }
@@ -577,7 +617,7 @@ class ChatController extends ChangeNotifier {
       _error = null;
       notifyListeners();
     } catch (_) {
-      _error = 'Failed to search users.';
+      _error = AppLocalizer.current.tr('Failed to search users.');
       _userResults.clear();
       notifyListeners();
     }
@@ -673,7 +713,12 @@ class ChatController extends ChangeNotifier {
 
   Future<void> focusPinnedMessage(int messageId) async {
     if (messageId <= 0) return;
-    await jumpToMessage(messageId, failureMessage: 'Failed to load the pinned message.');
+    await jumpToMessage(
+      messageId,
+      failureMessage: AppLocalizer.current.tr(
+        'Failed to load the pinned message.',
+      ),
+    );
   }
 
   Future<void> loadPinnedMessages() async {
@@ -683,7 +728,7 @@ class ChatController extends ChangeNotifier {
       final pins = await _socketService.fetchPinnedMessages(room.id);
       _replacePinnedMessages(pins);
     } catch (_) {
-      _error = 'Failed to load pinned messages.';
+      _error = AppLocalizer.current.tr('Failed to load pinned messages.');
       notifyListeners();
     }
   }
@@ -694,7 +739,7 @@ class ChatController extends ChangeNotifier {
     try {
       await _socketService.togglePin(roomId: room.id, messageId: message.id);
     } catch (_) {
-      _error = 'Failed to update the pin.';
+      _error = AppLocalizer.current.tr('Failed to update the pin.');
       notifyListeners();
     }
   }
@@ -708,7 +753,7 @@ class ChatController extends ChangeNotifier {
         messageId: message.id,
       );
     } catch (_) {
-      _error = 'Failed to update the like.';
+      _error = AppLocalizer.current.tr('Failed to update the like.');
       notifyListeners();
     }
   }
@@ -729,7 +774,7 @@ class ChatController extends ChangeNotifier {
         messageId: message.id,
       );
     } catch (_) {
-      _error = 'Failed to recall the message.';
+      _error = AppLocalizer.current.tr('Failed to recall the message.');
       notifyListeners();
     }
   }
@@ -868,7 +913,7 @@ class ChatController extends ChangeNotifier {
         orElse: () => ChatRoom(
           id: message.roomId,
           type: 'group',
-          title: 'Chat',
+          title: AppLocalizer.current.tr('Chat'),
           description: '',
           avatar: '',
           peerId: null,
@@ -889,8 +934,11 @@ class ChatController extends ChangeNotifier {
       if (message.senderId != currentUserId) {
         final room = findRoomById(message.roomId);
         _incomingNoticeRoomId = message.roomId;
-        _incomingNoticeRoomTitle = room?.title ?? 'Chat';
-        _incomingNoticePreview = preview.isEmpty ? 'You have a new message.' : preview;
+        _incomingNoticeRoomTitle =
+            room?.title ?? AppLocalizer.current.tr('Chat');
+        _incomingNoticePreview = preview.isEmpty
+            ? AppLocalizer.current.tr('You have a new message.')
+            : preview;
         _incomingNoticeToken++;
       }
     }
@@ -965,7 +1013,10 @@ class ChatController extends ChangeNotifier {
     if (index == -1) return;
 
     _messages[index] = _messages[index].copyWith(
-      content: (payload['content'] ?? 'This message was recalled').toString(),
+      content:
+          (payload['content'] ??
+                  AppLocalizer.current.tr('This message was recalled'))
+              .toString(),
       isRecalled: true,
     );
     if (_activeRoom != null) {
@@ -1124,20 +1175,29 @@ class ChatController extends ChangeNotifier {
 
   Future<void> _syncOfflineNotifications() async {
     try {
-      final notifications = await _apiService.fetchUnreadNotifications(limit: 10);
+      final notifications = await _apiService.fetchUnreadNotifications(
+        limit: 10,
+      );
       if (notifications.isEmpty) {
         return;
       }
 
       final latest = notifications.first;
       final latestRoomId = latest.roomId;
-      final latestRoom = latestRoomId == null ? null : findRoomById(latestRoomId);
+      final latestRoom = latestRoomId == null
+          ? null
+          : findRoomById(latestRoomId);
 
       _incomingNoticeRoomId = latestRoomId;
-      _incomingNoticeRoomTitle = latestRoom?.title ?? 'Chat';
+      _incomingNoticeRoomTitle =
+          latestRoom?.title ?? AppLocalizer.current.tr('Chat');
       _incomingNoticePreview = notifications.length == 1
-          ? (latest.content.trim().isEmpty ? 'You have a new message.' : latest.content.trim())
-          : 'You have ${notifications.length} unread chat updates.';
+          ? (latest.content.trim().isEmpty
+                ? AppLocalizer.current.tr('You have a new message.')
+                : latest.content.trim())
+          : AppLocalizer.current.tr('You have {count} unread chat updates.', {
+              'count': '${notifications.length}',
+            });
       _incomingNoticeToken++;
       notifyListeners();
 

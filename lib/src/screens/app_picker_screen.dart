@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../controllers/session_controller.dart';
+import '../core/localization/app_localizer.dart';
 import '../models/chat_app_model.dart';
 import '../widgets/app_logo.dart';
+import '../widgets/language_switch_button.dart';
+import '../widgets/metro_ui.dart';
 
 class AppPickerScreen extends StatelessWidget {
   const AppPickerScreen({super.key});
@@ -20,7 +23,7 @@ class AppPickerScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFF7FAFF), Color(0xFFE8F0FF), Color(0xFFF5F8FF)],
+            colors: [kMetroCanvas, Color(0xFFFFF2EC), kMetroCanvasDeep],
           ),
         ),
         child: SafeArea(
@@ -31,18 +34,34 @@ class AppPickerScreen extends StatelessWidget {
                 return Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1180),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
-                      child: Row(
-                        children: [
-                          Expanded(flex: 10, child: _BrandPanel(theme: theme)),
-                          const SizedBox(width: 24),
-                          Expanded(
-                            flex: 11,
-                            child: _AppListPanel(session: session),
+                    child: Column(
+                      children: [
+                        const Align(
+                          alignment: Alignment.centerRight,
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(24, 20, 24, 0),
+                            child: LanguageSwitchButton(),
                           ),
-                        ],
-                      ),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 10,
+                                  child: _BrandPanel(theme: theme),
+                                ),
+                                const SizedBox(width: 24),
+                                Expanded(
+                                  flex: 11,
+                                  child: _AppListPanel(session: session),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -55,6 +74,11 @@ class AppPickerScreen extends StatelessWidget {
                     constraints: const BoxConstraints(maxWidth: 560),
                     child: Column(
                       children: [
+                        const Align(
+                          alignment: Alignment.centerRight,
+                          child: LanguageSwitchButton(compact: true),
+                        ),
+                        const SizedBox(height: 14),
                         _BrandPanel(theme: theme, compact: true),
                         const SizedBox(height: 16),
                         _AppListPanel(session: session, compact: true),
@@ -88,13 +112,13 @@ class _BrandPanel extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF123765), Color(0xFF2558A5), Color(0xFF2F7DFF)],
+            colors: [kMetroPrimary, Color(0xFF46558C), kMetroCoral],
           ),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x1E0A2B58),
-              blurRadius: 30,
-              offset: Offset(0, 18),
+              color: Color(0x180F1730),
+              blurRadius: 26,
+              offset: Offset(0, 16),
             ),
           ],
         ),
@@ -104,14 +128,14 @@ class _BrandPanel extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
+                color: Colors.white.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: const AppLogo(size: 48),
+              child: const AppLogo(size: 48, showWordmark: false),
             ),
             const SizedBox(height: 18),
             Text(
-              'Welcome to Nail Talk',
+              context.tr('Welcome to Nails Talk'),
               style: theme.textTheme.headlineMedium?.copyWith(
                 color: Colors.white,
                 fontSize: 28,
@@ -120,7 +144,9 @@ class _BrandPanel extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Choose the local Nail Talk space before you sign in. Your selection stays saved until you sign out.',
+              context.tr(
+                'Choose the local Nails Talk space before you sign in. Your selection stays saved until you sign out.',
+              ),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: Colors.white.withValues(alpha: 0.9),
                 height: 1.55,
@@ -130,15 +156,18 @@ class _BrandPanel extends StatelessWidget {
             Wrap(
               runSpacing: 10,
               spacing: 10,
-              children: const [
-                _FeaturePill(icon: Icons.bolt_rounded, label: 'Real-time chat'),
+              children: [
+                _FeaturePill(
+                  icon: Icons.bolt_rounded,
+                  label: context.tr('Real-time chat'),
+                ),
                 _FeaturePill(
                   icon: Icons.lock_rounded,
-                  label: 'Secure sign-in',
+                  label: context.tr('Secure sign-in'),
                 ),
                 _FeaturePill(
                   icon: Icons.phone_iphone_rounded,
-                  label: 'Mobile ready',
+                  label: context.tr('Mobile ready'),
                 ),
               ],
             ),
@@ -154,13 +183,13 @@ class _BrandPanel extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF123765), Color(0xFF2558A5), Color(0xFF2F7DFF)],
+          colors: [kMetroPrimary, Color(0xFF445489), kMetroCoral],
         ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x1E0A2B58),
-            blurRadius: 34,
-            offset: Offset(0, 20),
+            color: Color(0x180F1730),
+            blurRadius: 28,
+            offset: Offset(0, 18),
           ),
         ],
       ),
@@ -179,13 +208,13 @@ class _BrandPanel extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: const AppLogo(size: 54),
+                child: const AppLogo(size: 54, showWordmark: false),
               ),
             ],
           ),
           const SizedBox(height: 28),
           Text(
-            'Welcome to Nail Talk',
+            context.tr('Welcome to Nails Talk'),
             style: theme.textTheme.headlineMedium?.copyWith(
               color: Colors.white,
               fontSize: compact ? 30 : 38,
@@ -194,7 +223,9 @@ class _BrandPanel extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            'Pick your local Nail Talk space, then jump into jobs, movies, marketplace posts, housing leads, and live community chat.',
+            context.tr(
+              'Pick your local Nails Talk space, then jump into jobs, movies, marketplace posts, housing leads, and live community chat.',
+            ),
             style: theme.textTheme.bodyLarge?.copyWith(
               color: Colors.white.withValues(alpha: 0.9),
               height: 1.6,
@@ -204,15 +235,18 @@ class _BrandPanel extends StatelessWidget {
           Wrap(
             runSpacing: 12,
             spacing: 12,
-            children: const [
-              _FeaturePill(icon: Icons.bolt_rounded, label: 'Real-time sync'),
+            children: [
+              _FeaturePill(
+                icon: Icons.bolt_rounded,
+                label: context.tr('Real-time sync'),
+              ),
               _FeaturePill(
                 icon: Icons.lock_rounded,
-                label: 'Protected access',
+                label: context.tr('Protected access'),
               ),
               _FeaturePill(
                 icon: Icons.phone_iphone_rounded,
-                label: 'Phone-first design',
+                label: context.tr('Phone-first design'),
               ),
             ],
           ),
@@ -243,7 +277,9 @@ class _BrandPanel extends StatelessWidget {
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text(
-                    'Shared API and chat services keep conversations fast while the rest of Nail Talk keeps everything in one place.',
+                    context.tr(
+                      'Shared API and chat services keep conversations fast while the rest of Nails Talk keeps everything in one place.',
+                    ),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: Colors.white.withValues(alpha: 0.92),
                       height: 1.5,
@@ -280,12 +316,12 @@ class _AppListPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: const Color(0xFFE3EBF7)),
+        border: Border.all(color: kMetroLine),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x120E2F5A),
-            blurRadius: 26,
-            offset: Offset(0, 18),
+            color: Color(0x120F1730),
+            blurRadius: 24,
+            offset: Offset(0, 16),
           ),
         ],
       ),
@@ -293,12 +329,14 @@ class _AppListPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Available spaces',
+            context.tr('Available spaces'),
             style: theme.textTheme.titleLarge?.copyWith(fontSize: 24),
           ),
           const SizedBox(height: 8),
           Text(
-            'Choose the Nail Talk space you want to use on this device.',
+            context.tr(
+              'Choose the Nails Talk space you want to use on this device.',
+            ),
             style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
           ),
           if (session.error != null) ...[
@@ -307,14 +345,14 @@ class _AppListPanel extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF3F1),
+                color: kMetroCoralSoft,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFF8D1CB)),
+                border: Border.all(color: const Color(0xFFF2C7CF)),
               ),
               child: Text(
                 session.error!,
                 style: const TextStyle(
-                  color: Color(0xFFC6493D),
+                  color: Color(0xFFB4475E),
                   fontWeight: FontWeight.w700,
                   height: 1.45,
                 ),
@@ -373,11 +411,11 @@ class _ChatAppCard extends StatelessWidget {
           padding: EdgeInsets.all(compact ? 16 : 18),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFDCE7F5)),
+            border: Border.all(color: kMetroLine),
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Colors.white, Color(0xFFF6F9FF)],
+              colors: [Colors.white, Color(0xFFFFF6F2)],
             ),
           ),
           child: Row(
@@ -387,7 +425,7 @@ class _ChatAppCard extends StatelessWidget {
                 width: compact ? 60 : 72,
                 height: compact ? 60 : 72,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0F5FF),
+                  color: kMetroCoralSoft,
                   borderRadius: BorderRadius.circular(22),
                 ),
                 clipBehavior: Clip.antiAlias,
@@ -428,13 +466,13 @@ class _ChatAppCard extends StatelessWidget {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFEFF4),
+                            color: kMetroCoralSoft,
                             borderRadius: BorderRadius.circular(999),
                           ),
-                          child: const Text(
-                            'Local preview',
-                            style: TextStyle(
-                              color: Color(0xFFD14E75),
+                          child: Text(
+                            context.tr('Local preview'),
+                            style: const TextStyle(
+                              color: kMetroRose,
                               fontWeight: FontWeight.w800,
                               fontSize: 11,
                               letterSpacing: 0.2,
@@ -445,17 +483,17 @@ class _ChatAppCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
                     Row(
-                      children: const [
-                        Icon(
+                      children: [
+                        const Icon(
                           Icons.login_rounded,
                           size: 18,
-                          color: Color(0xFF316BFF),
+                          color: kMetroPrimary,
                         ),
-                        SizedBox(width: 6),
+                        const SizedBox(width: 6),
                         Text(
-                          'Open Nail Talk',
-                          style: TextStyle(
-                            color: Color(0xFF316BFF),
+                          context.tr('Open Nails Talk'),
+                          style: const TextStyle(
+                            color: kMetroPrimary,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -521,31 +559,33 @@ class _EmptyAppsState extends StatelessWidget {
               width: 86,
               height: 86,
               decoration: BoxDecoration(
-                color: const Color(0xFFF0F5FF),
+                color: kMetroCoralSoft,
                 borderRadius: BorderRadius.circular(28),
               ),
               child: const Icon(
                 Icons.apps_outlined,
                 size: 42,
-                color: Color(0xFF6A84AA),
+                color: kMetroPrimary,
               ),
             ),
             const SizedBox(height: 18),
-            const Text(
-              'No apps available yet',
+            Text(
+              context.tr('No apps available yet'),
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFF1B3A63),
+              style: const TextStyle(
+                color: kMetroInk,
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Add an app record in `em_chat_apps` from the admin API to publish it here.',
+            Text(
+              context.tr(
+                'Add an app record in `em_chat_apps` from the admin API to publish it here.',
+              ),
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFF6F829D),
+              style: const TextStyle(
+                color: kMetroMuted,
                 fontSize: 14,
                 height: 1.5,
               ),

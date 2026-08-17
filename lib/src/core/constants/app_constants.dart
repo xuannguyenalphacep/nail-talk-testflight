@@ -1,7 +1,7 @@
 class AppConstants {
   const AppConstants._();
 
-  static const String appName = 'Nail Talk';
+  static const String appName = 'Nails Talk';
   static const String appTagline = 'Connect, work, and share around the U.S.';
   static const String bootstrapApiBase = String.fromEnvironment(
     'BOOTSTRAP_API_BASE',

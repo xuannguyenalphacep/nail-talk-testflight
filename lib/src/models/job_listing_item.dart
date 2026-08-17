@@ -80,9 +80,12 @@ class JobListingItem {
           .map((item) => item.toString())
           .toList(),
       status: (json['status'] ?? '').toString(),
-      userId: _readInt(user['id']),
-      userName: (user['name'] ?? '').toString(),
-      userAvatarUrl: (user['avatar_url'] ?? '').toString(),
+      userId: _readInt(user['id']) > 0
+          ? _readInt(user['id'])
+          : _readInt(json['user_id']),
+      userName: (user['name'] ?? json['user_name'] ?? '').toString(),
+      userAvatarUrl: (user['avatar_url'] ?? json['user_avatar_url'] ?? '')
+          .toString(),
       saved: json['saved'] == true || json['saved'] == 1,
     );
   }

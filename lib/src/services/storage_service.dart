@@ -11,6 +11,7 @@ class StorageService {
   static const _keyUser = 'session_user';
   static const _keyToken = 'session_token';
   static const _keyDeviceUuid = 'device_uuid';
+  static const _keyLanguageCode = 'app_language_code';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
@@ -70,6 +71,16 @@ class StorageService {
   Future<String?> loadDeviceUuid() async {
     final prefs = await _prefs;
     return prefs.getString(_keyDeviceUuid);
+  }
+
+  Future<void> saveLanguageCode(String code) async {
+    final prefs = await _prefs;
+    await prefs.setString(_keyLanguageCode, code);
+  }
+
+  Future<String?> loadLanguageCode() async {
+    final prefs = await _prefs;
+    return prefs.getString(_keyLanguageCode);
   }
 
   Future<void> clearSession() async {

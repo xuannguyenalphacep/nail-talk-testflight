@@ -5,6 +5,8 @@ class SessionUser {
     required this.name,
     required this.username,
     required this.email,
+    required this.phone,
+    required this.bio,
     required this.companyId,
     required this.avatarUrl,
   });
@@ -14,6 +16,8 @@ class SessionUser {
   final String name;
   final String username;
   final String email;
+  final String phone;
+  final String bio;
   final int? companyId;
   final String avatarUrl;
 
@@ -24,8 +28,32 @@ class SessionUser {
       name: (json['name'] ?? '').toString(),
       username: (json['username'] ?? '').toString(),
       email: (json['email'] ?? '').toString(),
+      phone: (json['phone'] ?? '').toString(),
+      bio: (json['bio'] ?? '').toString(),
       companyId: (json['company_id'] as num?)?.toInt(),
       avatarUrl: (json['avatar_url'] ?? '').toString(),
+    );
+  }
+
+  SessionUser copyWith({
+    String? name,
+    String? username,
+    String? email,
+    String? phone,
+    String? bio,
+    int? companyId,
+    String? avatarUrl,
+  }) {
+    return SessionUser(
+      id: id,
+      uuid: uuid,
+      name: name ?? this.name,
+      username: username ?? this.username,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      bio: bio ?? this.bio,
+      companyId: companyId ?? this.companyId,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
     );
   }
 
@@ -36,6 +64,8 @@ class SessionUser {
       'name': name,
       'username': username,
       'email': email,
+      'phone': phone,
+      'bio': bio,
       'company_id': companyId,
       'avatar_url': avatarUrl,
     };

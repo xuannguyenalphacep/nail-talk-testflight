@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../controllers/social_hub_controller.dart';
+import '../../core/localization/app_localizer.dart';
 import '../../widgets/us_state_dropdown_field.dart';
 
 class JobFormScreen extends StatefulWidget {
@@ -86,7 +87,7 @@ class _JobFormScreenState extends State<JobFormScreen> {
         : 'Create a profile for professionals looking for work, a new salon, or licensing support.';
 
     return Scaffold(
-      appBar: AppBar(title: Text(pageTitle)),
+      appBar: AppBar(title: Text(context.tr(pageTitle))),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -94,19 +95,22 @@ class _JobFormScreenState extends State<JobFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(introText, style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                context.tr(introText),
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
               const SizedBox(height: 12),
               SegmentedButton<String>(
-                segments: const [
+                segments: [
                   ButtonSegment<String>(
                     value: 'hiring',
-                    icon: Icon(Icons.storefront_rounded),
-                    label: Text('Hiring nail staff'),
+                    icon: const Icon(Icons.storefront_rounded),
+                    label: Text(context.tr('Hiring nail staff')),
                   ),
                   ButtonSegment<String>(
                     value: 'looking_for_job',
-                    icon: Icon(Icons.person_search_rounded),
-                    label: Text('Job seekers'),
+                    icon: const Icon(Icons.person_search_rounded),
+                    label: Text(context.tr('Job seekers')),
                   ),
                 ],
                 selected: {_selectedMode},
@@ -117,23 +121,29 @@ class _JobFormScreenState extends State<JobFormScreen> {
               const SizedBox(height: 12),
               _Field(
                 controller: _titleController,
-                label: hiringMode ? 'Job Title' : 'Profile Headline',
+                label: context.tr(
+                  hiringMode ? 'Job Title' : 'Profile Headline',
+                ),
               ),
               const SizedBox(height: 12),
               _Field(
                 controller: _salonController,
-                label: hiringMode ? 'Salon Name' : 'Current Salon / Experience',
+                label: context.tr(
+                  hiringMode ? 'Salon Name' : 'Current Salon / Experience',
+                ),
               ),
               const SizedBox(height: 12),
               _Field(
                 controller: _descriptionController,
-                label: hiringMode ? 'Job Description' : 'About Me',
+                label: context.tr(hiringMode ? 'Job Description' : 'About Me'),
                 lines: 4,
               ),
               const SizedBox(height: 12),
               _Field(
                 controller: _requirementsController,
-                label: hiringMode ? 'Requirements' : 'Skills / Preferences',
+                label: context.tr(
+                  hiringMode ? 'Requirements' : 'Skills / Preferences',
+                ),
                 lines: 3,
               ),
               const SizedBox(height: 12),
@@ -142,7 +152,7 @@ class _JobFormScreenState extends State<JobFormScreen> {
                   Expanded(
                     child: _Field(
                       controller: _salaryMinController,
-                      label: 'Salary Min',
+                      label: context.tr('Salary Min'),
                       keyboard: TextInputType.number,
                     ),
                   ),
@@ -150,7 +160,7 @@ class _JobFormScreenState extends State<JobFormScreen> {
                   Expanded(
                     child: _Field(
                       controller: _salaryMaxController,
-                      label: 'Salary Max',
+                      label: context.tr('Salary Max'),
                       keyboard: TextInputType.number,
                     ),
                   ),
@@ -160,7 +170,10 @@ class _JobFormScreenState extends State<JobFormScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: _Field(controller: _cityController, label: 'City'),
+                    child: _Field(
+                      controller: _cityController,
+                      label: context.tr('City'),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -177,14 +190,14 @@ class _JobFormScreenState extends State<JobFormScreen> {
               const SizedBox(height: 12),
               _Field(
                 controller: _imageUrlsController,
-                label: 'Image URLs (comma or new line separated)',
+                label: context.tr('Image URLs (comma or new line separated)'),
                 lines: 3,
                 required: false,
               ),
               const SizedBox(height: 12),
-              _Field(controller: _phoneController, label: 'Phone'),
+              _Field(controller: _phoneController, label: context.tr('Phone')),
               const SizedBox(height: 12),
-              _Field(controller: _emailController, label: 'Email'),
+              _Field(controller: _emailController, label: context.tr('Email')),
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
@@ -192,8 +205,10 @@ class _JobFormScreenState extends State<JobFormScreen> {
                   onPressed: controller.submitting ? null : _submit,
                   child: Text(
                     controller.submitting
-                        ? 'Posting...'
-                        : (hiringMode ? 'Publish Job' : 'Publish Profile'),
+                        ? context.tr('Posting...')
+                        : context.tr(
+                            hiringMode ? 'Publish Job' : 'Publish Profile',
+                          ),
                   ),
                 ),
               ),
@@ -228,7 +243,9 @@ class _Field extends StatelessWidget {
       minLines: lines,
       maxLines: lines,
       validator: required
-          ? (value) => value == null || value.trim().isEmpty ? 'Required' : null
+          ? (value) => value == null || value.trim().isEmpty
+                ? context.tr('Required')
+                : null
           : null,
       decoration: InputDecoration(labelText: label),
     );

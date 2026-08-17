@@ -32,6 +32,8 @@ class PropertyListingItem {
     required this.city,
     required this.state,
     required this.addressLine,
+    required this.contactPhone,
+    required this.contactEmail,
     required this.availableFrom,
     required this.amenities,
     required this.imageUrls,
@@ -53,6 +55,8 @@ class PropertyListingItem {
   final String city;
   final String state;
   final String addressLine;
+  final String contactPhone;
+  final String contactEmail;
   final DateTime? availableFrom;
   final List<String> amenities;
   final List<String> imageUrls;
@@ -79,6 +83,8 @@ class PropertyListingItem {
       city: (json['city'] ?? '').toString(),
       state: (json['state'] ?? '').toString(),
       addressLine: (json['address_line'] ?? '').toString(),
+      contactPhone: (json['contact_phone'] ?? '').toString(),
+      contactEmail: (json['contact_email'] ?? '').toString(),
       availableFrom: AppDateUtils.tryParse(json['available_from']),
       amenities: (json['amenities'] as List<dynamic>? ?? const <dynamic>[])
           .map((item) => item.toString())
@@ -87,9 +93,12 @@ class PropertyListingItem {
           .map((item) => item.toString())
           .toList(),
       status: (json['status'] ?? '').toString(),
-      userId: _readInt(user['id']),
-      userName: (user['name'] ?? '').toString(),
-      userAvatarUrl: (user['avatar_url'] ?? '').toString(),
+      userId: _readInt(user['id']) > 0
+          ? _readInt(user['id'])
+          : _readInt(json['user_id']),
+      userName: (user['name'] ?? json['user_name'] ?? '').toString(),
+      userAvatarUrl: (user['avatar_url'] ?? json['user_avatar_url'] ?? '')
+          .toString(),
       saved: json['saved'] == true || json['saved'] == 1,
     );
   }
@@ -107,6 +116,8 @@ class PropertyListingItem {
       city: city,
       state: state,
       addressLine: addressLine,
+      contactPhone: contactPhone,
+      contactEmail: contactEmail,
       availableFrom: availableFrom,
       amenities: amenities,
       imageUrls: imageUrls,

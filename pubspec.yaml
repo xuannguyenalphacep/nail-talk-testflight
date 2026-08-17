@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   cupertino_icons: ^1.0.8
   provider: ^6.1.5
   dio: ^5.9.0
@@ -42,7 +44,8 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
+  remove_alpha_ios: true
   image_path: assets/branding/app_icon.png
   image_path_ios: assets/branding/app_icon_ios.png
   adaptive_icon_foreground: assets/branding/launcher_foreground.png
-  adaptive_icon_background: "#214D98"
+  adaptive_icon_background: "#FFF7F3"

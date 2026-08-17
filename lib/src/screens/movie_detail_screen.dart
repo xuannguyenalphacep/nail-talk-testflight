@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
 import '../controllers/social_hub_controller.dart';
+import '../core/localization/app_localizer.dart';
 import '../core/utils/app_date_utils.dart';
 import '../models/movie_item.dart';
 import '../models/movie_plan_model.dart';
@@ -112,7 +113,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
 
     final uri = Uri.tryParse(_movie.thirdPartyUrl);
     if (uri == null) {
-      setState(() => _videoError = 'This stream link is not available yet.');
+      setState(
+        () => _videoError = AppLocalizer.current.tr(
+          'This stream link is not available yet.',
+        ),
+      );
       return;
     }
 
@@ -138,7 +143,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
             if (!mounted) return;
             setState(() {
               _videoController = null;
-              _videoError = 'Unable to load the movie stream right now.';
+              _videoError = AppLocalizer.current.tr(
+                'Unable to load the movie stream right now.',
+              );
             });
           })
           .whenComplete(() {
@@ -155,12 +162,20 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
       await context.read<SocialHubController>().subscribeToMoviePlan(plan.id);
       if (!mounted) return;
       messenger.showSnackBar(
-        SnackBar(content: Text('${plan.name} is now active for this account.')),
+        SnackBar(
+          content: Text(
+            context.tr('{plan} is now active for this account.', {
+              'plan': context.tr(plan.name),
+            }),
+          ),
+        ),
       );
     } catch (_) {
       if (!mounted) return;
       messenger.showSnackBar(
-        const SnackBar(content: Text('Could not activate the plan right now.')),
+        SnackBar(
+          content: Text(context.tr('Could not activate the plan right now.')),
+        ),
       );
     }
   }
@@ -218,7 +233,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
             },
             icon: const Icon(Icons.arrow_back_rounded),
           ),
-          title: Text(_movie.title),
+          title: Text(context.tr(_movie.title)),
           actions: [
             if (_loadingDetail)
               const Padding(
@@ -339,8 +354,8 @@ class _MovieHero extends StatelessWidget {
                   ),
                   child: Text(
                     movie.category?.name.isNotEmpty == true
-                        ? movie.category!.name
-                        : 'Movie feature',
+                        ? context.tr(movie.category!.name)
+                        : context.tr('Movie feature'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -349,7 +364,7 @@ class _MovieHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  movie.title,
+                  context.tr(movie.title),
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: Colors.white,
                     height: 1.08,
@@ -376,19 +391,23 @@ class _MovieMetaCard extends StatelessWidget {
       _MovieInfoChip(
         icon: Icons.public_rounded,
         label: movie.thirdPartyProvider.isEmpty
-            ? 'Internet library'
-            : movie.thirdPartyProvider,
+            ? context.tr('Internet library')
+            : context.tr(movie.thirdPartyProvider),
       ),
       _MovieInfoChip(
         icon: movie.accessType == 'free'
             ? Icons.lock_open_rounded
             : Icons.workspace_premium_rounded,
-        label: movie.accessType == 'free' ? 'Free access' : 'Monthly access',
+        label: context.tr(
+          movie.accessType == 'free' ? 'Free access' : 'Monthly access',
+        ),
       ),
       if (activePlan?.isActive == true)
         _MovieInfoChip(
           icon: Icons.schedule_rounded,
-          label: 'Active until ${AppDateUtils.formatDate(activePlan?.endsAt)}',
+          label: context.tr('Active until {date}', {
+            'date': AppDateUtils.formatDate(activePlan?.endsAt),
+          }),
         ),
     ];
 
@@ -409,14 +428,14 @@ class _MovieMetaCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'About this movie',
+            context.tr('About this movie'),
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontSize: 20),
           ),
           const SizedBox(height: 10),
           Text(
-            movie.summary,
+            context.tr(movie.summary),
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.5),
           ),
           const SizedBox(height: 14),
@@ -541,8 +560,8 @@ class _MoviePlayerCardState extends State<_MoviePlayerCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Now playing',
+          Text(
+            context.tr('Now playing'),
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w800,
@@ -552,10 +571,10 @@ class _MoviePlayerCardState extends State<_MoviePlayerCard> {
           const SizedBox(height: 6),
           Text(
             isBusy
-                ? 'Loading your stream...'
+                ? context.tr('Loading your stream...')
                 : isReady
                 ? '${_formatPlaybackTime(controllerValue?.position)} / ${_formatPlaybackTime(controllerValue?.duration)}'
-                : 'Preparing video controls...',
+                : context.tr('Preparing video controls...'),
             style: const TextStyle(
               color: Color(0xFF8DA3C7),
               fontSize: 13,
@@ -581,8 +600,8 @@ class _MoviePlayerCardState extends State<_MoviePlayerCard> {
                     }
                     if (activeController == null ||
                         widget.videoFuture == null) {
-                      return const _PlayerLoadingOverlay(
-                        message: 'Loading video stream...',
+                      return _PlayerLoadingOverlay(
+                        message: context.tr('Loading video stream...'),
                       );
                     }
 
@@ -591,8 +610,8 @@ class _MoviePlayerCardState extends State<_MoviePlayerCard> {
                       builder: (context, snapshot) {
                         if (snapshot.connectionState != ConnectionState.done &&
                             !isReady) {
-                          return const _PlayerLoadingOverlay(
-                            message: 'Loading video stream...',
+                          return _PlayerLoadingOverlay(
+                            message: context.tr('Loading video stream...'),
                           );
                         }
 
@@ -647,10 +666,12 @@ class _MoviePlayerCardState extends State<_MoviePlayerCard> {
                               ),
                             ),
                             if (isBusy)
-                              const Positioned.fill(
+                              Positioned.fill(
                                 child: IgnorePointer(
                                   child: _PlayerLoadingOverlay(
-                                    message: 'Loading video stream...',
+                                    message: context.tr(
+                                      'Loading video stream...',
+                                    ),
                                     compact: true,
                                   ),
                                 ),
@@ -828,8 +849,8 @@ class _MovieFullscreenScreenState extends State<_MovieFullscreenScreen> {
                   aspectRatio: isReady ? value.aspectRatio : 16 / 9,
                   child: isReady
                       ? VideoPlayer(widget.controller)
-                      : const _PlayerLoadingOverlay(
-                          message: 'Loading fullscreen player...',
+                      : _PlayerLoadingOverlay(
+                          message: context.tr('Loading fullscreen player...'),
                         ),
                 ),
               ),
@@ -851,10 +872,10 @@ class _MovieFullscreenScreenState extends State<_MovieFullscreenScreen> {
               ),
             ),
             if (isBusy)
-              const Positioned.fill(
+              Positioned.fill(
                 child: IgnorePointer(
                   child: _PlayerLoadingOverlay(
-                    message: 'Buffering video...',
+                    message: context.tr('Buffering video...'),
                     compact: true,
                   ),
                 ),
@@ -871,8 +892,8 @@ class _MovieFullscreenScreenState extends State<_MovieFullscreenScreen> {
                     enabled: true,
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'Fullscreen',
+                  Text(
+                    context.tr('Fullscreen'),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -1012,7 +1033,7 @@ class _PlayerPrimaryControl extends StatelessWidget {
               Icon(icon, color: Colors.white, size: 20),
               const SizedBox(width: 8),
               Text(
-                label,
+                context.tr(label),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 15,
@@ -1135,7 +1156,7 @@ class _PlayerLoadingOverlay extends StatelessWidget {
               const _PlayerLoadingBadge(),
               const SizedBox(height: 12),
               Text(
-                message,
+                context.tr(message),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
@@ -1200,8 +1221,12 @@ class _MovieLockedCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   activePlan?.isActive == true
-                      ? 'Your plan is active. Refresh this page or reopen the movie to start streaming.'
-                      : 'This title is part of the monthly movie access plan.',
+                      ? context.tr(
+                          'Your plan is active. Refresh this page or reopen the movie to start streaming.',
+                        )
+                      : context.tr(
+                          'This title is part of the monthly movie access plan.',
+                        ),
                   style: Theme.of(
                     context,
                   ).textTheme.bodyLarge?.copyWith(height: 1.45),
@@ -1226,7 +1251,7 @@ class _MovieLockedCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            plan.name,
+                            context.tr(plan.name),
                             style: const TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 16,
@@ -1234,12 +1259,16 @@ class _MovieLockedCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${plan.currency} ${plan.price.toStringAsFixed(2)} for ${plan.durationDays} days',
+                            context.tr('{currency} {price} for {days} days', {
+                              'currency': plan.currency,
+                              'price': plan.price.toStringAsFixed(2),
+                              'days': '${plan.durationDays}',
+                            }),
                           ),
                           if (plan.description.trim().isNotEmpty) ...[
                             const SizedBox(height: 4),
                             Text(
-                              plan.description,
+                              context.tr(plan.description),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -1250,7 +1279,7 @@ class _MovieLockedCard extends StatelessWidget {
                     const SizedBox(width: 12),
                     FilledButton(
                       onPressed: submitting ? null : () => onSubscribe(plan),
-                      child: const Text('Activate'),
+                      child: Text(context.tr('Activate')),
                     ),
                   ],
                 ),
@@ -1283,7 +1312,7 @@ class _MovieInfoChip extends StatelessWidget {
           Icon(icon, size: 15, color: const Color(0xFF1B74E4)),
           const SizedBox(width: 7),
           Text(
-            label,
+            context.tr(label),
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
           ),
         ],
@@ -1309,7 +1338,7 @@ class _PlayerMessage extends StatelessWidget {
             Icon(icon, color: Colors.white, size: 34),
             const SizedBox(height: 12),
             Text(
-              message,
+              context.tr(message),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,

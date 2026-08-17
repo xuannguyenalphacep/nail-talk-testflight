@@ -25,7 +25,7 @@ class SavedItemModel {
       savableType: (json['savable_type'] ?? '').toString(),
       savableId: (json['savable_id'] as num?)?.toInt() ?? 0,
       title: (resource['title'] ?? '').toString(),
-      subtitle: (resource['slug'] ?? resource['listing_mode'] ?? '').toString(),
+      subtitle: (resource['listing_mode'] ?? '').toString(),
       status: (resource['status'] ?? '').toString(),
     );
   }

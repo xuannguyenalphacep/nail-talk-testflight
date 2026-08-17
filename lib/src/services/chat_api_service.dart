@@ -130,9 +130,9 @@ class ChatApiService {
   }
 
   Future<({String token, SessionUser user})> register({
-    required String name,
+    String? name,
     required String username,
-    required String email,
+    String? email,
     String? phone,
     required String password,
   }) async {
@@ -167,6 +167,20 @@ class ChatApiService {
   Future<UserProfileModel> fetchProfile() async {
     final response = await _dio.get('/me');
     return UserProfileModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<SessionUser> updateProfile({
+    required String name,
+    String? phone,
+    String? bio,
+    String? avatarUrl,
+  }) async {
+    final response = await _dio.patch(
+      '/me',
+      data: {'name': name, 'phone': phone, 'bio': bio, 'avatar_url': avatarUrl},
+    );
+    final payload = response.data as Map<String, dynamic>;
+    return SessionUser.fromJson(payload['user'] as Map<String, dynamic>);
   }
 
   Future<List<SavedItemModel>> fetchBookmarks() async {
@@ -468,8 +482,7 @@ class ChatApiService {
     final data = payload['data'] as List<dynamic>? ?? <dynamic>[];
     return data
         .map(
-          (item) =>
-              ChatNotificationItem.fromJson(item as Map<String, dynamic>),
+          (item) => ChatNotificationItem.fromJson(item as Map<String, dynamic>),
         )
         .toList();
   }
@@ -595,7 +608,7 @@ class ChatApiService {
       data: {'user_id': userId},
     );
     final payload = response.data as Map<String, dynamic>;
-    return (payload['id'] as num?)?.toInt() ?? 0;
+    return _extractRoomId(payload);
   }
 
   Future<int> createGroup({
@@ -607,11 +620,35 @@ class ChatApiService {
       data: {'name': name, 'members': memberIds},
     );
     final payload = response.data as Map<String, dynamic>;
-    return (payload['id'] as num?)?.toInt() ?? 0;
+    return _extractRoomId(payload);
   }
 
   Future<void> renameGroup({required int roomId, required String name}) async {
     await _dio.post('/realtime/chat/group/$roomId', data: {'name': name});
+  }
+
+  int _extractRoomId(Map<String, dynamic> payload) {
+    final directId = payload['id'];
+    if (directId is num) return directId.toInt();
+
+    final roomId = payload['room_id'];
+    if (roomId is num) return roomId.toInt();
+
+    final data = payload['data'];
+    if (data is Map<String, dynamic>) {
+      final nestedId = data['id'];
+      if (nestedId is num) return nestedId.toInt();
+      final nestedRoomId = data['room_id'];
+      if (nestedRoomId is num) return nestedRoomId.toInt();
+    }
+
+    final room = payload['room'];
+    if (room is Map<String, dynamic>) {
+      final roomPayloadId = room['id'];
+      if (roomPayloadId is num) return roomPayloadId.toInt();
+    }
+
+    return 0;
   }
 
   Future<void> markRoomReadAll(int roomId) async {
@@ -725,10 +762,7 @@ class ChatApiService {
     return baseUrl.replaceFirst(RegExp(r'/api$'), '');
   }
 
-  ChatAppModel _normalizeAppModel(
-    ChatAppModel app,
-    String? preferredRootUrl,
-  ) {
+  ChatAppModel _normalizeAppModel(ChatAppModel app, String? preferredRootUrl) {
     final preferred = Uri.tryParse(preferredRootUrl?.trim() ?? '');
     if (preferred == null || preferred.host.isEmpty) {
       return app;
@@ -750,9 +784,9 @@ class ChatApiService {
 
   String? _replaceUrlHost(
     String rawUrl,
-    Uri preferred,
-    {bool ensureApiPath = false}
-  ) {
+    Uri preferred, {
+    bool ensureApiPath = false,
+  }) {
     final trimmed = rawUrl.trim();
     if (trimmed.isEmpty) {
       return null;

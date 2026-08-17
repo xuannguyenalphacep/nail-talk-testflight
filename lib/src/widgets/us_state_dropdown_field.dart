@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/localization/app_localizer.dart';
 import '../models/app_option.dart';
 
 class UsStateDropdownField extends StatelessWidget {
@@ -34,19 +35,21 @@ class UsStateDropdownField extends StatelessWidget {
       validator: required
           ? (selected) {
               if (selected == null || selected.trim().isEmpty) {
-                return 'Required';
+                return context.tr('Required');
               }
               return null;
             }
           : null,
       decoration: InputDecoration(
         labelText: label,
-        helperText: loading && states.isEmpty ? 'Loading US states...' : null,
+        helperText: loading && states.isEmpty
+            ? context.tr('Loading US states...')
+            : null,
       ),
       items: [
         DropdownMenuItem<String?>(
           value: null,
-          child: Text(required ? emptyLabel : 'All states'),
+          child: Text(required ? emptyLabel : context.tr('All states')),
         ),
         ...states.map(
           (state) => DropdownMenuItem<String?>(

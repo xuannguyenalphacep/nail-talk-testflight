@@ -1,11 +1,21 @@
 import 'package:intl/intl.dart';
 
+import '../localization/app_localizer.dart';
+
 class AppDateUtils {
   const AppDateUtils._();
 
-  static final DateFormat _timeFormat = DateFormat('HH:mm');
-  static final DateFormat _dateTimeFormat = DateFormat('yyyy/MM/dd HH:mm');
-  static final DateFormat _dateFormat = DateFormat('yyyy/MM/dd');
+  static String get _localeCode => AppLocalizer.current.language.code;
+
+  static DateFormat get _timeFormat => DateFormat('HH:mm', _localeCode);
+  static DateFormat get _dateTimeFormat => DateFormat(
+    _localeCode == 'vi' ? 'dd/MM/yyyy HH:mm' : 'yyyy/MM/dd HH:mm',
+    _localeCode,
+  );
+  static DateFormat get _dateFormat => DateFormat(
+    _localeCode == 'vi' ? 'dd/MM/yyyy' : 'yyyy/MM/dd',
+    _localeCode,
+  );
 
   static DateTime? tryParse(dynamic input) {
     if (input == null) return null;
@@ -24,7 +34,10 @@ class AppDateUtils {
       return _timeFormat.format(dateTime);
     }
 
-    return DateFormat('M/d').format(dateTime);
+    return DateFormat(
+      _localeCode == 'vi' ? 'dd/MM' : 'M/d',
+      _localeCode,
+    ).format(dateTime);
   }
 
   static String formatFull(DateTime? dateTime) {

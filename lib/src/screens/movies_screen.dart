@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../controllers/social_hub_controller.dart';
+import '../core/localization/app_localizer.dart';
+import '../core/utils/app_date_utils.dart';
 import '../models/app_option.dart';
 import '../models/movie_item.dart';
 import '../models/movie_plan_model.dart';
-import '../widgets/remote_image.dart';
+import '../widgets/metro_ui.dart';
 import 'movie_detail_screen.dart';
 
 enum _MovieAccessFilter { all, ready, free, subscription }
@@ -43,9 +45,10 @@ class _MoviesScreenState extends State<MoviesScreen> {
   }
 
   Future<void> _refreshMovies() {
-    final search = _searchController.text.trim();
+    final query = _searchController.text.trim();
     return context.read<SocialHubController>().refreshMovies(
-      search: search.isEmpty ? null : search,
+      categoryId: _selectedCategoryId,
+      search: query.isEmpty ? null : query,
     );
   }
 
@@ -55,16 +58,14 @@ class _MoviesScreenState extends State<MoviesScreen> {
     ).push(MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: movie)));
   }
 
-  List<MovieItem> _filterMovies(
-    List<MovieItem> movies,
-    bool hasActivePlan,
-  ) {
+  List<MovieItem> _filterMovies(List<MovieItem> movies, bool hasActivePlan) {
     final query = _searchController.text.trim().toLowerCase();
 
     return movies.where((movie) {
       if (!movie.isPublished) return false;
 
-      if (_selectedCategoryId != null && movie.category?.id != _selectedCategoryId) {
+      if (_selectedCategoryId != null &&
+          movie.category?.id != _selectedCategoryId) {
         return false;
       }
 
@@ -97,71 +98,66 @@ class _MoviesScreenState extends State<MoviesScreen> {
 
   List<_MovieShelfData> _buildShelves(
     List<MovieItem> movies,
-    List<AppOption> categories,
     bool hasActivePlan,
   ) {
     final shelves = <_MovieShelfData>[];
     final readyMovies = movies
         .where((movie) => _isUnlocked(movie, hasActivePlan))
-        .toList();
-    final freeMovies = movies.where((movie) => movie.accessType == 'free').toList();
-    final premiumMovies = movies
-        .where((movie) => movie.accessType != 'free')
-        .toList();
-
-    if (movies.isNotEmpty) {
-      shelves.add(
-        _MovieShelfData(
-          title: 'Popular on Nail Talk',
-          description: 'Top picks laid out like a real streaming browse page.',
-          movies: movies.take(12).toList(),
-        ),
-      );
-    }
+        .toList(growable: false);
+    final lockedMovies = movies
+        .where((movie) => !_isUnlocked(movie, hasActivePlan))
+        .toList(growable: false);
 
     if (readyMovies.isNotEmpty) {
       shelves.add(
         _MovieShelfData(
           title: 'Ready to watch',
-          description: 'Open these instantly with the current account.',
-          movies: readyMovies.take(12).toList(),
+          subtitle: 'Open now for this account.',
+          accentColor: kMetroSuccess,
+          movies: readyMovies,
         ),
       );
     }
 
-    if (freeMovies.isNotEmpty) {
+    if (lockedMovies.isNotEmpty) {
       shelves.add(
         _MovieShelfData(
-          title: 'Free movie arrivals',
-          description: 'No monthly pass needed here.',
-          movies: freeMovies.take(12).toList(),
+          title: 'Subscription picks',
+          subtitle: 'Unlock these with the monthly movie pass.',
+          accentColor: kMetroGold,
+          movies: lockedMovies,
         ),
       );
     }
 
-    if (premiumMovies.isNotEmpty) {
-      shelves.add(
-        _MovieShelfData(
-          title: 'Premium shelf',
-          description: 'Subscription-only films in the same compact poster layout.',
-          movies: premiumMovies.take(12).toList(),
-        ),
-      );
+    final grouped = <String, List<MovieItem>>{};
+    for (final movie in movies) {
+      final rawName = movie.category?.name.trim() ?? '';
+      final key = rawName.isEmpty ? 'All titles' : rawName;
+      grouped.putIfAbsent(key, () => <MovieItem>[]).add(movie);
     }
 
-    for (final category in categories) {
-      final categoryMovies = movies
-          .where((movie) => movie.category?.id == category.id)
-          .toList();
-      if (categoryMovies.isEmpty) continue;
+    final colors = <Color>[
+      kMetroCoral,
+      kMetroPrimary,
+      kMetroRose,
+      kMetroSuccess,
+      const Color(0xFFC18E68),
+      const Color(0xFF9099C8),
+    ];
 
+    var colorIndex = 0;
+    for (final entry in grouped.entries) {
       shelves.add(
         _MovieShelfData(
-          title: category.name,
-          description: 'Browse ${category.name.toLowerCase()} in poster rows.',
-          movies: categoryMovies,
+          title: entry.key,
+          subtitle:
+              'Swipe through posters by category and open a title in one tap.',
+          accentColor: colors[colorIndex % colors.length],
+          movies: entry.value,
         ),
       );
+      colorIndex++;
     }
 
     return shelves;
@@ -171,424 +167,248 @@ class _MoviesScreenState extends State<MoviesScreen> {
   Widget build(BuildContext context) {
     final controller = context.watch<SocialHubController>();
     final hasActivePlan = controller.activeSubscription?.isActive == true;
-    final library = controller.movies.where((movie) => movie.isPublished).toList();
+    final library = controller.movies
+        .where((movie) => movie.isPublished)
+        .toList(growable: false);
     final visibleMovies = _filterMovies(library, hasActivePlan);
-    final featuredMovie = (visibleMovies.isNotEmpty ? visibleMovies : library).isNotEmpty
+    final featuredMovie =
+        (visibleMovies.isNotEmpty ? visibleMovies : library).isNotEmpty
         ? (visibleMovies.isNotEmpty ? visibleMovies : library).first
         : null;
-    final hasFocusedFilter =
+    final highlightedPlan = controller.moviePlans.isNotEmpty
+        ? controller.moviePlans.first
+        : null;
+    final shelves = _buildShelves(visibleMovies, hasActivePlan);
+    final hasManualFilters =
         _selectedCategoryId != null ||
         _accessFilter != _MovieAccessFilter.all ||
         _searchController.text.trim().isNotEmpty;
-    final shelves = hasFocusedFilter
-        ? <_MovieShelfData>[
-            _MovieShelfData(
-              title: 'Matching results',
-              description: 'Filtered posters shown in the same movie-app style.',
-              movies: visibleMovies,
-            ),
-          ]
-        : _buildShelves(visibleMovies, controller.movieCategories, hasActivePlan);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FC),
       appBar: AppBar(
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        backgroundColor: const Color(0xFFF4F7FC),
         titleSpacing: 16,
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Movies',
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 24,
-                color: Color(0xFF132642),
-              ),
-            ),
-            SizedBox(height: 2),
-            Text(
-              'Keep the bright app background, but browse inside a cinema-style layout.',
-              style: TextStyle(
-                color: Color(0xFF6B7E97),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
+        title: Text(context.tr('Movies')),
         actions: [
-          IconButton(
+          MetroActionButton(
+            icon: Icons.refresh_rounded,
+            label: 'Refresh',
             onPressed: controller.loadingMovies ? null : _refreshMovies,
-            icon: const Icon(Icons.refresh_rounded),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 16),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _refreshMovies,
-        child: ListView(
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
-          ),
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF0B0F16), Color(0xFF111725)],
-                ),
-                borderRadius: BorderRadius.circular(32),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x1F102040),
-                    blurRadius: 28,
-                    offset: Offset(0, 18),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 18, 16, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _CinemaTopBar(
-                      totalMovies: visibleMovies.length,
-                      activeCategory: controller.movieCategories
-                          .cast<AppOption?>()
-                          .firstWhere(
-                            (category) => category?.id == _selectedCategoryId,
-                            orElse: () => null,
-                          )
-                          ?.name,
-                    ),
-                    const SizedBox(height: 16),
-                    _MovieSearchField(
-                      controller: _searchController,
-                      onChanged: (_) => setState(() {}),
-                      onSubmitted: (_) => _refreshMovies(),
-                      onClearPressed: () {
+      body: MetroPageBackground(
+        child: RefreshIndicator(
+          onRefresh: _refreshMovies,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+            children: [
+              MetroSectionHeader(
+                title: 'Popular on Nails Talk',
+                subtitle:
+                    'Top picks laid out like a real streaming browse page.',
+                actionLabel: hasManualFilters ? 'Reset filters' : null,
+                onAction: !hasManualFilters
+                    ? null
+                    : () {
                         _searchController.clear();
-                        setState(() {});
+                        setState(() {
+                          _selectedCategoryId = null;
+                          _accessFilter = _MovieAccessFilter.all;
+                        });
                         _refreshMovies();
                       },
-                      onSearchPressed: _refreshMovies,
-                    ),
-                    const SizedBox(height: 16),
-                    _CinemaAccessFilters(
-                      accessFilter: _accessFilter,
-                      onChanged: (value) => setState(() => _accessFilter = value),
-                    ),
-                    const SizedBox(height: 16),
-                    _CinemaCategoryFilters(
-                      selectedCategoryId: _selectedCategoryId,
-                      categories: controller.movieCategories,
-                      onSelected: (value) =>
-                          setState(() => _selectedCategoryId = value),
-                    ),
-                    if (featuredMovie != null) ...[
-                      const SizedBox(height: 18),
-                      _FeaturedMovieBanner(
-                        movie: featuredMovie,
-                        unlocked: _isUnlocked(featuredMovie, hasActivePlan),
-                        onTap: () => _openMovie(featuredMovie),
-                      ),
-                    ],
-                    if (controller.moviePlans.isNotEmpty) ...[
-                      const SizedBox(height: 18),
-                      _CompactPlanBanner(
-                        plans: controller.moviePlans,
-                        activeSubscription: controller.activeSubscription,
-                        busy: controller.submitting,
-                        onSubscribe: (planId) =>
-                            controller.subscribeToMoviePlan(planId),
-                      ),
-                    ],
-                    const SizedBox(height: 22),
-                    if (controller.loadingMovies && library.isEmpty)
-                      const _MovieLoadingState()
-                    else if (visibleMovies.isEmpty)
-                      _MovieEmptyState(
-                        hasFilters: hasFocusedFilter,
-                        onReset: () {
-                          _searchController.clear();
-                          setState(() {
-                            _selectedCategoryId = null;
-                            _accessFilter = _MovieAccessFilter.all;
-                          });
-                          _refreshMovies();
-                        },
-                      )
-                    else if (hasFocusedFilter)
-                      _FilteredMovieRail(
-                        shelf: shelves.first,
-                        hasActivePlan: hasActivePlan,
-                        onTapMovie: _openMovie,
-                      )
-                    else
-                      ...shelves.map(
-                        (shelf) => Padding(
-                          padding: const EdgeInsets.only(bottom: 24),
-                          child: _MovieShelfSection(
-                            shelf: shelf,
-                            hasActivePlan: hasActivePlan,
-                            onTapMovie: _openMovie,
-                          ),
-                        ),
-                      ),
-                  ],
+              ),
+              const SizedBox(height: 12),
+              _MovieFiltersPanel(
+                searchController: _searchController,
+                accessFilter: _accessFilter,
+                selectedCategoryId: _selectedCategoryId,
+                categories: controller.movieCategories,
+                loading: controller.loadingMovies,
+                onRefresh: _refreshMovies,
+                onAccessChanged: (value) {
+                  setState(() => _accessFilter = value);
+                },
+                onCategoryChanged: (value) {
+                  setState(() => _selectedCategoryId = value);
+                  _refreshMovies();
+                },
+              ),
+              const SizedBox(height: 14),
+              if (highlightedPlan != null ||
+                  controller.activeSubscription != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: _MoviePlanPanel(
+                    plan: highlightedPlan,
+                    activeSubscription: controller.activeSubscription,
+                  ),
                 ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CinemaTopBar extends StatelessWidget {
-  const _CinemaTopBar({required this.totalMovies, required this.activeCategory});
-
-  final int totalMovies;
-  final String? activeCategory;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Cinema Browse',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
+              if (featuredMovie != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 18),
+                  child: _MovieHeroBanner(
+                    movie: featuredMovie,
+                    unlocked: _isUnlocked(featuredMovie, hasActivePlan),
+                    onOpen: () => _openMovie(featuredMovie),
+                    onBrowse: _refreshMovies,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                activeCategory == null
-                    ? '$totalMovies titles arranged in poster shelves.'
-                    : '$totalMovies titles in $activeCategory.',
-                style: const TextStyle(
-                  color: Color(0xFF8B97AD),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+              if (controller.loadingMovies && library.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (visibleMovies.isEmpty)
+                const SizedBox(
+                  height: 210,
+                  child: MetroEmptyState(
+                    icon: Icons.movie_filter_outlined,
+                    title: 'No titles match this setup',
+                    message:
+                        'Clear the category or access filters to reopen the full movie shelves.',
+                    borderColor: Color(0xFF6D7A94),
+                  ),
+                )
+              else ...[
+                MetroSectionHeader(
+                  title: 'Movie rows',
+                  subtitle:
+                      'Swipe through posters by category and open a title in one tap.',
                 ),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.grid_view_rounded,
-                size: 16,
-                color: Color(0xFF6AB7FF),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '$totalMovies titles',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MovieSearchField extends StatelessWidget {
-  const _MovieSearchField({
-    required this.controller,
-    required this.onChanged,
-    required this.onSubmitted,
-    required this.onClearPressed,
-    required this.onSearchPressed,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final ValueChanged<String> onSubmitted;
-  final VoidCallback onClearPressed;
-  final VoidCallback onSearchPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      onSubmitted: onSubmitted,
-      textInputAction: TextInputAction.search,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        hintText: 'Search movies, providers, or moods',
-        hintStyle: const TextStyle(color: Color(0xFF7E89A1)),
-        prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF97A7C0)),
-        suffixIcon: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (controller.text.trim().isNotEmpty)
-              IconButton(
-                onPressed: onClearPressed,
-                icon: const Icon(Icons.close_rounded, color: Color(0xFF97A7C0)),
-              ),
-            IconButton(
-              onPressed: onSearchPressed,
-              icon: const Icon(Icons.tune_rounded, color: Color(0xFF97A7C0)),
-            ),
-          ],
-        ),
-        filled: true,
-        fillColor: const Color(0xFF161D2C),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: Color(0xFF1E2738)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: Color(0xFF4A97FF), width: 1.5),
-        ),
-      ),
-    );
-  }
-}
-
-class _CinemaAccessFilters extends StatelessWidget {
-  const _CinemaAccessFilters({
-    required this.accessFilter,
-    required this.onChanged,
-  });
-
-  final _MovieAccessFilter accessFilter;
-  final ValueChanged<_MovieAccessFilter> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Browse mode',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-          ),
-        ),
-        const SizedBox(height: 10),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _CinemaPillChip(
-                label: 'All',
-                selected: accessFilter == _MovieAccessFilter.all,
-                onTap: () => onChanged(_MovieAccessFilter.all),
-              ),
-              const SizedBox(width: 10),
-              _CinemaPillChip(
-                label: 'Ready',
-                selected: accessFilter == _MovieAccessFilter.ready,
-                onTap: () => onChanged(_MovieAccessFilter.ready),
-              ),
-              const SizedBox(width: 10),
-              _CinemaPillChip(
-                label: 'Free',
-                selected: accessFilter == _MovieAccessFilter.free,
-                onTap: () => onChanged(_MovieAccessFilter.free),
-              ),
-              const SizedBox(width: 10),
-              _CinemaPillChip(
-                label: 'Subscription',
-                selected: accessFilter == _MovieAccessFilter.subscription,
-                onTap: () => onChanged(_MovieAccessFilter.subscription),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CinemaCategoryFilters extends StatelessWidget {
-  const _CinemaCategoryFilters({
-    required this.selectedCategoryId,
-    required this.categories,
-    required this.onSelected,
-  });
-
-  final int? selectedCategoryId;
-  final List<AppOption> categories;
-  final ValueChanged<int?> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Categories',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-          ),
-        ),
-        const SizedBox(height: 10),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _CinemaPillChip(
-                label: 'All genres',
-                selected: selectedCategoryId == null,
-                onTap: () => onSelected(null),
-              ),
-              for (final category in categories) ...[
-                const SizedBox(width: 10),
-                _CinemaPillChip(
-                  label: category.name,
-                  selected: selectedCategoryId == category.id,
-                  onTap: () => onSelected(category.id),
-                ),
+                const SizedBox(height: 12),
+                for (final shelf in shelves) ...[
+                  _MovieShelfSection(
+                    shelf: shelf,
+                    isUnlocked: (movie) => _isUnlocked(movie, hasActivePlan),
+                    onOpen: _openMovie,
+                  ),
+                  const SizedBox(height: 18),
+                ],
               ],
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MovieFiltersPanel extends StatelessWidget {
+  const _MovieFiltersPanel({
+    required this.searchController,
+    required this.accessFilter,
+    required this.selectedCategoryId,
+    required this.categories,
+    required this.loading,
+    required this.onRefresh,
+    required this.onAccessChanged,
+    required this.onCategoryChanged,
+  });
+
+  final TextEditingController searchController;
+  final _MovieAccessFilter accessFilter;
+  final int? selectedCategoryId;
+  final List<AppOption> categories;
+  final bool loading;
+  final Future<void> Function() onRefresh;
+  final ValueChanged<_MovieAccessFilter> onAccessChanged;
+  final ValueChanged<int?> onCategoryChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return MetroInsetPanel(
+      borderColor: const Color(0xFF6C7B97),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: searchController,
+            decoration: InputDecoration(
+              hintText: context.tr('Search movies, providers, or categories'),
+              suffixIcon: IconButton(
+                onPressed: loading ? null : onRefresh,
+                icon: const Icon(Icons.search_rounded),
+              ),
+            ),
+            onSubmitted: (_) => onRefresh(),
+          ),
+          const SizedBox(height: 14),
+          _MovieFilterRail(
+            label: 'Quick filters',
+            children: [
+              _MovieFilterChipButton(
+                label: 'All',
+                selected: accessFilter == _MovieAccessFilter.all,
+                onTap: () => onAccessChanged(_MovieAccessFilter.all),
+              ),
+              _MovieFilterChipButton(
+                label: 'Ready to watch',
+                selected: accessFilter == _MovieAccessFilter.ready,
+                onTap: () => onAccessChanged(_MovieAccessFilter.ready),
+              ),
+              _MovieFilterChipButton(
+                label: 'Free',
+                selected: accessFilter == _MovieAccessFilter.free,
+                onTap: () => onAccessChanged(_MovieAccessFilter.free),
+              ),
+              _MovieFilterChipButton(
+                label: 'Subscription',
+                selected: accessFilter == _MovieAccessFilter.subscription,
+                onTap: () => onAccessChanged(_MovieAccessFilter.subscription),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _MovieFilterRail(
+            label: 'Categories',
+            children: [
+              _MovieFilterChipButton(
+                label: 'All genres',
+                selected: selectedCategoryId == null,
+                onTap: () => onCategoryChanged(null),
+              ),
+              for (final category in categories)
+                _MovieFilterChipButton(
+                  label: category.name,
+                  selected: selectedCategoryId == category.id,
+                  onTap: () => onCategoryChanged(category.id),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MovieFilterRail extends StatelessWidget {
+  const _MovieFilterRail({required this.label, required this.children});
+
+  final String label;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          context.tr(label),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(color: kMetroInk),
+        ),
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, runSpacing: 8, children: children),
       ],
     );
   }
 }
 
-class _CinemaPillChip extends StatelessWidget {
-  const _CinemaPillChip({
+class _MovieFilterChipButton extends StatelessWidget {
+  const _MovieFilterChipButton({
     required this.label,
     required this.selected,
     required this.onTap,
@@ -602,23 +422,29 @@ class _CinemaPillChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(kMetroRadius),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF2F7DF4) : const Color(0xFF171E2D),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: selected ? const Color(0xFF63AEFF) : const Color(0xFF262E40),
-          ),
+          color: selected ? kMetroCoralSoft : kMetroSurface,
+          borderRadius: BorderRadius.circular(kMetroRadius),
+          border: Border.all(color: selected ? kMetroCoral : kMetroLine),
+          boxShadow: selected
+              ? const [
+                  BoxShadow(
+                    color: Color(0x10F36C84),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.white : const Color(0xFFB8C4D9),
-            fontWeight: FontWeight.w700,
-            fontSize: 12,
+          context.tr(label),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: selected ? kMetroPrimary : kMetroInk,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ),
@@ -626,267 +452,89 @@ class _CinemaPillChip extends StatelessWidget {
   }
 }
 
-class _FeaturedMovieBanner extends StatelessWidget {
-  const _FeaturedMovieBanner({
+class _MovieHeroBanner extends StatelessWidget {
+  const _MovieHeroBanner({
     required this.movie,
     required this.unlocked,
-    required this.onTap,
+    required this.onOpen,
+    required this.onBrowse,
   });
 
   final MovieItem movie;
   final bool unlocked;
-  final VoidCallback onTap;
+  final VoidCallback onOpen;
+  final VoidCallback onBrowse;
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = movie.bannerUrl.isNotEmpty ? movie.bannerUrl : movie.posterUrl;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Featured movie',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: Ink(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                color: const Color(0xFF151C2B),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(24),
-                    ),
-                    child: Stack(
-                      children: [
-                        AspectRatio(
-                          aspectRatio: 16 / 9,
-                          child: imageUrl.isNotEmpty
-                              ? RemoteImage(url: imageUrl, fit: BoxFit.cover)
-                              : Container(
-                                  color: const Color(0xFF23314D),
-                                  alignment: Alignment.center,
-                                  child: const Icon(
-                                    Icons.movie_creation_rounded,
-                                    color: Colors.white,
-                                    size: 42,
-                                  ),
-                                ),
-                        ),
-                        Positioned.fill(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.10),
-                                  Colors.black.withValues(alpha: 0.78),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          left: 14,
-                          top: 14,
-                          child: _OverlayMovieBadge(
-                            label: movie.category?.name.isNotEmpty == true
-                                ? movie.category!.name
-                                : 'Movie',
-                          ),
-                        ),
-                        Positioned(
-                          right: 14,
-                          top: 14,
-                          child: _OverlayMovieBadge(
-                            label: unlocked ? 'Ready' : 'Plan',
-                          ),
-                        ),
-                        Positioned(
-                          left: 14,
-                          right: 14,
-                          bottom: 14,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                movie.title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 24,
-                                  height: 1.02,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                movie.summary,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Color(0xFFD5DAE6),
-                                  height: 1.35,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            movie.thirdPartyProvider.isEmpty
-                                ? 'Community stream'
-                                : movie.thirdPartyProvider,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFF8EA1BF),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        FilledButton.icon(
-                          onPressed: onTap,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF2F7DF4),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          icon: Icon(
-                            unlocked
-                                ? Icons.play_arrow_rounded
-                                : Icons.info_outline_rounded,
-                          ),
-                          label: Text(unlocked ? 'Watch' : 'Details'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CompactPlanBanner extends StatelessWidget {
-  const _CompactPlanBanner({
-    required this.plans,
-    required this.activeSubscription,
-    required this.busy,
-    required this.onSubscribe,
-  });
-
-  final List<MoviePlanModel> plans;
-  final MovieSubscriptionModel? activeSubscription;
-  final bool busy;
-  final ValueChanged<int> onSubscribe;
-
-  @override
-  Widget build(BuildContext context) {
-    final active = activeSubscription?.isActive == true;
-    final plan = plans.first;
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1A2240), Color(0xFF273A62)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.workspace_premium_rounded,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return SizedBox(
+      height: 256,
+      child: MetroImageFrame(
+        borderColor: kMetroCoral,
+        imageUrl: movie.bannerUrl.isNotEmpty
+            ? movie.bannerUrl
+            : movie.posterUrl,
+        overlayTop: const Color(0x12000000),
+        overlayBottom: const Color(0xDB111724),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Text(
-                  active
-                      ? 'Movie pass active until ${_formatDate(activeSubscription?.endsAt)}'
-                      : '${plan.name} • ${plan.currency} ${plan.price.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
+                const MetroBadge(label: 'Featured movie'),
+                const Spacer(),
+                MetroBadge(
+                  label: unlocked ? 'Ready to watch' : 'Subscription',
+                  backgroundColor: unlocked
+                      ? const Color(0xFFE8F5EE)
+                      : const Color(0xFFFFF3E3),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              context.tr(movie.title),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: Colors.white,
+                fontSize: 30,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              context.tr(movie.summary),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.94),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    onPressed: onOpen,
+                    child: Text(context.tr(unlocked ? 'Watch' : 'Details')),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  active
-                      ? 'Premium shelves are unlocked for this account.'
-                      : plan.description.isNotEmpty
-                          ? plan.description
-                          : 'Unlock more titles and keep the movie rows open.',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFFC6D0E2),
-                    height: 1.35,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onBrowse,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white70),
+                      backgroundColor: Colors.white.withValues(alpha: 0.08),
+                    ),
+                    child: Text(context.tr('See library')),
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 10),
-          FilledButton(
-            onPressed: busy || active ? null : () => onSubscribe(plan.id),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF1D3661),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: Text(active ? 'Active' : 'Unlock'),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -895,50 +543,34 @@ class _CompactPlanBanner extends StatelessWidget {
 class _MovieShelfSection extends StatelessWidget {
   const _MovieShelfSection({
     required this.shelf,
-    required this.hasActivePlan,
-    required this.onTapMovie,
+    required this.isUnlocked,
+    required this.onOpen,
   });
 
   final _MovieShelfData shelf;
-  final bool hasActivePlan;
-  final ValueChanged<MovieItem> onTapMovie;
+  final bool Function(MovieItem movie) isUnlocked;
+  final Future<void> Function(MovieItem movie) onOpen;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          shelf.title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-            fontSize: 18,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          shelf.description,
-          style: const TextStyle(
-            color: Color(0xFF8B97AD),
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 12),
+        MetroSectionHeader(title: shelf.title, subtitle: shelf.subtitle),
+        const SizedBox(height: 10),
         SizedBox(
-          height: 214,
+          height: 226,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: shelf.movies.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            separatorBuilder: (_, _) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
               final movie = shelf.movies[index];
-              return _MoviePosterCard(
+              return _MovieRailCard(
                 movie: movie,
-                unlocked:
-                    movie.accessType == 'free' || movie.canWatch || hasActivePlan,
-                onTap: () => onTapMovie(movie),
+                accentColor: shelf.accentColor,
+                unlocked: isUnlocked(movie),
+                onTap: () => onOpen(movie),
               );
             },
           ),
@@ -948,353 +580,173 @@ class _MovieShelfSection extends StatelessWidget {
   }
 }
 
-class _FilteredMovieRail extends StatelessWidget {
-  const _FilteredMovieRail({
-    required this.shelf,
-    required this.hasActivePlan,
-    required this.onTapMovie,
-  });
-
-  final _MovieShelfData shelf;
-  final bool hasActivePlan;
-  final ValueChanged<MovieItem> onTapMovie;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          shelf.title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-            fontSize: 18,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          shelf.description,
-          style: const TextStyle(
-            color: Color(0xFF8B97AD),
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 14),
-        SizedBox(
-          height: 214,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: shelf.movies.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              final movie = shelf.movies[index];
-              return _MoviePosterCard(
-                movie: movie,
-                unlocked:
-                    movie.accessType == 'free' || movie.canWatch || hasActivePlan,
-                onTap: () => onTapMovie(movie),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MoviePosterCard extends StatelessWidget {
-  const _MoviePosterCard({
+class _MovieRailCard extends StatelessWidget {
+  const _MovieRailCard({
     required this.movie,
+    required this.accentColor,
     required this.unlocked,
     required this.onTap,
   });
 
   final MovieItem movie;
+  final Color accentColor;
   final bool unlocked;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final posterUrl = movie.posterUrl.isNotEmpty ? movie.posterUrl : movie.bannerUrl;
-
-    return Align(
-      alignment: Alignment.topLeft,
-      child: SizedBox(
-        width: 142,
-        height: 204,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(16),
-            child: Ink(
-              decoration: BoxDecoration(
-                color: const Color(0xFF101724),
-                borderRadius: BorderRadius.circular(16),
+    return SizedBox(
+      width: 164,
+      child: MetroImageFrame(
+        borderColor: accentColor,
+        imageUrl: movie.posterUrl.isNotEmpty
+            ? movie.posterUrl
+            : movie.bannerUrl,
+        onTap: onTap,
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        overlayTop: const Color(0x0A000000),
+        overlayBottom: const Color(0xE1121822),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            MetroBadge(
+              label: unlocked ? 'Ready to watch' : 'Subscription',
+              backgroundColor: unlocked
+                  ? const Color(0xFFE8F5EE)
+                  : const Color(0xFFFFF3E3),
+            ),
+            const Spacer(),
+            if (movie.category?.name.trim().isNotEmpty == true) ...[
+              MetroBadge(
+                label: movie.category!.name,
+                backgroundColor: Colors.white.withValues(alpha: 0.88),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 10),
+            ],
+            Text(
+              context.tr(movie.title),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Colors.white,
+                fontSize: 20,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              movie.thirdPartyProvider.trim().isEmpty
+                  ? context.tr('Community stream')
+                  : context.tr(movie.thirdPartyProvider),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.9),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: unlocked
+                    ? accentColor.withValues(alpha: 0.94)
+                    : Colors.white.withValues(alpha: 0.12),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Stack(
-                      children: [
-                        AspectRatio(
-                          aspectRatio: 1,
-                          child: posterUrl.isNotEmpty
-                              ? RemoteImage(url: posterUrl, fit: BoxFit.cover)
-                              : Container(
-                                  color: const Color(0xFF24304A),
-                                  alignment: Alignment.center,
-                                  child: const Icon(
-                                    Icons.movie_creation_outlined,
-                                    color: Colors.white,
-                                    size: 30,
-                                  ),
-                                ),
-                        ),
-                        Positioned.fill(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.12),
-                                  Colors.black.withValues(alpha: 0.48),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          left: 8,
-                          bottom: 8,
-                          child: _TinyPosterBadge(
-                            label: movie.category?.name.isNotEmpty == true
-                                ? movie.category!.name
-                                : 'Movie',
-                          ),
-                        ),
-                        Positioned(
-                          right: 8,
-                          top: 8,
-                          child: Icon(
-                            unlocked
-                                ? Icons.play_circle_fill_rounded
-                                : Icons.workspace_premium_rounded,
-                            size: 18,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
+                  Icon(
+                    unlocked
+                        ? Icons.play_circle_fill_rounded
+                        : Icons.info_outline_rounded,
+                    size: 16,
+                    color: Colors.white,
                   ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      movie.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      movie.thirdPartyProvider.isEmpty
-                          ? (unlocked ? 'Ready to watch' : 'Plan required')
-                          : movie.thirdPartyProvider,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF8B97AD),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
+                  const SizedBox(width: 6),
+                  Text(
+                    context.tr(unlocked ? 'Watch' : 'Details'),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _OverlayMovieBadge extends StatelessWidget {
-  const _OverlayMovieBadge({required this.label});
+class _MoviePlanPanel extends StatelessWidget {
+  const _MoviePlanPanel({required this.plan, required this.activeSubscription});
 
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-          fontSize: 11,
-        ),
-      ),
-    );
-  }
-}
-
-class _TinyPosterBadge extends StatelessWidget {
-  const _TinyPosterBadge({required this.label});
-
-  final String label;
+  final MoviePlanModel? plan;
+  final MovieSubscriptionModel? activeSubscription;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 70),
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.42),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-          fontSize: 10,
-        ),
-      ),
-    );
-  }
-}
+    final active = activeSubscription?.isActive == true;
+    final label = active
+        ? context.tr('Movie pass active until {date}', {
+            'date': activeSubscription?.endsAt == null
+                ? context.tr('soon')
+                : AppDateUtils.formatDate(activeSubscription?.endsAt),
+          })
+        : plan == null
+        ? context.tr('Subscription ready')
+        : context.tr('{currency} {price} / {days} days', {
+            'currency': plan!.currency,
+            'price': plan!.price.toStringAsFixed(2),
+            'days': '${plan!.durationDays}',
+          });
 
-class _MovieLoadingState extends StatelessWidget {
-  const _MovieLoadingState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: List.generate(
-        3,
-        (index) => Padding(
-          padding: const EdgeInsets.only(bottom: 22),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 160,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1B2435),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: List.generate(
-                  3,
-                  (posterIndex) => Padding(
-                    padding: EdgeInsets.only(right: posterIndex == 2 ? 0 : 12),
-                    child: Container(
-                      width: 142,
-                      height: 182,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF151D2C),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MovieEmptyState extends StatelessWidget {
-  const _MovieEmptyState({required this.hasFilters, required this.onReset});
-
-  final bool hasFilters;
-  final VoidCallback onReset;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: const Color(0xFF121826),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFF232C3F)),
-      ),
-      child: Column(
+    return MetroInsetPanel(
+      borderColor: active ? kMetroCoral : const Color(0xFF8C93A8),
+      child: Row(
         children: [
           Container(
-            width: 62,
-            height: 62,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFF1A2234),
-              borderRadius: BorderRadius.circular(18),
+              color: active ? kMetroCoralSoft : kMetroPrimarySoft,
+              borderRadius: BorderRadius.circular(kMetroRadius),
+              border: Border.all(color: kMetroLine),
             ),
-            child: const Icon(
-              Icons.movie_filter_outlined,
-              size: 30,
-              color: Color(0xFF78B1FF),
-            ),
-          ),
-          const SizedBox(height: 14),
-          const Text(
-            'No titles match this setup',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 20,
+            child: Icon(
+              active
+                  ? Icons.workspace_premium_rounded
+                  : Icons.subscriptions_outlined,
+              color: kMetroInk,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            hasFilters
-                ? 'Clear the category or access filters to reopen the full movie shelves.'
-                : 'Pull to refresh and sync the latest movie list from the live API.',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF8B97AD),
-              height: 1.45,
-              fontWeight: FontWeight.w500,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(color: kMetroInk),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  context.tr(
+                    active
+                        ? 'Premium shelves are unlocked for this account.'
+                        : 'Unlock more titles and keep the movie rows open.',
+                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: kMetroMuted),
+                ),
+              ],
             ),
           ),
-          if (hasFilters) ...[
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: onReset,
-              icon: const Icon(Icons.restart_alt_rounded),
-              label: const Text('Reset filters'),
-            ),
-          ],
         ],
       ),
     );
@@ -1304,19 +756,13 @@ class _MovieEmptyState extends StatelessWidget {
 class _MovieShelfData {
   const _MovieShelfData({
     required this.title,
-    required this.description,
+    required this.subtitle,
+    required this.accentColor,
     required this.movies,
   });
 
   final String title;
-  final String description;
+  final String subtitle;
+  final Color accentColor;
   final List<MovieItem> movies;
-}
-
-String _formatDate(DateTime? value) {
-  if (value == null) return 'soon';
-  final local = value.toLocal();
-  final month = local.month.toString().padLeft(2, '0');
-  final day = local.day.toString().padLeft(2, '0');
-  return '${local.year}/$month/$day';
 }

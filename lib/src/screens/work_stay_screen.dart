@@ -3,13 +3,15 @@ import 'package:provider/provider.dart';
 
 import '../controllers/chat_controller.dart';
 import '../controllers/social_hub_controller.dart';
+import '../core/localization/app_localizer.dart';
 import '../models/job_listing_item.dart';
 import '../models/property_listing_item.dart';
-import '../widgets/remote_image.dart';
+import '../widgets/metro_ui.dart';
 import '../widgets/us_state_dropdown_field.dart';
 import 'chat_home_screen.dart';
 import 'forms/job_form_screen.dart';
 import 'forms/property_form_screen.dart';
+import 'work_stay_detail_screen.dart';
 
 class WorkStayScreen extends StatefulWidget {
   const WorkStayScreen({super.key});
@@ -65,7 +67,7 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(unavailableMessage),
+          content: Text(context.tr(unavailableMessage)),
         ),
       );
       return;
@@ -74,12 +76,49 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
     final chat = context.read<ChatController>();
     await chat.connectIfNeeded();
     await chat.openPrivateChatByUserId(userId);
-    if (!mounted || chat.activeRoom == null) {
+    if (!mounted) {
+      return;
+    }
+    if (chat.activeRoom == null) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(chat.error ?? context.tr('Failed to start the chat.')),
+        ),
+      );
       return;
     }
 
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ChatHomeScreen()));
+  }
+
+  Future<void> _openJobDetail(JobListingItem item) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ChatHomeScreen()),
+      MaterialPageRoute(
+        builder: (_) => JobListingDetailScreen(
+          item: item,
+          onContact: (job) => _openPrivateChat(
+            job.userId,
+            'This recruiter chat is not available yet.',
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openPropertyDetail(PropertyListingItem item) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PropertyListingDetailScreen(
+          item: item,
+          onContact: (property) => _openPrivateChat(
+            property.userId,
+            'This host chat is not available yet.',
+          ),
+        ),
+      ),
     );
   }
 
@@ -89,15 +128,24 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
     final loading = _segment == 0
         ? controller.loadingJobs
         : controller.loadingProperties;
+    final featuredJob = controller.jobItems.isNotEmpty
+        ? controller.jobItems.first
+        : null;
+    final featuredProperty = controller.propertyItems.isNotEmpty
+        ? controller.propertyItems.first
+        : null;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Work & Stay'),
+        titleSpacing: 16,
+        title: Text(context.tr('Work & Stay')),
         actions: [
-          IconButton(
+          MetroActionButton(
+            icon: Icons.refresh_rounded,
+            label: 'Refresh',
             onPressed: loading ? null : _refresh,
-            icon: const Icon(Icons.refresh_rounded),
           ),
+          const SizedBox(width: 16),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -118,456 +166,328 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
         icon: Icon(
           _segment == 0 ? Icons.work_outline_rounded : Icons.home_work_outlined,
         ),
-        label: Text(_segment == 0 ? 'Post Job' : 'Post Housing'),
+        label: Text(context.tr(_segment == 0 ? 'Post Job' : 'Post Housing')),
       ),
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
-          children: [
-            SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(
-                  value: 0,
-                  icon: Icon(Icons.content_cut_rounded),
-                  label: Text('Nail Jobs'),
-                ),
-                ButtonSegment(
-                  value: 1,
-                  icon: Icon(Icons.home_work_rounded),
-                  label: Text('Room Share'),
-                ),
-              ],
-              selected: {_segment},
-              onSelectionChanged: (selection) {
-                setState(() => _segment = selection.first);
-                _refresh();
-              },
-            ),
-            const SizedBox(height: 12),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _segment == 0
-                    ? [
-                        _ModeChip(
-                          label: 'All',
-                          selected: _jobMode == null,
+      body: MetroPageBackground(
+        child: RefreshIndicator(
+          onRefresh: _refresh,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 92),
+            children: [
+              _WorkStayHero(
+                title: _segment == 0 ? 'Nail Jobs' : 'Room Share',
+                subtitle: _segment == 0
+                    ? 'Hiring salon talent, shift openings, and job seekers in one mobile-friendly board.'
+                    : 'Rental leads, room shares, and move-in posts laid out with cleaner cards.',
+                imageUrl: _segment == 0
+                    ? (featuredJob?.imageUrls.isNotEmpty == true
+                          ? featuredJob!.imageUrls.first
+                          : '')
+                    : (featuredProperty?.imageUrls.isNotEmpty == true
+                          ? featuredProperty!.imageUrls.first
+                          : ''),
+                count: _segment == 0
+                    ? controller.jobItems.length
+                    : controller.propertyItems.length,
+                borderColor: _segment == 0 ? kMetroGold : kMetroPrimary,
+                onTap: _segment == 0
+                    ? (featuredJob == null
+                          ? null
+                          : () => _openJobDetail(featuredJob))
+                    : (featuredProperty == null
+                          ? null
+                          : () => _openPropertyDetail(featuredProperty)),
+              ),
+              const SizedBox(height: 16),
+              MetroSectionHeader(
+                title: _segment == 0 ? 'Hiring feed' : 'Rooms and housing',
+                subtitle: _segment == 0
+                    ? 'Openings and candidate posts are easier to scan in this card layout.'
+                    : 'Room listings and housing leads now show photo-first with details below.',
+              ),
+              const SizedBox(height: 12),
+              MetroInsetPanel(
+                borderColor: _segment == 0 ? kMetroGold : kMetroPrimary,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _WorkStayFilterChipButton(
+                          label: 'Nail Jobs',
+                          selected: _segment == 0,
                           onTap: () {
-                            setState(() => _jobMode = null);
+                            setState(() => _segment = 0);
                             _refresh();
                           },
                         ),
-                        _ModeChip(
-                          label: 'Hiring nail staff',
-                          selected: _jobMode == 'hiring',
+                        _WorkStayFilterChipButton(
+                          label: 'Room Share',
+                          selected: _segment == 1,
                           onTap: () {
-                            setState(() => _jobMode = 'hiring');
-                            _refresh();
-                          },
-                        ),
-                        _ModeChip(
-                          label: 'Job seekers',
-                          selected: _jobMode == 'looking_for_job',
-                          onTap: () {
-                            setState(() => _jobMode = 'looking_for_job');
-                            _refresh();
-                          },
-                        ),
-                      ]
-                    : [
-                        _ModeChip(
-                          label: 'All',
-                          selected: _propertyMode == null,
-                          onTap: () {
-                            setState(() => _propertyMode = null);
-                            _refresh();
-                          },
-                        ),
-                        _ModeChip(
-                          label: 'Room share',
-                          selected: _propertyMode == 'room_share',
-                          onTap: () {
-                            setState(() => _propertyMode = 'room_share');
-                            _refresh();
-                          },
-                        ),
-                        _ModeChip(
-                          label: 'Homes for rent',
-                          selected: _propertyMode == 'rent_out',
-                          onTap: () {
-                            setState(() => _propertyMode = 'rent_out');
-                            _refresh();
-                          },
-                        ),
-                        _ModeChip(
-                          label: 'Looking for a room',
-                          selected: _propertyMode == 'looking_room',
-                          onTap: () {
-                            setState(() => _propertyMode = 'looking_room');
+                            setState(() => _segment = 1);
                             _refresh();
                           },
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _segment == 0
+                          ? [
+                              _ModeChip(
+                                label: 'All',
+                                selected: _jobMode == null,
+                                onTap: () {
+                                  setState(() => _jobMode = null);
+                                  _refresh();
+                                },
+                              ),
+                              _ModeChip(
+                                label: 'Hiring nail staff',
+                                selected: _jobMode == 'hiring',
+                                onTap: () {
+                                  setState(() => _jobMode = 'hiring');
+                                  _refresh();
+                                },
+                              ),
+                              _ModeChip(
+                                label: 'Job seekers',
+                                selected: _jobMode == 'looking_for_job',
+                                onTap: () {
+                                  setState(() => _jobMode = 'looking_for_job');
+                                  _refresh();
+                                },
+                              ),
+                            ]
+                          : [
+                              _ModeChip(
+                                label: 'All',
+                                selected: _propertyMode == null,
+                                onTap: () {
+                                  setState(() => _propertyMode = null);
+                                  _refresh();
+                                },
+                              ),
+                              _ModeChip(
+                                label: 'Room share',
+                                selected: _propertyMode == 'room_share',
+                                onTap: () {
+                                  setState(() => _propertyMode = 'room_share');
+                                  _refresh();
+                                },
+                              ),
+                              _ModeChip(
+                                label: 'Homes for rent',
+                                selected: _propertyMode == 'rent_out',
+                                onTap: () {
+                                  setState(() => _propertyMode = 'rent_out');
+                                  _refresh();
+                                },
+                              ),
+                              _ModeChip(
+                                label: 'Looking for a room',
+                                selected: _propertyMode == 'looking_room',
+                                onTap: () {
+                                  setState(
+                                    () => _propertyMode = 'looking_room',
+                                  );
+                                  _refresh();
+                                },
+                              ),
+                            ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: context.tr(
+                          _segment == 0
+                              ? 'Search jobs'
+                              : 'Search room listings',
+                        ),
+                        suffixIcon: IconButton(
+                          onPressed: _refresh,
+                          icon: const Icon(Icons.search_rounded),
+                        ),
+                      ),
+                      onSubmitted: (_) => _refresh(),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: UsStateDropdownField(
+                            states: controller.usStates,
+                            value: _stateFilter,
+                            required: false,
+                            loading: controller.loadingUsStates,
+                            onChanged: (value) {
+                              setState(() => _stateFilter = value);
+                              _refresh();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        _WorkStayFilterChipButton(
+                          label: 'My posts',
+                          selected: _mineOnly,
+                          onTap: () {
+                            setState(() => _mineOnly = !_mineOnly);
+                            _refresh();
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 14),
+              if (_segment == 0) ...[
+                if (controller.loadingJobs && controller.jobItems.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (controller.jobItems.isEmpty)
+                  const SizedBox(
+                    height: 210,
+                    child: MetroEmptyState(
+                      icon: Icons.work_outline_rounded,
+                      title: 'No hiring posts yet',
+                      message:
+                          'New openings will show here as soon as recruiters and salon owners publish them.',
+                      borderColor: Color(0xFFE0C137),
+                    ),
+                  )
+                else
+                  ...List<Widget>.generate(controller.jobItems.length, (index) {
+                    final item = controller.jobItems[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _JobEditorialTile(
+                        item: item,
+                        borderColor: _jobTileColor(index),
+                        onContact: () => _openPrivateChat(
+                          item.userId,
+                          'This recruiter chat is not available yet.',
+                        ),
+                        onOpen: () => _openJobDetail(item),
+                      ),
+                    );
+                  }),
+              ] else ...[
+                if (controller.loadingProperties &&
+                    controller.propertyItems.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (controller.propertyItems.isEmpty)
+                  const SizedBox(
+                    height: 210,
+                    child: MetroEmptyState(
+                      icon: Icons.home_work_outlined,
+                      title: 'No housing posts yet',
+                      message:
+                          'New room shares and housing posts will surface here when they are published.',
+                      borderColor: Color(0xFF345AE3),
+                    ),
+                  )
+                else
+                  ...List<Widget>.generate(controller.propertyItems.length, (
+                    index,
+                  ) {
+                    final item = controller.propertyItems[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _PropertyEditorialTile(
+                        item: item,
+                        borderColor: _propertyTileColor(index),
+                        onContact: () => _openPrivateChat(
+                          item.userId,
+                          'This host chat is not available yet.',
+                        ),
+                        onOpen: () => _openPropertyDetail(item),
+                      ),
+                    );
+                  }),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkStayHero extends StatelessWidget {
+  const _WorkStayHero({
+    required this.title,
+    required this.subtitle,
+    required this.imageUrl,
+    required this.count,
+    required this.borderColor,
+    this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final String imageUrl;
+  final int count;
+  final Color borderColor;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 226,
+      child: MetroImageFrame(
+        borderColor: borderColor,
+        imageUrl: imageUrl,
+        onTap: onTap,
+        overlayTop: const Color(0x08000000),
+        overlayBottom: const Color(0xD2151720),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Row(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: _segment == 0 ? 'Search jobs' : 'Search rooms',
-                      suffixIcon: IconButton(
-                        onPressed: _refresh,
-                        icon: const Icon(Icons.search_rounded),
-                      ),
-                    ),
-                    onSubmitted: (_) => _refresh(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                FilterChip(
-                  label: const Text('My posts'),
-                  selected: _mineOnly,
-                  onSelected: (value) {
-                    setState(() => _mineOnly = value);
-                    _refresh();
-                  },
+                MetroBadge(label: title),
+                const Spacer(),
+                MetroBadge(
+                  label: '$count',
+                  backgroundColor: borderColor.withValues(alpha: 0.95),
+                  foregroundColor: Colors.white,
+                  outlined: false,
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            UsStateDropdownField(
-              states: controller.usStates,
-              value: _stateFilter,
-              required: false,
-              loading: controller.loadingUsStates,
-              onChanged: (value) {
-                setState(() => _stateFilter = value);
-                _refresh();
-              },
+            const Spacer(),
+            Text(
+              context.tr(title),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: Colors.white,
+                fontSize: 30,
+              ),
             ),
-            const SizedBox(height: 14),
-            if (_segment == 0) ...[
-              if (controller.loadingJobs && controller.jobItems.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              else
-                ...controller.jobItems.map(
-                  (item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: _JobCard(
-                      item: item,
-                      onSave: () => controller.toggleBookmark(
-                        type: 'job_listing',
-                        id: item.id,
-                      ),
-                      onContact: () => _openPrivateChat(
-                        item.userId,
-                        'This recruiter chat is not available yet.',
-                      ),
-                    ),
-                  ),
-                ),
-            ] else ...[
-              if (controller.loadingProperties &&
-                  controller.propertyItems.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              else
-                ...controller.propertyItems.map(
-                  (item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: _PropertyCard(
-                      item: item,
-                      onSave: () => controller.toggleBookmark(
-                        type: 'property_listing',
-                        id: item.id,
-                      ),
-                      onContact: () => _openPrivateChat(
-                        item.userId,
-                        'This host chat is not available yet.',
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+            const SizedBox(height: 8),
+            Text(
+              context.tr(subtitle),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.92),
+              ),
+            ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _JobCard extends StatelessWidget {
-  const _JobCard({
-    required this.item,
-    required this.onSave,
-    required this.onContact,
-  });
-
-  final JobListingItem item;
-  final Future<void> Function() onSave;
-  final Future<void> Function() onContact;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _ListingImageHeader(
-            imageUrl: item.imageUrls.isEmpty ? '' : item.imageUrls.first,
-            saved: item.saved,
-            fallbackIcon: Icons.content_cut_rounded,
-            badgeLabel: _jobModeLabel(item.listingMode),
-            onSave: onSave,
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${item.salonName} • ${item.city}, ${item.state}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF52627A),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  item.description,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _ListingBadge(
-                      label:
-                          '${item.salaryCurrency} ${item.salaryMin?.toStringAsFixed(0) ?? '-'} - ${item.salaryMax?.toStringAsFixed(0) ?? '-'}',
-                    ),
-                    if (item.contactPhone.isNotEmpty)
-                      _ListingBadge(label: item.contactPhone),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: onContact,
-                    icon: const Icon(Icons.chat_rounded),
-                    label: Text(
-                      item.listingMode == 'looking_for_job'
-                          ? 'Message candidate'
-                          : 'Chat recruiter',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PropertyCard extends StatelessWidget {
-  const _PropertyCard({
-    required this.item,
-    required this.onSave,
-    required this.onContact,
-  });
-
-  final PropertyListingItem item;
-  final Future<void> Function() onSave;
-  final Future<void> Function() onContact;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _ListingImageHeader(
-            imageUrl: item.imageUrls.isEmpty ? '' : item.imageUrls.first,
-            saved: item.saved,
-            fallbackIcon: Icons.home_work_rounded,
-            badgeLabel: _propertyModeLabel(item.listingMode),
-            onSave: onSave,
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${item.currency} ${item.price.toStringAsFixed(0)} • ${item.city}, ${item.state}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF52627A),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  item.description,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (item.addressLine.isNotEmpty)
-                      _ListingBadge(label: item.addressLine),
-                    ...item.amenities.take(2).map(_buildAmenityBadge),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: onContact,
-                    icon: const Icon(Icons.forum_rounded),
-                    label: Text(
-                      item.listingMode == 'looking_room'
-                          ? 'Message renter'
-                          : 'Chat host',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-Widget _buildAmenityBadge(String amenity) {
-  return _ListingBadge(label: amenity);
-}
-
-class _ListingImageHeader extends StatelessWidget {
-  const _ListingImageHeader({
-    required this.imageUrl,
-    required this.saved,
-    required this.fallbackIcon,
-    required this.badgeLabel,
-    required this.onSave,
-  });
-
-  final String imageUrl;
-  final bool saved;
-  final IconData fallbackIcon;
-  final String badgeLabel;
-  final Future<void> Function() onSave;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        AspectRatio(
-          aspectRatio: 16 / 9,
-          child: imageUrl.isEmpty
-              ? _ListingImagePlaceholder(icon: fallbackIcon)
-              : RemoteImage(
-                  url: imageUrl,
-                  fit: BoxFit.cover,
-                  errorFallback: _ListingImagePlaceholder(icon: fallbackIcon),
-                ),
-        ),
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.black.withValues(alpha: 0.04),
-                  Colors.black.withValues(alpha: 0.34),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          left: 14,
-          bottom: 14,
-          child: _ListingBadge(label: badgeLabel, light: true),
-        ),
-        Positioned(
-          top: 12,
-          right: 12,
-          child: Material(
-            color: Colors.white.withValues(alpha: 0.92),
-            shape: const CircleBorder(),
-            child: IconButton(
-              onPressed: onSave,
-              icon: Icon(
-                saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ListingImagePlaceholder extends StatelessWidget {
-  const _ListingImagePlaceholder({required this.icon});
-
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFE7EEF9), Color(0xFFD7E9FF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Center(
-        child: Icon(icon, size: 34, color: const Color(0xFF4A6FA5)),
       ),
     );
   }
@@ -586,53 +506,364 @@ class _ModeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 10),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => onTap(),
-      ),
+    return _WorkStayFilterChipButton(
+      label: label,
+      selected: selected,
+      onTap: onTap,
     );
   }
 }
 
-class _ListingBadge extends StatelessWidget {
-  const _ListingBadge({required this.label, this.light = false});
+class _JobEditorialTile extends StatelessWidget {
+  const _JobEditorialTile({
+    required this.item,
+    required this.borderColor,
+    required this.onContact,
+    required this.onOpen,
+  });
 
-  final String label;
-  final bool light;
+  final JobListingItem item;
+  final Color borderColor;
+  final Future<void> Function() onContact;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: light
-            ? Colors.white.withValues(alpha: 0.88)
-            : const Color(0xFFF0F6FF),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: light ? const Color(0xFF26415F) : const Color(0xFF2A5CAA),
+    return InkWell(
+      onTap: onOpen,
+      borderRadius: BorderRadius.circular(kMetroRadius),
+      child: MetroInsetPanel(
+        borderColor: borderColor,
+        padding: EdgeInsets.zero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 154,
+              child: MetroImageFrame(
+                borderColor: borderColor,
+                imageUrl: item.imageUrls.isNotEmpty ? item.imageUrls.first : '',
+                padding: const EdgeInsets.all(12),
+                overlayTop: const Color(0x06000000),
+                overlayBottom: const Color(0x42000000),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    MetroBadge(label: _humanize(item.listingMode)),
+                    const Spacer(),
+                    if (item.salonName.isNotEmpty)
+                      MetroBadge(
+                        label: item.salonName,
+                        backgroundColor: Colors.white.withValues(alpha: 0.88),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr(item.title),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: kMetroInk,
+                      fontSize: 22,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    context.tr(item.description),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: kMetroMuted),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (_salary(item).isNotEmpty)
+                        MetroBadge(
+                          label: _salary(item),
+                          backgroundColor: const Color(0xFFFFF2DE),
+                        ),
+                      if (_location(item.city, item.state).isNotEmpty)
+                        MetroBadge(
+                          label: _location(item.city, item.state),
+                          backgroundColor: const Color(0xFFF0F3FA),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 42,
+                          child: OutlinedButton(
+                            onPressed: onOpen,
+                            child: Text(context.tr('View details')),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: SizedBox(
+                          height: 42,
+                          child: FilledButton(
+                            onPressed: onContact,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: borderColor.withValues(
+                                alpha: 0.96,
+                              ),
+                            ),
+                            child: Text(
+                              context.tr(
+                                item.listingMode == 'looking_for_job'
+                                    ? 'Message candidate'
+                                    : 'Chat recruiter',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-String _jobModeLabel(String mode) {
-  switch (mode) {
-    case 'looking_for_job':
-      return 'Job seekers';
-    case 'hiring':
-    default:
-      return 'Hiring nail staff';
+class _PropertyEditorialTile extends StatelessWidget {
+  const _PropertyEditorialTile({
+    required this.item,
+    required this.borderColor,
+    required this.onContact,
+    required this.onOpen,
+  });
+
+  final PropertyListingItem item;
+  final Color borderColor;
+  final Future<void> Function() onContact;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onOpen,
+      borderRadius: BorderRadius.circular(kMetroRadius),
+      child: MetroInsetPanel(
+        borderColor: borderColor,
+        padding: EdgeInsets.zero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 154,
+              child: MetroImageFrame(
+                borderColor: borderColor,
+                imageUrl: item.imageUrls.isNotEmpty ? item.imageUrls.first : '',
+                padding: const EdgeInsets.all(12),
+                overlayTop: const Color(0x06000000),
+                overlayBottom: const Color(0x42000000),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    MetroBadge(label: _propertyModeLabel(item.listingMode)),
+                    const Spacer(),
+                    if (item.amenities.isNotEmpty)
+                      MetroBadge(
+                        label: item.amenities.first,
+                        backgroundColor: Colors.white.withValues(alpha: 0.88),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr(item.title),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: kMetroInk,
+                      fontSize: 22,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    context.tr(item.description),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: kMetroMuted),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      MetroBadge(
+                        label: _money(item.price, item.currency),
+                        backgroundColor: const Color(0xFFFFF2DE),
+                      ),
+                      if (_location(item.city, item.state).isNotEmpty)
+                        MetroBadge(
+                          label: _location(item.city, item.state),
+                          backgroundColor: const Color(0xFFF0F3FA),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 42,
+                          child: OutlinedButton(
+                            onPressed: onOpen,
+                            child: Text(context.tr('View details')),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: SizedBox(
+                          height: 42,
+                          child: FilledButton(
+                            onPressed: onContact,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: borderColor.withValues(
+                                alpha: 0.96,
+                              ),
+                            ),
+                            child: Text(
+                              context.tr(
+                                item.listingMode == 'looking_room'
+                                    ? 'Message renter'
+                                    : 'Chat host',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
+}
+
+class _WorkStayFilterChipButton extends StatelessWidget {
+  const _WorkStayFilterChipButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(kMetroRadius),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? kMetroCoralSoft : kMetroSurface,
+          borderRadius: BorderRadius.circular(kMetroRadius),
+          border: Border.all(color: selected ? kMetroCoral : kMetroLine),
+          boxShadow: selected
+              ? const [
+                  BoxShadow(
+                    color: Color(0x10F36C84),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          context.tr(label),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: selected ? kMetroPrimary : kMetroInk,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _humanize(String raw) {
+  final cleaned = raw.replaceAll('_', ' ').replaceAll('-', ' ').trim();
+  if (cleaned.isEmpty) return '';
+
+  return cleaned
+      .split(RegExp(r'\s+'))
+      .map((word) {
+        final lower = word.toLowerCase();
+        return '${lower[0].toUpperCase()}${lower.substring(1)}';
+      })
+      .join(' ');
+}
+
+String _location(String city, String state) {
+  final parts = <String>[
+    if (city.trim().isNotEmpty) city.trim(),
+    if (state.trim().isNotEmpty) state.trim(),
+  ];
+  return parts.join(', ');
+}
+
+String _money(double value, String currency) {
+  final prefix = currency.toUpperCase() == 'USD'
+      ? '\$'
+      : '${currency.toUpperCase()} ';
+  final isWhole = value == value.roundToDouble();
+  return '$prefix${value.toStringAsFixed(isWhole ? 0 : 2)}';
+}
+
+String _salary(JobListingItem item) {
+  if (item.salaryMin != null && item.salaryMax != null) {
+    return '${_money(item.salaryMin!, item.salaryCurrency)} - ${_money(item.salaryMax!, item.salaryCurrency)}';
+  }
+  if (item.salaryMin != null) {
+    return AppLocalizer.current.tr('From {amount}', {
+      'amount': _money(item.salaryMin!, item.salaryCurrency),
+    });
+  }
+  if (item.salaryMax != null) {
+    return AppLocalizer.current.tr('Up to {amount}', {
+      'amount': _money(item.salaryMax!, item.salaryCurrency),
+    });
+  }
+  return '';
 }
 
 String _propertyModeLabel(String mode) {
@@ -645,4 +876,24 @@ String _propertyModeLabel(String mode) {
     default:
       return 'Room share';
   }
+}
+
+Color _jobTileColor(int index) {
+  const palette = <Color>[
+    kMetroGold,
+    kMetroSuccess,
+    Color(0xFFC18E68),
+    kMetroPrimary,
+  ];
+  return palette[index % palette.length];
+}
+
+Color _propertyTileColor(int index) {
+  const palette = <Color>[
+    kMetroPrimary,
+    kMetroSuccess,
+    Color(0xFFC18E68),
+    kMetroRose,
+  ];
+  return palette[index % palette.length];
 }

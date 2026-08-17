@@ -3,11 +3,13 @@ import 'package:provider/provider.dart';
 
 import '../controllers/chat_controller.dart';
 import '../controllers/social_hub_controller.dart';
+import '../core/localization/app_localizer.dart';
 import '../models/marketplace_item.dart';
-import '../widgets/remote_image.dart';
+import '../widgets/metro_ui.dart';
 import '../widgets/us_state_dropdown_field.dart';
 import 'chat_home_screen.dart';
 import 'forms/marketplace_form_screen.dart';
+import 'marketplace_detail_screen.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   const MarketplaceScreen({super.key});
@@ -50,9 +52,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   Future<void> _contactSeller(MarketplaceItem item) async {
     if (item.userId <= 0) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        const SnackBar(
+        SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('This seller chat is not available yet.'),
+          content: Text(context.tr('This seller chat is not available yet.')),
         ),
       );
       return;
@@ -61,27 +63,50 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     final chat = context.read<ChatController>();
     await chat.connectIfNeeded();
     await chat.openPrivateChatByUserId(item.userId);
-    if (!mounted || chat.activeRoom == null) {
+    if (!mounted) {
+      return;
+    }
+    if (chat.activeRoom == null) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(chat.error ?? context.tr('Failed to start the chat.')),
+        ),
+      );
       return;
     }
 
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ChatHomeScreen()));
+  }
+
+  Future<void> _openDetail(MarketplaceItem item) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ChatHomeScreen()),
+      MaterialPageRoute(
+        builder: (_) =>
+            MarketplaceDetailScreen(item: item, onContact: _contactSeller),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<SocialHubController>();
+    final items = controller.marketplaceItems;
+    final featured = items.isNotEmpty ? items.first : null;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Marketplace'),
+        titleSpacing: 16,
+        title: Text(context.tr('Marketplace')),
         actions: [
-          IconButton(
+          MetroActionButton(
+            icon: Icons.refresh_rounded,
+            label: 'Refresh',
             onPressed: controller.loadingMarketplace ? null : _refresh,
-            icon: const Icon(Icons.refresh_rounded),
           ),
+          const SizedBox(width: 16),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -94,94 +119,208 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           }
         },
         icon: const Icon(Icons.add_business_rounded),
-        label: const Text('Post Item'),
+        label: Text(context.tr('Post Item')),
       ),
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
-          children: [
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search products',
-                suffixIcon: IconButton(
-                  onPressed: _refresh,
-                  icon: const Icon(Icons.search_rounded),
+      body: MetroPageBackground(
+        child: RefreshIndicator(
+          onRefresh: _refresh,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 92),
+            children: [
+              if (featured != null) ...[
+                _MarketplaceHero(
+                  item: featured,
+                  itemCount: items.length,
+                  borderColor: kMetroPrimary,
+                  onTap: () => _openDetail(featured),
+                ),
+                const SizedBox(height: 16),
+              ],
+              MetroSectionHeader(
+                title: 'Marketplace picks',
+                subtitle:
+                    'Salon marketplace finds, tools, and local deals in one scroll.',
+              ),
+              const SizedBox(height: 12),
+              MetroInsetPanel(
+                borderColor: kMetroPrimary,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: context.tr('Search products'),
+                        suffixIcon: IconButton(
+                          onPressed: _refresh,
+                          icon: const Icon(Icons.search_rounded),
+                        ),
+                      ),
+                      onSubmitted: (_) => _refresh(),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      context.tr('Browse by category'),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleMedium?.copyWith(color: kMetroInk),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _MarketplaceFilterChipButton(
+                          label: 'All categories',
+                          selected: _categoryId == null,
+                          onTap: () {
+                            setState(() => _categoryId = null);
+                            _refresh();
+                          },
+                        ),
+                        for (final category in controller.marketplaceCategories)
+                          _MarketplaceFilterChipButton(
+                            label: category.name,
+                            selected: _categoryId == category.id,
+                            onTap: () {
+                              setState(() => _categoryId = category.id);
+                              _refresh();
+                            },
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: UsStateDropdownField(
+                            states: controller.usStates,
+                            value: _stateFilter,
+                            required: false,
+                            loading: controller.loadingUsStates,
+                            onChanged: (value) {
+                              setState(() => _stateFilter = value);
+                              _refresh();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        _MarketplaceFilterChipButton(
+                          label: 'My posts',
+                          selected: _mineOnly,
+                          onTap: () {
+                            setState(() => _mineOnly = !_mineOnly);
+                            _refresh();
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              onSubmitted: (_) => _refresh(),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<int?>(
-              initialValue: _categoryId,
-              decoration: const InputDecoration(labelText: 'Category'),
-              items: [
-                const DropdownMenuItem<int?>(
-                  value: null,
-                  child: Text('All categories'),
-                ),
-                ...controller.marketplaceCategories.map(
-                  (category) => DropdownMenuItem<int?>(
-                    value: category.id,
-                    child: Text(category.name),
+              const SizedBox(height: 14),
+              if (controller.loadingMarketplace && items.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (items.isEmpty)
+                const SizedBox(
+                  height: 210,
+                  child: MetroEmptyState(
+                    icon: Icons.storefront_outlined,
+                    title: 'Marketplace is still quiet',
+                    message:
+                        'Fresh listings will show up here as soon as the marketplace starts moving.',
+                    borderColor: kMetroPrimary,
                   ),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() => _categoryId = value);
-                _refresh();
-              },
-            ),
-            const SizedBox(height: 12),
+                )
+              else
+                ...List<Widget>.generate(items.length, (index) {
+                  final item = items[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _MarketplaceEditorialTile(
+                      item: item,
+                      borderColor: _tileColor(index),
+                      onSave: () => controller.toggleBookmark(
+                        type: 'marketplace_listing',
+                        id: item.id,
+                      ),
+                      onContact: () => _contactSeller(item),
+                      onOpen: () => _openDetail(item),
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MarketplaceHero extends StatelessWidget {
+  const _MarketplaceHero({
+    required this.item,
+    required this.itemCount,
+    required this.borderColor,
+    required this.onTap,
+  });
+
+  final MarketplaceItem item;
+  final int itemCount;
+  final Color borderColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 226,
+      child: MetroImageFrame(
+        borderColor: borderColor,
+        imageUrl: item.imageUrls.isNotEmpty ? item.imageUrls.first : '',
+        onTap: onTap,
+        overlayTop: const Color(0x08000000),
+        overlayBottom: const Color(0xD2151720),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Row(
               children: [
-                Expanded(
-                  child: UsStateDropdownField(
-                    states: controller.usStates,
-                    value: _stateFilter,
-                    required: false,
-                    loading: controller.loadingUsStates,
-                    onChanged: (value) {
-                      setState(() => _stateFilter = value);
-                      _refresh();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                FilterChip(
-                  label: const Text('My posts'),
-                  selected: _mineOnly,
-                  onSelected: (value) {
-                    setState(() => _mineOnly = value);
-                    _refresh();
-                  },
+                const MetroBadge(label: 'Marketplace'),
+                const Spacer(),
+                MetroBadge(
+                  label: '$itemCount',
+                  backgroundColor: borderColor.withValues(alpha: 0.94),
+                  foregroundColor: Colors.white,
+                  outlined: false,
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            if (controller.loadingMarketplace &&
-                controller.marketplaceItems.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            else
-              ...controller.marketplaceItems.map(
-                (item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: _MarketplaceCard(
-                    item: item,
-                    onSave: () => controller.toggleBookmark(
-                      type: 'marketplace_listing',
-                      id: item.id,
-                    ),
-                    onContact: () => _contactSeller(item),
-                  ),
-                ),
+            const Spacer(),
+            Text(
+              context.tr(item.title),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: Colors.white,
+                fontSize: 30,
               ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              context.tr(
+                item.description.isEmpty
+                    ? 'Useful finds, salon gear, and community listings.'
+                    : item.description,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.92),
+              ),
+            ),
           ],
         ),
       ),
@@ -189,201 +328,250 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 }
 
-class _MarketplaceCard extends StatelessWidget {
-  const _MarketplaceCard({
+class _MarketplaceEditorialTile extends StatelessWidget {
+  const _MarketplaceEditorialTile({
     required this.item,
+    required this.borderColor,
     required this.onSave,
     required this.onContact,
+    required this.onOpen,
   });
 
   final MarketplaceItem item;
+  final Color borderColor;
   final Future<void> Function() onSave;
   final Future<void> Function() onContact;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _ListingImageHeader(
-            imageUrl: item.imageUrls.isEmpty ? '' : item.imageUrls.first,
-            saved: item.saved,
-            fallbackIcon: Icons.storefront_rounded,
-            onSave: onSave,
-            leadingBadge: item.categoryName.isEmpty ? null : item.categoryName,
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${item.currency} ${item.price.toStringAsFixed(0)} • ${item.city}, ${item.state}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF52627A),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  item.description,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+    final location = _location(item.city, item.state);
+
+    return InkWell(
+      onTap: onOpen,
+      borderRadius: BorderRadius.circular(kMetroRadius),
+      child: MetroInsetPanel(
+        borderColor: borderColor,
+        padding: EdgeInsets.zero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 154,
+              child: MetroImageFrame(
+                borderColor: borderColor,
+                imageUrl: item.imageUrls.isNotEmpty ? item.imageUrls.first : '',
+                padding: const EdgeInsets.all(12),
+                overlayTop: const Color(0x07000000),
+                overlayBottom: const Color(0x42000000),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (item.condition.isNotEmpty)
-                      _MarketplaceBadge(label: item.condition),
-                    if (item.userName.isNotEmpty)
-                      _MarketplaceBadge(label: item.userName),
+                    if (item.categoryName.isNotEmpty)
+                      MetroBadge(label: item.categoryName),
+                    const Spacer(),
+                    InkWell(
+                      onTap: onSave,
+                      borderRadius: BorderRadius.circular(kMetroRadius),
+                      child: Ink(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          border: Border.all(color: kMetroLine),
+                        ),
+                        child: Icon(
+                          item.saved
+                              ? Icons.bookmark_rounded
+                              : Icons.bookmark_add_outlined,
+                          color: kMetroInk,
+                          size: 20,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: onContact,
-                    icon: const Icon(Icons.chat_bubble_rounded),
-                    label: const Text('Message seller'),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr(item.title),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: kMetroInk,
+                      fontSize: 22,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _money(item.price, item.currency),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: borderColor,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    context.tr(
+                      location.isEmpty ? 'Marketplace item' : location,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: kMetroMuted),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    context.tr(item.description),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: kMetroMuted),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (item.condition.isNotEmpty)
+                        MetroBadge(
+                          label: _humanize(item.condition),
+                          backgroundColor: const Color(0xFFFFF2DE),
+                        ),
+                      if (item.userName.isNotEmpty)
+                        MetroBadge(
+                          label: item.userName,
+                          backgroundColor: const Color(0xFFF0F3FA),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 42,
+                          child: OutlinedButton(
+                            onPressed: onOpen,
+                            child: Text(context.tr('View details')),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: SizedBox(
+                          height: 42,
+                          child: FilledButton(
+                            onPressed: onContact,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: borderColor.withValues(
+                                alpha: 0.96,
+                              ),
+                            ),
+                            child: Text(context.tr('Message seller')),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _ListingImageHeader extends StatelessWidget {
-  const _ListingImageHeader({
-    required this.imageUrl,
-    required this.saved,
-    required this.fallbackIcon,
-    required this.onSave,
-    this.leadingBadge,
+class _MarketplaceFilterChipButton extends StatelessWidget {
+  const _MarketplaceFilterChipButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
   });
 
-  final String imageUrl;
-  final bool saved;
-  final IconData fallbackIcon;
-  final Future<void> Function() onSave;
-  final String? leadingBadge;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        AspectRatio(
-          aspectRatio: 16 / 9,
-          child: imageUrl.isEmpty
-              ? _ListingImagePlaceholder(icon: fallbackIcon)
-              : RemoteImage(
-                  url: imageUrl,
-                  fit: BoxFit.cover,
-                  errorFallback: _ListingImagePlaceholder(icon: fallbackIcon),
-                ),
-        ),
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.black.withValues(alpha: 0.04),
-                  Colors.black.withValues(alpha: 0.34),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
-        ),
-        if (leadingBadge != null && leadingBadge!.isNotEmpty)
-          Positioned(
-            left: 14,
-            bottom: 14,
-            child: _MarketplaceBadge(label: leadingBadge!, light: true),
-          ),
-        Positioned(
-          top: 12,
-          right: 12,
-          child: Material(
-            color: Colors.white.withValues(alpha: 0.92),
-            shape: const CircleBorder(),
-            child: IconButton(
-              onPressed: onSave,
-              icon: Icon(
-                saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ListingImagePlaceholder extends StatelessWidget {
-  const _ListingImagePlaceholder({required this.icon});
-
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFE7EEF9), Color(0xFFD7E9FF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Center(
-        child: Icon(icon, size: 34, color: const Color(0xFF4A6FA5)),
-      ),
-    );
-  }
-}
-
-class _MarketplaceBadge extends StatelessWidget {
-  const _MarketplaceBadge({required this.label, this.light = false});
-
   final String label;
-  final bool light;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: light
-            ? Colors.white.withValues(alpha: 0.88)
-            : const Color(0xFFF2F6FC),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: light ? const Color(0xFF26415F) : const Color(0xFF52627A),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(kMetroRadius),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? kMetroCoralSoft : kMetroSurface,
+          borderRadius: BorderRadius.circular(kMetroRadius),
+          border: Border.all(color: selected ? kMetroCoral : kMetroLine),
+          boxShadow: selected
+              ? const [
+                  BoxShadow(
+                    color: Color(0x10F36C84),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          context.tr(label),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: selected ? kMetroPrimary : kMetroInk,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
     );
   }
+}
+
+String _location(String city, String state) {
+  final parts = <String>[
+    if (city.trim().isNotEmpty) city.trim(),
+    if (state.trim().isNotEmpty) state.trim(),
+  ];
+  return parts.join(', ');
+}
+
+String _humanize(String raw) {
+  final cleaned = raw.replaceAll('_', ' ').replaceAll('-', ' ').trim();
+  if (cleaned.isEmpty) return '';
+
+  return cleaned
+      .split(RegExp(r'\s+'))
+      .map((word) {
+        final lower = word.toLowerCase();
+        return '${lower[0].toUpperCase()}${lower.substring(1)}';
+      })
+      .join(' ');
+}
+
+String _money(double value, String currency) {
+  final prefix = currency.toUpperCase() == 'USD'
+      ? '\$'
+      : '${currency.toUpperCase()} ';
+  final isWhole = value == value.roundToDouble();
+  return '$prefix${value.toStringAsFixed(isWhole ? 0 : 2)}';
+}
+
+Color _tileColor(int index) {
+  const palette = <Color>[
+    kMetroCoral,
+    kMetroPrimary,
+    kMetroGold,
+    kMetroSuccess,
+    Color(0xFFC18E68),
+  ];
+  return palette[index % palette.length];
 }

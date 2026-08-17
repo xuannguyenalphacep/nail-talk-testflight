@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../core/constants/app_constants.dart';
+import '../core/localization/app_localizer.dart';
 import '../models/chat_app_model.dart';
 import '../models/session_user.dart';
 import '../services/chat_api_service.dart';
@@ -114,7 +115,10 @@ class SessionController extends ChangeNotifier {
         _user = storedUser;
       }
     } catch (error) {
-      _error = 'Unable to connect to ${AppConstants.appName} right now.';
+      _error = AppLocalizer.current.tr(
+        'Unable to connect to {appName} right now.',
+        {'appName': AppConstants.appName},
+      );
     } finally {
       _bootstrapping = false;
       notifyListeners();
@@ -137,7 +141,9 @@ class SessionController extends ChangeNotifier {
     required String password,
   }) async {
     if (_selectedApp == null) {
-      _error = 'Service setup is still loading. Please try again.';
+      _error = AppLocalizer.current.tr(
+        'Service setup is still loading. Please try again.',
+      );
       notifyListeners();
       return;
     }
@@ -179,14 +185,16 @@ class SessionController extends ChangeNotifier {
   }
 
   Future<void> register({
-    required String name,
+    String? name,
     required String username,
-    required String email,
+    String? email,
     String? phone,
     required String password,
   }) async {
     if (_selectedApp == null) {
-      _error = 'Service setup is still loading. Please try again.';
+      _error = AppLocalizer.current.tr(
+        'Service setup is still loading. Please try again.',
+      );
       notifyListeners();
       return;
     }
@@ -220,6 +228,56 @@ class SessionController extends ChangeNotifier {
       await _registerCurrentDevice();
     } catch (error) {
       _error = _readableError(error, registering: true);
+      rethrow;
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateProfile({
+    required String name,
+    String? phone,
+    String? bio,
+    String? avatarUrl,
+  }) async {
+    if (_selectedApp == null || _token == null || _user == null) {
+      _error = AppLocalizer.current.tr(
+        'Service setup is still loading. Please try again.',
+      );
+      notifyListeners();
+      return;
+    }
+
+    _submitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final updatedUser = await _apiService.updateProfile(
+        name: name,
+        phone: phone,
+        bio: bio,
+        avatarUrl: avatarUrl,
+      );
+
+      _user = updatedUser.copyWith(
+        name: name,
+        phone: phone ?? '',
+        bio: bio ?? '',
+        avatarUrl: (avatarUrl ?? '').trim().isEmpty
+            ? updatedUser.avatarUrl
+            : avatarUrl,
+      );
+
+      await _storageService.saveUser(_user!);
+    } catch (error) {
+      final raw = error.toString();
+      _error = raw.contains('422')
+          ? AppLocalizer.current.tr(
+              'Please review your profile details and try again.',
+            )
+          : AppLocalizer.current.tr('Could not update profile right now.');
       rethrow;
     } finally {
       _submitting = false;
@@ -290,14 +348,16 @@ class SessionController extends ChangeNotifier {
     final raw = error.toString();
     if (raw.contains('422')) {
       return registering
-          ? 'Registration details are invalid or already in use.'
-          : 'Incorrect username or password.';
+          ? AppLocalizer.current.tr(
+              'Registration details are invalid or already in use.',
+            )
+          : AppLocalizer.current.tr('Incorrect username or password.');
     }
     if (raw.contains('404')) {
-      return 'Service configuration was not found.';
+      return AppLocalizer.current.tr('Service configuration was not found.');
     }
     return registering
-        ? 'Sign-up failed. Please try again later.'
-        : 'Sign-in failed. Please try again later.';
+        ? AppLocalizer.current.tr('Sign-up failed. Please try again later.')
+        : AppLocalizer.current.tr('Sign-in failed. Please try again later.');
   }
 }

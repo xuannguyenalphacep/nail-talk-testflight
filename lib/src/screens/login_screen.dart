@@ -3,16 +3,19 @@ import 'package:provider/provider.dart';
 
 import '../controllers/session_controller.dart';
 import '../core/constants/app_constants.dart';
+import '../core/localization/app_localizer.dart';
 import '../widgets/app_logo.dart';
+import '../widgets/language_switch_button.dart';
+import '../widgets/metro_ui.dart';
 
 enum _AuthMode { login, register }
 
-const _authInk = Color(0xFF132642);
-const _authMuted = Color(0xFF6B7E97);
-const _authLine = Color(0xFFDDE7F4);
-const _authBlueSoft = Color(0xFFEAF3FF);
-const _authMintSoft = Color(0xFFEAF9F4);
-const _authCoralSoft = Color(0xFFFFEEF1);
+const _authInk = kMetroInk;
+const _authMuted = kMetroMuted;
+const _authLine = kMetroLine;
+const _authBlueSoft = kMetroPrimarySoft;
+const _authMintSoft = Color(0xFFF3F8F4);
+const _authCoralSoft = kMetroCoralSoft;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,10 +31,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _loginUsernameController = TextEditingController();
   final _loginPasswordController = TextEditingController();
 
-  final _nameController = TextEditingController();
   final _registerUsernameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
   final _registerPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
@@ -44,10 +45,8 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _loginUsernameController.dispose();
     _loginPasswordController.dispose();
-    _nameController.dispose();
     _registerUsernameController.dispose();
     _emailController.dispose();
-    _phoneController.dispose();
     _registerPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -65,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(session.error ?? 'Sign-in failed.')),
+        SnackBar(content: Text(session.error ?? context.tr('Sign-in failed.'))),
       );
     }
   }
@@ -75,19 +74,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final session = context.read<SessionController>();
     try {
+      final email = _emailController.text.trim();
       await session.register(
-        name: _nameController.text.trim(),
         username: _registerUsernameController.text.trim(),
-        email: _emailController.text.trim(),
-        phone: _phoneController.text.trim().isEmpty
-            ? null
-            : _phoneController.text.trim(),
+        email: email.isEmpty ? null : email,
         password: _registerPasswordController.text,
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(session.error ?? 'Sign-up failed.')),
+        SnackBar(content: Text(session.error ?? context.tr('Sign-up failed.'))),
       );
     }
   }
@@ -100,14 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final serviceReady = session.selectedApp != null;
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFF9FBFF), Color(0xFFEFF4FF), Color(0xFFF8FCFB)],
-          ),
-        ),
+      body: MetroPageBackground(
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -119,148 +108,167 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding: EdgeInsets.fromLTRB(18, wide ? 28 : 16, 18, 26),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1120),
-                    child: wide
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                flex: 11,
-                                child: _AuthHeroPanel(theme: theme),
-                              ),
-                              const SizedBox(width: 24),
-                              Expanded(
-                                flex: 10,
-                                child: _AuthFormPanel(
-                                  mode: _mode,
-                                  showLogo: false,
-                                  serviceReady: serviceReady,
-                                  submitting: session.submitting,
-                                  error: session.error,
-                                  onRetry: session.bootstrap,
-                                  onModeChanged: (mode) =>
-                                      setState(() => _mode = mode),
-                                  onFlipMode: () => setState(() {
-                                    _mode = isLogin
-                                        ? _AuthMode.register
-                                        : _AuthMode.login;
-                                  }),
-                                  child: AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 220),
-                                    child: isLogin
-                                        ? _LoginForm(
-                                            key: const ValueKey('login-form'),
-                                            formKey: _loginFormKey,
-                                            usernameController:
-                                                _loginUsernameController,
-                                            passwordController:
-                                                _loginPasswordController,
-                                            obscure: _obscureLogin,
-                                            submitting: session.submitting,
-                                            ready: serviceReady,
-                                            onTogglePassword: () => setState(
-                                              () => _obscureLogin =
-                                                  !_obscureLogin,
-                                            ),
-                                            onSubmit: _submitLogin,
-                                          )
-                                        : _RegisterForm(
-                                            key: const ValueKey(
-                                              'register-form',
-                                            ),
-                                            formKey: _registerFormKey,
-                                            nameController: _nameController,
-                                            usernameController:
-                                                _registerUsernameController,
-                                            emailController: _emailController,
-                                            phoneController: _phoneController,
-                                            passwordController:
-                                                _registerPasswordController,
-                                            confirmPasswordController:
-                                                _confirmPasswordController,
-                                            obscurePassword: _obscureRegister,
-                                            obscureConfirm: _obscureConfirm,
-                                            submitting: session.submitting,
-                                            ready: serviceReady,
-                                            onTogglePassword: () => setState(
-                                              () => _obscureRegister =
-                                                  !_obscureRegister,
-                                            ),
-                                            onToggleConfirm: () => setState(
-                                              () => _obscureConfirm =
-                                                  !_obscureConfirm,
-                                            ),
-                                            onSubmit: _submitRegister,
-                                          ),
+                    child: Column(
+                      children: [
+                        const Align(
+                          alignment: Alignment.centerRight,
+                          child: LanguageSwitchButton(),
+                        ),
+                        const SizedBox(height: 16),
+                        wide
+                            ? Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    flex: 11,
+                                    child: _AuthHeroPanel(theme: theme),
                                   ),
-                                ),
-                              ),
-                            ],
-                          )
-                        : Column(
-                            children: [
-                              _AuthFormPanel(
-                                mode: _mode,
-                                showLogo: true,
-                                serviceReady: serviceReady,
-                                submitting: session.submitting,
-                                error: session.error,
-                                onRetry: session.bootstrap,
-                                onModeChanged: (mode) =>
-                                    setState(() => _mode = mode),
-                                onFlipMode: () => setState(() {
-                                  _mode = isLogin
-                                      ? _AuthMode.register
-                                      : _AuthMode.login;
-                                }),
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 220),
-                                  child: isLogin
-                                      ? _LoginForm(
-                                          key: const ValueKey('login-form'),
-                                          formKey: _loginFormKey,
-                                          usernameController:
-                                              _loginUsernameController,
-                                          passwordController:
-                                              _loginPasswordController,
-                                          obscure: _obscureLogin,
-                                          submitting: session.submitting,
-                                          ready: serviceReady,
-                                          onTogglePassword: () => setState(
-                                            () =>
-                                                _obscureLogin = !_obscureLogin,
-                                          ),
-                                          onSubmit: _submitLogin,
-                                        )
-                                      : _RegisterForm(
-                                          key: const ValueKey('register-form'),
-                                          formKey: _registerFormKey,
-                                          nameController: _nameController,
-                                          usernameController:
-                                              _registerUsernameController,
-                                          emailController: _emailController,
-                                          phoneController: _phoneController,
-                                          passwordController:
-                                              _registerPasswordController,
-                                          confirmPasswordController:
-                                              _confirmPasswordController,
-                                          obscurePassword: _obscureRegister,
-                                          obscureConfirm: _obscureConfirm,
-                                          submitting: session.submitting,
-                                          ready: serviceReady,
-                                          onTogglePassword: () => setState(
-                                            () => _obscureRegister =
-                                                !_obscureRegister,
-                                          ),
-                                          onToggleConfirm: () => setState(
-                                            () => _obscureConfirm =
-                                                !_obscureConfirm,
-                                          ),
-                                          onSubmit: _submitRegister,
+                                  const SizedBox(width: 24),
+                                  Expanded(
+                                    flex: 10,
+                                    child: _AuthFormPanel(
+                                      mode: _mode,
+                                      showLogo: false,
+                                      serviceReady: serviceReady,
+                                      submitting: session.submitting,
+                                      error: session.error,
+                                      onRetry: session.bootstrap,
+                                      onModeChanged: (mode) =>
+                                          setState(() => _mode = mode),
+                                      onFlipMode: () => setState(() {
+                                        _mode = isLogin
+                                            ? _AuthMode.register
+                                            : _AuthMode.login;
+                                      }),
+                                      child: AnimatedSwitcher(
+                                        duration: const Duration(
+                                          milliseconds: 220,
                                         ),
-                                ),
+                                        child: isLogin
+                                            ? _LoginForm(
+                                                key: const ValueKey(
+                                                  'login-form',
+                                                ),
+                                                formKey: _loginFormKey,
+                                                usernameController:
+                                                    _loginUsernameController,
+                                                passwordController:
+                                                    _loginPasswordController,
+                                                obscure: _obscureLogin,
+                                                submitting: session.submitting,
+                                                ready: serviceReady,
+                                                onTogglePassword: () =>
+                                                    setState(
+                                                      () => _obscureLogin =
+                                                          !_obscureLogin,
+                                                    ),
+                                                onSubmit: _submitLogin,
+                                              )
+                                            : _RegisterForm(
+                                                key: const ValueKey(
+                                                  'register-form',
+                                                ),
+                                                formKey: _registerFormKey,
+                                                usernameController:
+                                                    _registerUsernameController,
+                                                emailController:
+                                                    _emailController,
+                                                passwordController:
+                                                    _registerPasswordController,
+                                                confirmPasswordController:
+                                                    _confirmPasswordController,
+                                                obscurePassword:
+                                                    _obscureRegister,
+                                                obscureConfirm: _obscureConfirm,
+                                                submitting: session.submitting,
+                                                ready: serviceReady,
+                                                onTogglePassword: () =>
+                                                    setState(
+                                                      () => _obscureRegister =
+                                                          !_obscureRegister,
+                                                    ),
+                                                onToggleConfirm: () => setState(
+                                                  () => _obscureConfirm =
+                                                      !_obscureConfirm,
+                                                ),
+                                                onSubmit: _submitRegister,
+                                              ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Column(
+                                children: [
+                                  _AuthFormPanel(
+                                    mode: _mode,
+                                    showLogo: true,
+                                    serviceReady: serviceReady,
+                                    submitting: session.submitting,
+                                    error: session.error,
+                                    onRetry: session.bootstrap,
+                                    onModeChanged: (mode) =>
+                                        setState(() => _mode = mode),
+                                    onFlipMode: () => setState(() {
+                                      _mode = isLogin
+                                          ? _AuthMode.register
+                                          : _AuthMode.login;
+                                    }),
+                                    child: AnimatedSwitcher(
+                                      duration: const Duration(
+                                        milliseconds: 220,
+                                      ),
+                                      child: isLogin
+                                          ? _LoginForm(
+                                              key: const ValueKey('login-form'),
+                                              formKey: _loginFormKey,
+                                              usernameController:
+                                                  _loginUsernameController,
+                                              passwordController:
+                                                  _loginPasswordController,
+                                              obscure: _obscureLogin,
+                                              submitting: session.submitting,
+                                              ready: serviceReady,
+                                              onTogglePassword: () => setState(
+                                                () => _obscureLogin =
+                                                    !_obscureLogin,
+                                              ),
+                                              onSubmit: _submitLogin,
+                                            )
+                                          : _RegisterForm(
+                                              key: const ValueKey(
+                                                'register-form',
+                                              ),
+                                              formKey: _registerFormKey,
+                                              usernameController:
+                                                  _registerUsernameController,
+                                              emailController: _emailController,
+                                              passwordController:
+                                                  _registerPasswordController,
+                                              confirmPasswordController:
+                                                  _confirmPasswordController,
+                                              obscurePassword: _obscureRegister,
+                                              obscureConfirm: _obscureConfirm,
+                                              submitting: session.submitting,
+                                              ready: serviceReady,
+                                              onTogglePassword: () => setState(
+                                                () => _obscureRegister =
+                                                    !_obscureRegister,
+                                              ),
+                                              onToggleConfirm: () => setState(
+                                                () => _obscureConfirm =
+                                                    !_obscureConfirm,
+                                              ),
+                                              onSubmit: _submitRegister,
+                                            ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 18),
+                                  _AuthHeroPanel(theme: theme),
+                                ],
                               ),
-                            ],
-                          ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -282,17 +290,17 @@ class _AuthHeroPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(30),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(34),
+        border: Border.all(color: const Color(0x26F4C5BC)),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF10213D), Color(0xFF185EC9), Color(0xFF27B7C9)],
+          colors: [kMetroPrimary, Color(0xFF48578D), kMetroCoral],
         ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x16102642),
-            blurRadius: 34,
-            offset: Offset(0, 24),
+            color: Color(0x120F1730),
+            blurRadius: 22,
+            offset: Offset(0, 12),
           ),
         ],
       ),
@@ -303,14 +311,15 @@ class _AuthHeroPanel extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(22),
               border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
             ),
-            child: const AppLogo(size: 56),
+            child: const AppLogo(size: 56, showWordmark: false),
           ),
           const SizedBox(height: 32),
           Text(
-            'One place for salon work, room share, and local updates.',
+            context.tr(
+              'One place for salon work, room share, and local updates.',
+            ),
             style: theme.textTheme.headlineMedium?.copyWith(
               color: Colors.white,
               fontSize: 42,
@@ -320,7 +329,9 @@ class _AuthHeroPanel extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            'Nail Talk is built for Vietnamese beauty professionals in the U.S. Sign in once, then move between job leads, housing posts, movie access, marketplace finds, and live chat without extra setup.',
+            context.tr(
+              'Nails Talk is built for Vietnamese beauty professionals in the U.S. Sign in once, then move between job leads, housing posts, movie access, marketplace finds, and live chat without extra setup.',
+            ),
             style: theme.textTheme.bodyLarge?.copyWith(
               color: Colors.white.withValues(alpha: 0.9),
               height: 1.62,
@@ -330,18 +341,18 @@ class _AuthHeroPanel extends StatelessWidget {
           Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: const [
+            children: [
               _HeroChip(
                 icon: Icons.badge_rounded,
-                label: 'Salon-ready profiles',
+                label: context.tr('Salon-ready profiles'),
               ),
               _HeroChip(
                 icon: Icons.maps_home_work_rounded,
-                label: 'Room share and housing',
+                label: context.tr('Room share and housing'),
               ),
               _HeroChip(
                 icon: Icons.chat_bubble_rounded,
-                label: 'Real-time community chat',
+                label: context.tr('Real-time community chat'),
               ),
             ],
           ),
@@ -363,22 +374,27 @@ class _AuthHeroPanel extends StatelessWidget {
                   mainAxisSpacing: 14,
                   mainAxisExtent: 156,
                 ),
-                children: const [
+                children: [
                   _SignalCard(
                     number: '24/7',
-                    title: 'Always available',
-                    subtitle: 'Fast local auth and chat sync for everyday use.',
+                    title: context.tr('Always available'),
+                    subtitle: context.tr(
+                      'Fast local auth and chat sync for everyday use.',
+                    ),
                   ),
                   _SignalCard(
                     number: '5',
-                    title: 'Core spaces',
-                    subtitle: 'Feed, movies, market, work & stay, and chat.',
+                    title: context.tr('Core spaces'),
+                    subtitle: context.tr(
+                      'Feed, movies, market, work & stay, and chat.',
+                    ),
                   ),
                   _SignalCard(
-                    number: 'US',
-                    title: 'Community-first',
-                    subtitle:
-                        'Made for Vietnamese beauty workers across America.',
+                    number: context.tr('US'),
+                    title: context.tr('Community-first'),
+                    subtitle: context.tr(
+                      'Made for Vietnamese beauty workers across America.',
+                    ),
                   ),
                 ],
               );
@@ -421,14 +437,13 @@ class _AuthFormPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(26),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(34),
+        color: Colors.white.withValues(alpha: 0.98),
         border: Border.all(color: _authLine),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x120F172A),
-            blurRadius: 28,
-            offset: Offset(0, 16),
+            color: Color(0x0F1F1B2E),
+            blurRadius: 18,
+            offset: Offset(0, 10),
           ),
         ],
       ),
@@ -436,11 +451,11 @@ class _AuthFormPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (showLogo) ...[
-            const Center(child: AppLogo(size: 66)),
+            const Center(child: AppLogo(size: 66, showWordmark: false)),
             const SizedBox(height: 24),
           ],
           Text(
-            isLogin ? 'Sign in' : 'Create your account',
+            isLogin ? context.tr('Sign in') : context.tr('Create your account'),
             style: theme.textTheme.headlineSmall?.copyWith(
               color: _authInk,
               fontWeight: FontWeight.w900,
@@ -449,8 +464,14 @@ class _AuthFormPanel extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             isLogin
-                ? 'Use your username and password to enter the ${AppConstants.appName} community.'
-                : 'Set up your ${AppConstants.appName} profile once and start posting jobs, rooms, marketplace items, and chat updates.',
+                ? context.tr(
+                    'Use your username and password to enter the {appName} community.',
+                    {'appName': AppConstants.appName},
+                  )
+                : context.tr(
+                    'Set up your {appName} profile once and start posting jobs, rooms, marketplace items, and chat updates.',
+                    {'appName': AppConstants.appName},
+                  ),
             style: theme.textTheme.bodyLarge?.copyWith(
               color: _authMuted,
               height: 1.55,
@@ -464,16 +485,16 @@ class _AuthFormPanel extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           SegmentedButton<_AuthMode>(
-            segments: const [
+            segments: [
               ButtonSegment<_AuthMode>(
                 value: _AuthMode.login,
-                icon: Icon(Icons.login_rounded),
-                label: Text('Sign in'),
+                icon: const Icon(Icons.login_rounded),
+                label: Text(context.tr('Sign in')),
               ),
               ButtonSegment<_AuthMode>(
                 value: _AuthMode.register,
-                icon: Icon(Icons.person_add_alt_1_rounded),
-                label: Text('Register'),
+                icon: const Icon(Icons.person_add_alt_1_rounded),
+                label: Text(context.tr('Register')),
               ),
             ],
             selected: {mode},
@@ -491,15 +512,17 @@ class _AuthFormPanel extends StatelessWidget {
               onPressed: submitting ? null : onFlipMode,
               child: Text(
                 isLogin
-                    ? 'Need an account? Create one here'
-                    : 'Already have an account? Sign in',
+                    ? context.tr('Need an account? Create one here')
+                    : context.tr('Already have an account? Sign in'),
               ),
             ),
           ),
           const SizedBox(height: 6),
           Center(
             child: Text(
-              'By continuing you agree to local community rules and respectful communication.',
+              context.tr(
+                'By continuing you agree to local community rules and respectful communication.',
+              ),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: _authMuted,
@@ -544,23 +567,24 @@ class _LoginForm extends StatelessWidget {
           _AuthInput(
             controller: usernameController,
             textInputAction: TextInputAction.next,
-            label: 'Username',
-            hint: 'Enter your username',
+            label: context.tr('Username'),
+            hint: context.tr('Enter your username'),
             icon: Icons.person_outline_rounded,
             validator: (value) => (value == null || value.trim().isEmpty)
-                ? 'Enter a username'
+                ? context.tr('Enter a username')
                 : null,
           ),
           const SizedBox(height: 14),
           _AuthInput(
             controller: passwordController,
             obscureText: obscure,
-            label: 'Password',
-            hint: 'Enter your password',
+            label: context.tr('Password'),
+            hint: context.tr('Enter your password'),
             icon: Icons.lock_outline_rounded,
             onFieldSubmitted: (_) => onSubmit(),
-            validator: (value) =>
-                (value == null || value.isEmpty) ? 'Enter your password' : null,
+            validator: (value) => (value == null || value.isEmpty)
+                ? context.tr('Enter your password')
+                : null,
             suffix: IconButton(
               onPressed: onTogglePassword,
               icon: Icon(
@@ -577,11 +601,13 @@ class _LoginForm extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
                 color: _authBlueSoft,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: const Text(
-                'Your account opens feed, movies, room share, marketplace, and chat in one sign-in.',
-                style: TextStyle(
+              child: Text(
+                context.tr(
+                  'Your account opens feed, movies, room share, marketplace, and chat in one sign-in.',
+                ),
+                style: const TextStyle(
                   color: _authInk,
                   fontWeight: FontWeight.w700,
                   height: 1.45,
@@ -604,12 +630,13 @@ class _LoginForm extends StatelessWidget {
                       ),
                     )
                   : const Icon(Icons.login_rounded),
-              label: Text(submitting ? 'Signing in...' : 'Enter Nail Talk'),
+              label: Text(
+                submitting
+                    ? context.tr('Signing in...')
+                    : context.tr('Enter Nails Talk'),
+              ),
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(58),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
               ),
             ),
           ),
@@ -622,10 +649,8 @@ class _LoginForm extends StatelessWidget {
 class _RegisterForm extends StatelessWidget {
   const _RegisterForm({
     required this.formKey,
-    required this.nameController,
     required this.usernameController,
     required this.emailController,
-    required this.phoneController,
     required this.passwordController,
     required this.confirmPasswordController,
     required this.obscurePassword,
@@ -639,10 +664,8 @@ class _RegisterForm extends StatelessWidget {
   });
 
   final GlobalKey<FormState> formKey;
-  final TextEditingController nameController;
   final TextEditingController usernameController;
   final TextEditingController emailController;
-  final TextEditingController phoneController;
   final TextEditingController passwordController;
   final TextEditingController confirmPasswordController;
   final bool obscurePassword;
@@ -660,24 +683,13 @@ class _RegisterForm extends StatelessWidget {
       child: Column(
         children: [
           _AuthInput(
-            controller: nameController,
-            textInputAction: TextInputAction.next,
-            label: 'Full name',
-            hint: 'Enter your full name',
-            icon: Icons.badge_outlined,
-            validator: (value) => (value == null || value.trim().isEmpty)
-                ? 'Enter your full name'
-                : null,
-          ),
-          const SizedBox(height: 14),
-          _AuthInput(
             controller: usernameController,
             textInputAction: TextInputAction.next,
-            label: 'Username',
-            hint: 'Choose a username',
+            label: context.tr('Username'),
+            hint: context.tr('Choose a username'),
             icon: Icons.alternate_email_rounded,
             validator: (value) => (value == null || value.trim().isEmpty)
-                ? 'Choose a username'
+                ? context.tr('Choose a username')
                 : null,
           ),
           const SizedBox(height: 14),
@@ -685,36 +697,24 @@ class _RegisterForm extends StatelessWidget {
             controller: emailController,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            label: 'Email',
+            label: context.tr('Email'),
             hint: 'name@example.com',
             icon: Icons.mail_outline_rounded,
             validator: (value) {
               final trimmed = value?.trim() ?? '';
-              if (trimmed.isEmpty) {
-                return 'Enter your email';
-              }
-              if (!trimmed.contains('@')) {
-                return 'Enter a valid email address';
+              if (trimmed.isNotEmpty && !trimmed.contains('@')) {
+                return context.tr('Enter a valid email address');
               }
               return null;
             },
           ),
           const SizedBox(height: 14),
           _AuthInput(
-            controller: phoneController,
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.next,
-            label: 'Phone number',
-            hint: 'Optional',
-            icon: Icons.call_outlined,
-          ),
-          const SizedBox(height: 14),
-          _AuthInput(
             controller: passwordController,
             obscureText: obscurePassword,
             textInputAction: TextInputAction.next,
-            label: 'Password',
-            hint: 'Use at least 6 characters',
+            label: context.tr('Password'),
+            hint: context.tr('Use at least 6 characters'),
             icon: Icons.lock_outline_rounded,
             suffix: IconButton(
               onPressed: onTogglePassword,
@@ -726,10 +726,10 @@ class _RegisterForm extends StatelessWidget {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Enter your password';
+                return context.tr('Enter your password');
               }
               if (value.length < 6) {
-                return 'Use at least 6 characters';
+                return context.tr('Use at least 6 characters');
               }
               return null;
             },
@@ -738,8 +738,8 @@ class _RegisterForm extends StatelessWidget {
           _AuthInput(
             controller: confirmPasswordController,
             obscureText: obscureConfirm,
-            label: 'Confirm password',
-            hint: 'Repeat your password',
+            label: context.tr('Confirm password'),
+            hint: context.tr('Repeat your password'),
             icon: Icons.verified_user_outlined,
             onFieldSubmitted: (_) => onSubmit(),
             suffix: IconButton(
@@ -752,10 +752,10 @@ class _RegisterForm extends StatelessWidget {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Confirm your password';
+                return context.tr('Confirm your password');
               }
               if (value != passwordController.text) {
-                return 'Passwords do not match';
+                return context.tr('Passwords do not match');
               }
               return null;
             },
@@ -767,11 +767,13 @@ class _RegisterForm extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
                 color: _authMintSoft,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: const Text(
-                'You can update jobs, room posts, marketplace items, and your profile after account creation.',
-                style: TextStyle(
+              child: Text(
+                context.tr(
+                  'Quick sign-up: use a unique username and password now. Email can be added now or later in your profile.',
+                ),
+                style: const TextStyle(
                   color: _authInk,
                   fontWeight: FontWeight.w700,
                   height: 1.45,
@@ -795,13 +797,12 @@ class _RegisterForm extends StatelessWidget {
                     )
                   : const Icon(Icons.person_add_alt_1_rounded),
               label: Text(
-                submitting ? 'Creating account...' : 'Create account',
+                submitting
+                    ? context.tr('Creating account...')
+                    : context.tr('Create account'),
               ),
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(58),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
               ),
             ),
           ),
@@ -874,17 +875,19 @@ class _ServiceBanner extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: _authMintSoft,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFCFECDD)),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFCEE4D6)),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.verified_rounded, color: Color(0xFF169467)),
-            SizedBox(width: 10),
+            const Icon(Icons.verified_rounded, color: kMetroSuccess),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Local service is ready. You can sign in or create an account now.',
-                style: TextStyle(
+                context.tr(
+                  'Your Nails Talk community is ready. Sign in to chat, watch, play, and connect in one place.',
+                ),
+                style: const TextStyle(
                   color: _authInk,
                   fontWeight: FontWeight.w700,
                   height: 1.45,
@@ -901,17 +904,19 @@ class _ServiceBanner extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: _authCoralSoft,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF4CFD7)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF2C8D0)),
       ),
       child: Row(
         children: [
           const Icon(Icons.cloud_off_rounded, color: Color(0xFFC94960)),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Text(
-              'The local service is not ready yet. Retry the connection before signing in.',
-              style: TextStyle(
+              context.tr(
+                'Nails Talk is preparing your space. Tap retry and we will bring everything in shortly.',
+              ),
+              style: const TextStyle(
                 color: _authInk,
                 fontWeight: FontWeight.w700,
                 height: 1.45,
@@ -921,7 +926,7 @@ class _ServiceBanner extends StatelessWidget {
           const SizedBox(width: 10),
           OutlinedButton(
             onPressed: busy ? null : onRetry,
-            child: const Text('Retry'),
+            child: Text(context.tr('Retry')),
           ),
         ],
       ),
@@ -941,8 +946,8 @@ class _ErrorBanner extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: _authCoralSoft,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF1C8D0)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF0C4CD)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
