@@ -1,12 +1,16 @@
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../controllers/session_controller.dart';
 import '../../controllers/social_hub_controller.dart';
 import '../../core/localization/app_localizer.dart';
+import '../../widgets/listing_image_picker_field.dart';
 import '../../widgets/us_state_dropdown_field.dart';
 
 class PropertyFormScreen extends StatefulWidget {
-  const PropertyFormScreen({this.initialMode = 'room_share', super.key});
+  const PropertyFormScreen({this.initialMode = 'rent_out', super.key});
 
   final String initialMode;
 
@@ -25,9 +29,10 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
   final _amenitiesController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
-  final _imageUrlsController = TextEditingController();
   String? _selectedState;
   late String _selectedMode;
+  List<String> _imageUrls = const [];
+  bool _uploadingImages = false;
 
   @override
   void initState() {
@@ -50,8 +55,56 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
     _amenitiesController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
-    _imageUrlsController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImages() async {
+    if (_uploadingImages) return;
+
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      withData: kIsWeb,
+      type: FileType.image,
+    );
+    final files = result?.files ?? const <PlatformFile>[];
+    if (files.isEmpty || !mounted) return;
+
+    setState(() => _uploadingImages = true);
+
+    try {
+      final session = context.read<SessionController>();
+      final nextUrls = List<String>.from(_imageUrls);
+
+      for (final file in files) {
+        final uploadedUrl = await session.uploadImage(file);
+        nextUrls.add(uploadedUrl);
+      }
+
+      if (!mounted) return;
+      setState(() => _imageUrls = nextUrls);
+    } catch (_) {
+      if (!mounted) return;
+      final session = context.read<SessionController>();
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            session.error ?? context.tr('Could not upload the selected image.'),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _uploadingImages = false);
+      }
+    }
+  }
+
+  void _removeImageAt(int index) {
+    setState(() {
+      final next = List<String>.from(_imageUrls);
+      next.removeAt(index);
+      _imageUrls = next;
+    });
   }
 
   Future<void> _submit() async {
@@ -75,7 +128,7 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
       contactEmail: _emailController.text.trim(),
       amenities: amenities,
       mode: _selectedMode,
-      imageUrls: _splitInputValues(_imageUrlsController.text),
+      imageUrls: _imageUrls,
     );
 
     if (!mounted) return;
@@ -86,15 +139,15 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
   Widget build(BuildContext context) {
     final controller = context.watch<SocialHubController>();
     final pageTitle = switch (_selectedMode) {
-      'rent_out' => 'Post Rental',
-      'looking_room' => 'Post Room Request',
-      _ => 'Post Room Share',
+      'looking_room' => 'Post Housing Need',
+      _ => 'Post Rental Home',
     };
+    final bottomSpacing = MediaQuery.viewPaddingOf(context).bottom + 28;
 
     return Scaffold(
       appBar: AppBar(title: Text(context.tr(pageTitle))),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.fromLTRB(16, 16, 16, bottomSpacing),
         child: Form(
           key: _formKey,
           child: Column(
@@ -102,18 +155,13 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
             children: [
               Text(
                 context.tr(
-                  'Post a room share, rental home, or housing request anywhere in the United States.',
+                  'Post a rental home or housing request anywhere in the United States.',
                 ),
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 12),
               SegmentedButton<String>(
                 segments: [
-                  ButtonSegment<String>(
-                    value: 'room_share',
-                    icon: const Icon(Icons.people_alt_rounded),
-                    label: Text(context.tr('Room share')),
-                  ),
                   ButtonSegment<String>(
                     value: 'rent_out',
                     icon: const Icon(Icons.house_rounded),
@@ -208,11 +256,14 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
                 required: false,
               ),
               const SizedBox(height: 12),
-              _Field(
-                controller: _imageUrlsController,
-                label: context.tr('Image URLs (comma or new line separated)'),
-                lines: 3,
-                required: false,
+              ListingImagePickerField(
+                imageUrls: _imageUrls,
+                uploading: _uploadingImages,
+                label: 'Listing photos',
+                helperText:
+                    'Upload room or home photos from your device so renters can review the space quickly.',
+                onPick: _pickImages,
+                onRemoveAt: _removeImageAt,
               ),
               const SizedBox(height: 12),
               _Field(controller: _phoneController, label: context.tr('Phone')),
@@ -222,11 +273,19 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: controller.submitting ? null : _submit,
+                  onPressed: controller.submitting || _uploadingImages
+                      ? null
+                      : _submit,
                   child: Text(
-                    controller.submitting
+                    _uploadingImages
+                        ? context.tr('Uploading images...')
+                        : controller.submitting
                         ? context.tr('Posting...')
-                        : context.tr('Publish Listing'),
+                        : context.tr(
+                            _selectedMode == 'looking_room'
+                                ? 'Publish Housing Need'
+                                : 'Publish Rental Home',
+                          ),
                   ),
                 ),
               ),
@@ -268,12 +327,4 @@ class _Field extends StatelessWidget {
       decoration: InputDecoration(labelText: label),
     );
   }
-}
-
-List<String> _splitInputValues(String raw) {
-  return raw
-      .split(RegExp(r'[\n,]+'))
-      .map((value) => value.trim())
-      .where((value) => value.isNotEmpty)
-      .toList();
 }

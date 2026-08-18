@@ -13,8 +13,24 @@ import 'forms/job_form_screen.dart';
 import 'forms/property_form_screen.dart';
 import 'work_stay_detail_screen.dart';
 
+enum WorkStayBoard { jobs, housing }
+
 class WorkStayScreen extends StatefulWidget {
-  const WorkStayScreen({super.key});
+  const WorkStayScreen.jobs({
+    this.initialJobMode = 'looking_for_job',
+    super.key,
+  }) : board = WorkStayBoard.jobs,
+       initialPropertyMode = 'rent_out';
+
+  const WorkStayScreen.housing({
+    this.initialPropertyMode = 'rent_out',
+    super.key,
+  }) : board = WorkStayBoard.housing,
+       initialJobMode = 'looking_for_job';
+
+  final WorkStayBoard board;
+  final String initialJobMode;
+  final String initialPropertyMode;
 
   @override
   State<WorkStayScreen> createState() => _WorkStayScreenState();
@@ -22,20 +38,66 @@ class WorkStayScreen extends StatefulWidget {
 
 class _WorkStayScreenState extends State<WorkStayScreen> {
   final TextEditingController _searchController = TextEditingController();
-  int _segment = 0;
   bool _mineOnly = false;
   String? _stateFilter;
-  String? _jobMode;
-  String? _propertyMode;
+  late String _jobMode;
+  late String _propertyMode;
+
+  bool get _isJobsBoard => widget.board == WorkStayBoard.jobs;
+
+  String get _pageTitle => _isJobsBoard
+      ? _jobModeLabel(_jobMode)
+      : _propertyModeLabel(_propertyMode);
+
+  Color get _accentColor => _isJobsBoard
+      ? _jobBoardAccent(_jobMode)
+      : _propertyBoardAccent(_propertyMode);
+
+  String get _heroSubtitle => _isJobsBoard
+      ? (_jobMode == 'hiring'
+            ? 'Salon owners are posting open positions here so members can quickly find the right team.'
+            : 'Members looking for salon work appear here so owners can discover local talent quickly.')
+      : (_propertyMode == 'looking_room'
+            ? 'Housing-need posts gather members who are searching for rooms, rentals, or a place to move in.'
+            : 'Photo-first rental posts help members browse homes and rooms available right now.');
+
+  String get _sectionTitle => _isJobsBoard
+      ? (_jobMode == 'hiring' ? 'Worker search board' : 'Job seeker board')
+      : (_propertyMode == 'looking_room'
+            ? 'Housing need board'
+            : 'Rental board');
+
+  String get _sectionSubtitle => _isJobsBoard
+      ? (_jobMode == 'hiring'
+            ? 'Open roles are separated into a cleaner list so owners can contact the right people faster.'
+            : 'Profiles from people looking for salon work are separated here for faster matching.')
+      : (_propertyMode == 'looking_room'
+            ? 'Posts from members who need a room or home are grouped here for quicker replies.'
+            : 'Available homes and rooms are grouped here so renters can browse quickly.');
+
+  String get _searchHint => _isJobsBoard
+      ? (_jobMode == 'hiring'
+            ? 'Search worker posts'
+            : 'Search job-seeker posts')
+      : (_propertyMode == 'looking_room'
+            ? 'Search housing needs'
+            : 'Search rental homes');
+
+  String get _fabLabel => _isJobsBoard
+      ? (_jobMode == 'hiring' ? 'Post Hiring Request' : 'Post Job Search')
+      : (_propertyMode == 'looking_room'
+            ? 'Post Housing Need'
+            : 'Post Rental Home');
 
   @override
   void initState() {
     super.initState();
+    _jobMode = _normalizeJobMode(widget.initialJobMode);
+    _propertyMode = _normalizePropertyMode(widget.initialPropertyMode);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<SocialHubController>().ensureUsStatesLoaded();
-      context.read<SocialHubController>().refreshJobs();
-      context.read<SocialHubController>().refreshProperties();
+      _refresh();
     });
   }
 
@@ -46,7 +108,7 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
   }
 
   Future<void> _refresh() {
-    if (_segment == 0) {
+    if (_isJobsBoard) {
       return context.read<SocialHubController>().refreshJobs(
         mine: _mineOnly,
         mode: _jobMode,
@@ -125,7 +187,7 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<SocialHubController>();
-    final loading = _segment == 0
+    final loading = _isJobsBoard
         ? controller.loadingJobs
         : controller.loadingProperties;
     final featuredJob = controller.jobItems.isNotEmpty
@@ -138,7 +200,7 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 16,
-        title: Text(context.tr('Work & Stay')),
+        title: Text(context.tr(_pageTitle)),
         actions: [
           MetroActionButton(
             icon: Icons.refresh_rounded,
@@ -152,11 +214,9 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
         onPressed: () async {
           final created = await Navigator.of(context).push<bool>(
             MaterialPageRoute(
-              builder: (_) => _segment == 0
-                  ? JobFormScreen(initialMode: _jobMode ?? 'hiring')
-                  : PropertyFormScreen(
-                      initialMode: _propertyMode ?? 'room_share',
-                    ),
+              builder: (_) => _isJobsBoard
+                  ? JobFormScreen(initialMode: _jobMode)
+                  : PropertyFormScreen(initialMode: _propertyMode),
             ),
           );
           if (created == true && mounted) {
@@ -164,9 +224,9 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
           }
         },
         icon: Icon(
-          _segment == 0 ? Icons.work_outline_rounded : Icons.home_work_outlined,
+          _isJobsBoard ? Icons.work_outline_rounded : Icons.home_work_outlined,
         ),
-        label: Text(context.tr(_segment == 0 ? 'Post Job' : 'Post Housing')),
+        label: Text(context.tr(_fabLabel)),
       ),
       body: MetroPageBackground(
         child: RefreshIndicator(
@@ -175,22 +235,20 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 92),
             children: [
               _WorkStayHero(
-                title: _segment == 0 ? 'Nail Jobs' : 'Room Share',
-                subtitle: _segment == 0
-                    ? 'Hiring salon talent, shift openings, and job seekers in one mobile-friendly board.'
-                    : 'Rental leads, room shares, and move-in posts laid out with cleaner cards.',
-                imageUrl: _segment == 0
+                title: _pageTitle,
+                subtitle: _heroSubtitle,
+                imageUrl: _isJobsBoard
                     ? (featuredJob?.imageUrls.isNotEmpty == true
                           ? featuredJob!.imageUrls.first
                           : '')
                     : (featuredProperty?.imageUrls.isNotEmpty == true
                           ? featuredProperty!.imageUrls.first
                           : ''),
-                count: _segment == 0
+                count: _isJobsBoard
                     ? controller.jobItems.length
                     : controller.propertyItems.length,
-                borderColor: _segment == 0 ? kMetroGold : kMetroPrimary,
-                onTap: _segment == 0
+                borderColor: _accentColor,
+                onTap: _isJobsBoard
                     ? (featuredJob == null
                           ? null
                           : () => _openJobDetail(featuredJob))
@@ -200,62 +258,21 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
               ),
               const SizedBox(height: 16),
               MetroSectionHeader(
-                title: _segment == 0 ? 'Hiring feed' : 'Rooms and housing',
-                subtitle: _segment == 0
-                    ? 'Openings and candidate posts are easier to scan in this card layout.'
-                    : 'Room listings and housing leads now show photo-first with details below.',
+                title: _sectionTitle,
+                subtitle: _sectionSubtitle,
               ),
               const SizedBox(height: 12),
               MetroInsetPanel(
-                borderColor: _segment == 0 ? kMetroGold : kMetroPrimary,
+                borderColor: _accentColor,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: [
-                        _WorkStayFilterChipButton(
-                          label: 'Nail Jobs',
-                          selected: _segment == 0,
-                          onTap: () {
-                            setState(() => _segment = 0);
-                            _refresh();
-                          },
-                        ),
-                        _WorkStayFilterChipButton(
-                          label: 'Room Share',
-                          selected: _segment == 1,
-                          onTap: () {
-                            setState(() => _segment = 1);
-                            _refresh();
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _segment == 0
+                      children: _isJobsBoard
                           ? [
-                              _ModeChip(
-                                label: 'All',
-                                selected: _jobMode == null,
-                                onTap: () {
-                                  setState(() => _jobMode = null);
-                                  _refresh();
-                                },
-                              ),
-                              _ModeChip(
-                                label: 'Hiring nail staff',
-                                selected: _jobMode == 'hiring',
-                                onTap: () {
-                                  setState(() => _jobMode = 'hiring');
-                                  _refresh();
-                                },
-                              ),
-                              _ModeChip(
+                              _WorkStayFilterChipButton(
                                 label: 'Job seekers',
                                 selected: _jobMode == 'looking_for_job',
                                 onTap: () {
@@ -263,25 +280,17 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
                                   _refresh();
                                 },
                               ),
+                              _WorkStayFilterChipButton(
+                                label: 'Hiring nail staff',
+                                selected: _jobMode == 'hiring',
+                                onTap: () {
+                                  setState(() => _jobMode = 'hiring');
+                                  _refresh();
+                                },
+                              ),
                             ]
                           : [
-                              _ModeChip(
-                                label: 'All',
-                                selected: _propertyMode == null,
-                                onTap: () {
-                                  setState(() => _propertyMode = null);
-                                  _refresh();
-                                },
-                              ),
-                              _ModeChip(
-                                label: 'Room share',
-                                selected: _propertyMode == 'room_share',
-                                onTap: () {
-                                  setState(() => _propertyMode = 'room_share');
-                                  _refresh();
-                                },
-                              ),
-                              _ModeChip(
+                              _WorkStayFilterChipButton(
                                 label: 'Homes for rent',
                                 selected: _propertyMode == 'rent_out',
                                 onTap: () {
@@ -289,7 +298,7 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
                                   _refresh();
                                 },
                               ),
-                              _ModeChip(
+                              _WorkStayFilterChipButton(
                                 label: 'Looking for a room',
                                 selected: _propertyMode == 'looking_room',
                                 onTap: () {
@@ -304,12 +313,10 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: context.tr(
-                          _segment == 0
-                              ? 'Search jobs'
-                              : 'Search room listings',
-                        ),
+                      decoration: metroSoftInputDecoration(
+                        context,
+                        hintText: _searchHint,
+                        prefixIcon: const Icon(Icons.search_rounded),
                         suffixIcon: IconButton(
                           onPressed: _refresh,
                           icon: const Icon(Icons.search_rounded),
@@ -347,21 +354,24 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
                 ),
               ),
               const SizedBox(height: 14),
-              if (_segment == 0) ...[
+              if (_isJobsBoard) ...[
                 if (controller.loadingJobs && controller.jobItems.isEmpty)
                   const Padding(
                     padding: EdgeInsets.all(24),
                     child: Center(child: CircularProgressIndicator()),
                   )
                 else if (controller.jobItems.isEmpty)
-                  const SizedBox(
+                  SizedBox(
                     height: 210,
                     child: MetroEmptyState(
                       icon: Icons.work_outline_rounded,
-                      title: 'No hiring posts yet',
-                      message:
-                          'New openings will show here as soon as recruiters and salon owners publish them.',
-                      borderColor: Color(0xFFE0C137),
+                      title: _jobMode == 'hiring'
+                          ? 'No worker-search posts yet'
+                          : 'No job-seeker posts yet',
+                      message: _jobMode == 'hiring'
+                          ? 'Salon owners have not posted any worker searches yet.'
+                          : 'No members have posted a job search in this area yet.',
+                      borderColor: _accentColor,
                     ),
                   )
                 else
@@ -371,7 +381,7 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _JobEditorialTile(
                         item: item,
-                        borderColor: _jobTileColor(index),
+                        borderColor: _jobTileColor(index, item.listingMode),
                         onContact: () => _openPrivateChat(
                           item.userId,
                           'This recruiter chat is not available yet.',
@@ -388,14 +398,17 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
                     child: Center(child: CircularProgressIndicator()),
                   )
                 else if (controller.propertyItems.isEmpty)
-                  const SizedBox(
+                  SizedBox(
                     height: 210,
                     child: MetroEmptyState(
                       icon: Icons.home_work_outlined,
-                      title: 'No housing posts yet',
-                      message:
-                          'New room shares and housing posts will surface here when they are published.',
-                      borderColor: Color(0xFF345AE3),
+                      title: _propertyMode == 'looking_room'
+                          ? 'No housing-need posts yet'
+                          : 'No rental-home posts yet',
+                      message: _propertyMode == 'looking_room'
+                          ? 'No members have posted a housing need in this area yet.'
+                          : 'No rental homes have been posted in this area yet.',
+                      borderColor: _accentColor,
                     ),
                   )
                 else
@@ -407,7 +420,10 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _PropertyEditorialTile(
                         item: item,
-                        borderColor: _propertyTileColor(index),
+                        borderColor: _propertyTileColor(
+                          index,
+                          item.listingMode,
+                        ),
                         onContact: () => _openPrivateChat(
                           item.userId,
                           'This host chat is not available yet.',
@@ -493,27 +509,6 @@ class _WorkStayHero extends StatelessWidget {
   }
 }
 
-class _ModeChip extends StatelessWidget {
-  const _ModeChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return _WorkStayFilterChipButton(
-      label: label,
-      selected: selected,
-      onTap: onTap,
-    );
-  }
-}
-
 class _JobEditorialTile extends StatelessWidget {
   const _JobEditorialTile({
     required this.item,
@@ -549,7 +544,7 @@ class _JobEditorialTile extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    MetroBadge(label: _humanize(item.listingMode)),
+                    MetroBadge(label: _jobModeLabel(item.listingMode)),
                     const Spacer(),
                     if (item.salonName.isNotEmpty)
                       MetroBadge(
@@ -605,9 +600,10 @@ class _JobEditorialTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: SizedBox(
-                          height: 42,
+                          height: 46,
                           child: OutlinedButton(
                             onPressed: onOpen,
+                            style: metroSoftOutlinedButtonStyle(context),
                             child: Text(context.tr('View details')),
                           ),
                         ),
@@ -615,13 +611,12 @@ class _JobEditorialTile extends StatelessWidget {
                       const SizedBox(width: 10),
                       Expanded(
                         child: SizedBox(
-                          height: 42,
+                          height: 46,
                           child: FilledButton(
                             onPressed: onContact,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: borderColor.withValues(
-                                alpha: 0.96,
-                              ),
+                            style: metroSoftFilledButtonStyle(
+                              context,
+                              borderColor,
                             ),
                             child: Text(
                               context.tr(
@@ -735,9 +730,10 @@ class _PropertyEditorialTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: SizedBox(
-                          height: 42,
+                          height: 46,
                           child: OutlinedButton(
                             onPressed: onOpen,
+                            style: metroSoftOutlinedButtonStyle(context),
                             child: Text(context.tr('View details')),
                           ),
                         ),
@@ -745,13 +741,12 @@ class _PropertyEditorialTile extends StatelessWidget {
                       const SizedBox(width: 10),
                       Expanded(
                         child: SizedBox(
-                          height: 42,
+                          height: 46,
                           child: FilledButton(
                             onPressed: onContact,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: borderColor.withValues(
-                                alpha: 0.96,
-                              ),
+                            style: metroSoftFilledButtonStyle(
+                              context,
+                              borderColor,
                             ),
                             child: Text(
                               context.tr(
@@ -820,19 +815,6 @@ class _WorkStayFilterChipButton extends StatelessWidget {
   }
 }
 
-String _humanize(String raw) {
-  final cleaned = raw.replaceAll('_', ' ').replaceAll('-', ' ').trim();
-  if (cleaned.isEmpty) return '';
-
-  return cleaned
-      .split(RegExp(r'\s+'))
-      .map((word) {
-        final lower = word.toLowerCase();
-        return '${lower[0].toUpperCase()}${lower.substring(1)}';
-      })
-      .join(' ');
-}
-
 String _location(String city, String state) {
   final parts = <String>[
     if (city.trim().isNotEmpty) city.trim(),
@@ -866,6 +848,24 @@ String _salary(JobListingItem item) {
   return '';
 }
 
+String _normalizeJobMode(String mode) {
+  return mode == 'hiring' ? 'hiring' : 'looking_for_job';
+}
+
+String _normalizePropertyMode(String mode) {
+  return mode == 'looking_room' ? 'looking_room' : 'rent_out';
+}
+
+String _jobModeLabel(String mode) {
+  switch (mode) {
+    case 'hiring':
+      return 'Hiring nail staff';
+    case 'looking_for_job':
+    default:
+      return 'Job seekers';
+  }
+}
+
 String _propertyModeLabel(String mode) {
   switch (mode) {
     case 'rent_out':
@@ -874,24 +874,32 @@ String _propertyModeLabel(String mode) {
       return 'Looking for a room';
     case 'room_share':
     default:
-      return 'Room share';
+      return 'Homes for rent';
   }
 }
 
-Color _jobTileColor(int index) {
-  const palette = <Color>[
-    kMetroGold,
-    kMetroSuccess,
+Color _jobBoardAccent(String mode) {
+  return mode == 'hiring' ? kMetroGold : kMetroSuccess;
+}
+
+Color _propertyBoardAccent(String mode) {
+  return mode == 'looking_room' ? kMetroRose : kMetroPrimary;
+}
+
+Color _jobTileColor(int index, String mode) {
+  final palette = <Color>[
+    _jobBoardAccent(mode),
+    mode == 'hiring' ? kMetroSuccess : kMetroGold,
     Color(0xFFC18E68),
     kMetroPrimary,
   ];
   return palette[index % palette.length];
 }
 
-Color _propertyTileColor(int index) {
-  const palette = <Color>[
-    kMetroPrimary,
-    kMetroSuccess,
+Color _propertyTileColor(int index, String mode) {
+  final palette = <Color>[
+    _propertyBoardAccent(mode),
+    mode == 'looking_room' ? kMetroPrimary : kMetroSuccess,
     Color(0xFFC18E68),
     kMetroRose,
   ];

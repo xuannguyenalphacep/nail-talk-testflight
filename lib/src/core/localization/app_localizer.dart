@@ -221,6 +221,7 @@ class AppLocalizer {
     'Enter your email': 'Nhập email',
     'Enter a valid email address': 'Nhập địa chỉ email hợp lệ',
     'Phone number': 'Số điện thoại',
+    'Recovery email': 'Email khôi phục',
     'Optional': 'Không bắt buộc',
     'Use at least 6 characters': 'Dùng ít nhất 6 ký tự',
     'Confirm password': 'Xác nhận mật khẩu',
@@ -261,8 +262,8 @@ class AppLocalizer {
         'Tạo bài tuyển dụng cho kỹ thuật viên nail, nhân viên salon, quản lý hoặc cộng tác viên bán thời gian.',
     'Create a profile for professionals looking for work, a new salon, or licensing support.':
         'Tạo hồ sơ cho người đang tìm việc, tìm salon mới hoặc cần hỗ trợ về giấy phép.',
-    'Hiring nail staff': 'Tuyển nhân sự nail',
-    'Job seekers': 'Người tìm việc',
+    'Hiring nail staff': 'Kím Thợ',
+    'Job seekers': 'Kím Việc Làm',
     'Job Title': 'Chức danh công việc',
     'Profile Headline': 'Tiêu đề hồ sơ',
     'Salon Name': 'Tên salon',
@@ -274,6 +275,27 @@ class AppLocalizer {
     'Salary Min': 'Lương tối thiểu',
     'Salary Max': 'Lương tối đa',
     'City': 'Thành phố',
+    'Listing photos': 'Ảnh bài đăng',
+    'Add photos': 'Thêm ảnh',
+    'Uploading images...': 'Đang tải ảnh lên...',
+    'Choose photos from your device and the app will upload them automatically.':
+        'Chọn ảnh từ máy, ứng dụng sẽ tự tải lên tự động.',
+    'Tap add photos to choose images from your device.':
+        'Nhấn thêm ảnh để chọn ảnh từ thiết bị của bạn.',
+    'Add salon or profile photos from your device so people can trust the post faster.':
+        'Thêm ảnh salon hoặc ảnh hồ sơ từ thiết bị để người xem tin tưởng bài đăng nhanh hơn.',
+    'Choose clear product photos from your device and the app will upload them automatically.':
+        'Chọn ảnh sản phẩm rõ nét từ thiết bị, ứng dụng sẽ tự tải lên.',
+    'Upload room or home photos from your device so renters can review the space quickly.':
+        'Tải ảnh phòng hoặc nhà từ thiết bị để người thuê xem không gian nhanh hơn.',
+    'Could not upload the selected image.':
+        'Hiện chưa thể tải ảnh đã chọn lên.',
+    'Entertainment preview': 'Góc giải trí',
+    'An entertainment room for friends and the local nail community is coming soon to Nails Talk.':
+        'Phòng giải trí dành cho bạn bè và cộng đồng Nails Talk sẽ sớm ra mắt.',
+    'Four-player tables': 'Bàn 4 người',
+    'Play with friends': 'Chơi cùng bạn bè',
+    'Preview feature': 'Xem trước',
     'Image URLs (comma or new line separated)':
         'URL hình ảnh (ngăn cách bằng dấu phẩy hoặc xuống dòng)',
     'Phone': 'Điện thoại',
@@ -294,9 +316,11 @@ class AppLocalizer {
     'Post Room Share': 'Đăng chia sẻ phòng',
     'Post a room share, rental home, or housing request anywhere in the United States.':
         'Đăng tin chia sẻ phòng, nhà cho thuê hoặc nhu cầu tìm chỗ ở ở bất kỳ đâu tại Hoa Kỳ.',
+    'Post a rental home or housing request anywhere in the United States.':
+        'Đăng tin cho mướn nhà hoặc nhu cầu cần chỗ ở ở bất kỳ đâu tại Hoa Kỳ.',
     'Room share': 'Chia sẻ phòng',
-    'Homes for rent': 'Nhà cho thuê',
-    'Looking for a room': 'Tìm phòng',
+    'Homes for rent': 'Cho mướn nhà',
+    'Looking for a room': 'Cần mướn nhà',
     'Need Title': 'Tiêu đề nhu cầu',
     'What you are looking for': 'Bạn đang tìm gì',
     'Price': 'Giá',
@@ -304,6 +328,18 @@ class AppLocalizer {
     'Preferred Area / Address': 'Khu vực / địa chỉ mong muốn',
     'Address': 'Địa chỉ',
     'Amenities (comma separated)': 'Tiện ích (ngăn cách bằng dấu phẩy)',
+    'Post Hiring Request': 'Đăng tin kím thợ',
+    'Post Job Search': 'Đăng tin kím việc làm',
+    'Post Housing Need': 'Đăng tin cần mướn nhà',
+    'Post Rental Home': 'Đăng tin cho mướn nhà',
+    'Publish Worker Search': 'Đăng tin kím thợ',
+    'Publish Job Search': 'Đăng tin kím việc làm',
+    'Publish Housing Need': 'Đăng tin cần mướn nhà',
+    'Publish Rental Home': 'Đăng tin cho mướn nhà',
+    'Create a hiring post so salon owners can quickly find nail staff, front-desk help, or support workers.':
+        'Tạo bài đăng để chủ salon nhanh chóng tìm thợ nail, lễ tân hoặc người hỗ trợ phù hợp.',
+    'Create a job-search profile so salons can discover your skills and contact you faster.':
+        'Tạo hồ sơ tìm việc để salon dễ thấy kỹ năng của bạn và liên hệ nhanh hơn.',
     'Change language': 'Đổi ngôn ngữ',
     'Language': 'Ngôn ngữ',
     'Vietnamese': 'Tiếng Việt',
@@ -332,6 +368,12 @@ class AppLocalizer {
     'Please review your profile details and try again.':
         'Vui lòng kiểm tra lại thông tin hồ sơ và thử lại.',
     'Display name': 'Tên hiển thị',
+    'Avatar photo': 'Ảnh đại diện',
+    'Choose avatar photo from your device instead of pasting a link.':
+        'Chọn ảnh đại diện trực tiếp từ thiết bị thay vì dán liên kết.',
+    'Choose from device': 'Chọn từ máy',
+    'Change avatar': 'Đổi ảnh đại diện',
+    'Remove avatar': 'Xóa ảnh đại diện',
     'Avatar image URL': 'URL ảnh đại diện',
     'Short bio': 'Giới thiệu ngắn',
     'Tell members what kind of nail work, services, or local interests you want to share.':
@@ -339,6 +381,49 @@ class AppLocalizer {
     'Saving...': 'Đang lưu...',
     'Save changes': 'Lưu thay đổi',
     'Account details': 'Thông tin tài khoản',
+    'Not added yet': 'Chưa thêm',
+    'Add a recovery email so you can reset your password later.':
+        'Hãy thêm email khôi phục để sau này bạn có thể đặt lại mật khẩu.',
+    'Change password': 'Đổi mật khẩu',
+    'Use your current password once, then set a new one for future sign-ins.':
+        'Nhập mật khẩu hiện tại một lần rồi đặt mật khẩu mới cho những lần đăng nhập sau.',
+    'Current password': 'Mật khẩu hiện tại',
+    'Enter your current password': 'Nhập mật khẩu hiện tại',
+    'New password': 'Mật khẩu mới',
+    'Enter your new password': 'Nhập mật khẩu mới',
+    'Confirm new password': 'Xác nhận mật khẩu mới',
+    'Updating password...': 'Đang cập nhật mật khẩu...',
+    'Update password': 'Cập nhật mật khẩu',
+    'Password changed.': 'Đã đổi mật khẩu.',
+    'Could not change password right now.': 'Hiện chưa thể đổi mật khẩu.',
+    'Forgot password?': 'Quên mật khẩu?',
+    'Reset password': 'Đặt lại mật khẩu',
+    'Enter your email or username. Nails Talk will prepare a recovery code so you can set a new password.':
+        'Nhập email hoặc tên đăng nhập. Nails Talk sẽ chuẩn bị mã khôi phục để bạn đặt mật khẩu mới.',
+    'Email or username': 'Email hoặc tên đăng nhập',
+    'Enter your email or username': 'Nhập email hoặc tên đăng nhập',
+    'Sending recovery code...': 'Đang gửi mã khôi phục...',
+    'Send recovery code': 'Gửi mã khôi phục',
+    'Recovery code ready for this demo.':
+        'Mã khôi phục đã sẵn sàng cho bản demo này.',
+    'Recovery code sent.': 'Đã gửi mã khôi phục.',
+    'Demo code': 'Mã demo',
+    'Recovery code': 'Mã khôi phục',
+    'Enter the recovery code': 'Nhập mã khôi phục',
+    'Save new password': 'Lưu mật khẩu mới',
+    'Resetting password...': 'Đang đặt lại mật khẩu...',
+    'Could not start password recovery.':
+        'Hiện chưa thể bắt đầu khôi phục mật khẩu.',
+    'Could not reset the password yet.': 'Hiện chưa thể đặt lại mật khẩu.',
+    'Current password is incorrect.': 'Mật khẩu hiện tại không đúng.',
+    'A recovery code is ready. Add a real email in your profile to receive recovery emails later.':
+        'Mã khôi phục đã sẵn sàng. Hãy thêm email thật trong hồ sơ để lần sau có thể nhận email khôi phục.',
+    'If the account exists, a recovery code has been prepared.':
+        'Nếu tài khoản tồn tại, mã khôi phục đã được chuẩn bị.',
+    'Invalid or expired recovery code.':
+        'Mã khôi phục không đúng hoặc đã hết hạn.',
+    'Password updated. Please sign in again.':
+        'Mật khẩu đã được cập nhật. Vui lòng đăng nhập lại.',
     'How do I post a job quickly?': 'Đăng tin tuyển dụng nhanh như thế nào?',
     'Open the Work tab, choose hiring or job seeker mode, fill in the basics, and publish.':
         'Mở tab Việc, chọn chế độ tuyển dụng hoặc tìm việc, điền thông tin cơ bản rồi đăng.',
@@ -389,26 +474,72 @@ class AppLocalizer {
     'Jump into group rooms or direct messages whenever you want faster answers about work, rooms, or local life.':
         'Vào ngay phòng nhóm hoặc tin nhắn riêng bất cứ lúc nào khi bạn cần câu trả lời nhanh hơn về công việc, chỗ ở hay cuộc sống địa phương.',
     'Open chat': 'Mở chat',
+    'Mở chat ngay': 'Mở chat ngay',
+    'Chat rooms': 'Phòng chat',
     'Marketplace picks': 'Gợi ý chợ cộng đồng',
     'Salon marketplace finds, tools, and local deals in one scroll.':
         'Dụng cụ salon, món hàng cộng đồng và ưu đãi địa phương được gom trong một màn cuộn.',
     'Useful finds, salon gear, and community listings.':
         'Những món hữu ích, đồ nghề salon và bài đăng cộng đồng.',
+    'Community market': 'Chợ cộng đồng',
     'Open market': 'Mở chợ',
+    'Mua và bán': 'Mua và bán',
     'Rooms and housing': 'Phòng ở và nhà ở',
     'Places to stay, shared rooms, and new move-in leads.':
         'Chỗ ở, phòng chia sẻ và các đầu mối chuyển vào ở mới.',
     'Browse homes': 'Xem nhà ở',
+    'Browse housing': 'Xem nhà ở',
     'Saved for later': 'Đã lưu để xem sau',
     'Keep the most useful posts within reach.':
         'Giữ những bài đăng hữu ích nhất luôn trong tầm tay.',
+    'Discover': 'Khám phá',
     'Explore': 'Khám phá',
     'Guest': 'Khách',
+    'Heart-to-heart chat': 'Trò chuyện và Tâm Sự',
+    'Movie picks': 'Phim Hay',
+    'Find a job': 'Kím Việc Làm',
+    'Find a tech': 'Kím Thợ',
+    'Buy & Sell': 'Mua Và Bán',
+    'Rent out a home': 'Cho mướn nhà',
+    'Need a room': 'Cần mướn nhà',
+    'Latest openings': 'Tin tuyển mới',
+    'Hiring salons': 'Salon đang tuyển',
+    'Trò chuyện và Tâm Sự': 'Trò chuyện và Tâm Sự',
+    'Xem phim hay': 'Xem phim hay',
+    'Kím Việc Làm': 'Kím Việc Làm',
+    'Kím Thợ': 'Kím Thợ',
+    'Mua Và Bán': 'Mua Và Bán',
+    'Cho mướn nhà': 'Cho mướn nhà',
+    'Cần mướn nhà': 'Cần mướn nhà',
+    'Join community rooms and private chats right away.':
+        'Vào phòng cộng đồng và chat riêng ngay.',
+    'Featured movies for a relaxed night in.':
+        'Những bộ phim nổi bật cho buổi tối thư giãn.',
+    'Latest salon openings and nearby job posts.':
+        'Tin tuyển dụng salon mới và cơ hội gần bạn.',
+    'Salon gear, decor, and daily community deals.':
+        'Đồ nghề salon, decor và món hời mỗi ngày.',
+    'Find a room or roommate close to work.':
+        'Tìm phòng hoặc người ở ghép gần chỗ làm.',
+    'Homes and rooms ready for move-in now.':
+        'Nhà và phòng trống sẵn sàng dọn vào ở.',
+    'Salon owners hiring and looking for the right tech.':
+        'Salon đang tuyển và tìm đúng người thợ phù hợp.',
+    'Tìm việc nhanh': 'Tìm việc nhanh',
+    'Tìm thợ nhanh': 'Tìm thợ nhanh',
+    'Xem nhà cho thuê': 'Xem nhà cho thuê',
+    'Tien len card game': 'Game bài tiến lên',
+    'Game bài tiến lên': 'Game bài tiến lên',
+    'Bấm vào để xem trước tính năng giải trí sắp ra mắt.':
+        'Bấm vào để xem trước tính năng giải trí sắp ra mắt.',
+    'Coming soon': 'Sắp ra mắt',
+    'Tien len card game is coming soon.': 'Game bài tiến lên sẽ sớm ra mắt.',
     'Welcome back, {name}': 'Chào mừng quay lại, {name}',
     'Find jobs, movie nights, homes, and local updates in one place.':
         'Tìm việc làm, đêm xem phim, chỗ ở và cập nhật địa phương trong cùng một nơi.',
     'Start with what you need today. This feed is tuned for work leads, marketplace finds, movie access, and places to stay.':
         'Hãy bắt đầu từ điều bạn cần hôm nay. Bảng tin này được tối ưu cho đầu mối việc làm, món đồ chợ cộng đồng, quyền xem phim và nơi để ở.',
+    'Jobs & Housing': 'Việc làm & Nhà ở',
     'Jobs': 'Việc làm',
     'Housing': 'Nhà ở',
     'Active: {plan}': 'Đang hoạt động: {plan}',
@@ -511,6 +642,7 @@ class AppLocalizer {
     'Popular on Nails Talk': 'Nổi bật trên Nails Talk',
     'Top picks laid out like a real streaming browse page.':
         'Những lựa chọn nổi bật được trình bày như một trang duyệt phim thật.',
+    'Featured movies': 'Phim nổi bật',
     'Ready to watch': 'Sẵn sàng để xem',
     'Open now for this account.': 'Mở ngay với tài khoản này.',
     'Open these instantly with the current account.':
@@ -556,6 +688,45 @@ class AppLocalizer {
     'Plan': 'Gói',
     'Community stream': 'Luồng cộng đồng',
     'Watch': 'Xem',
+    'Search in Nails Talk...': 'Tìm kiếm trên Nails Talk...',
+    'Search suggestions': 'Gợi ý tìm kiếm',
+    'Quick matches from movies, market, jobs, and housing.':
+        'Kết quả nhanh từ phim, mua bán, việc làm và nhà ở.',
+    'No matching posts found yet. Try another keyword.':
+        'Chưa tìm thấy bài đăng phù hợp. Hãy thử từ khóa khác.',
+    'Use the cards below to jump into movies, market, jobs, housing, or chat.':
+        'Dùng các thẻ bên dưới để vào nhanh phim, chợ, việc làm, nhà ở hoặc chat.',
+    'More': 'Thêm',
+    'Menu': 'Menu',
+    'See all': 'Xem tất cả',
+    'Notifications': 'Thông báo',
+    'Events': 'Sự kiện',
+    'Nearby': 'Gần bạn',
+    'Profile': 'Hồ sơ',
+    'Settings': 'Cài đặt',
+    'Suggested for you': 'Gợi ý cho bạn',
+    'Personal': 'Cá nhân',
+    'Other utilities': 'Tiện ích khác',
+    'Ads': 'Quảng cáo',
+    'Help center': 'Trung tâm trợ giúp',
+    'Share app': 'Chia sẻ ứng dụng',
+    'Customize menu': 'Tùy chỉnh menu',
+    'Love connections': 'Kết nối yêu thương',
+    'Join the Nails Talk community to connect and share every day.':
+        'Tham gia cộng đồng Nails Talk để kết nối và sẻ chia mỗi ngày.',
+    'Events will be polished in the next release.':
+        'Mục sự kiện sẽ được hoàn thiện hơn ở bản phát hành tiếp theo.',
+    'Nearby recommendations will be expanded in the next release.':
+        'Gợi ý gần bạn sẽ được mở rộng hơn ở bản phát hành tiếp theo.',
+    'Premium access can be connected after the next demo pass.':
+        'Gói Premium sẽ được kết nối sau vòng demo tiếp theo.',
+    'Ads can be managed from the admin console.':
+        'Phần quảng cáo có thể được quản lý từ trang admin.',
+    'App sharing will be connected in the next release.':
+        'Tính năng chia sẻ ứng dụng sẽ được nối ở bản phát hành tiếp theo.',
+    'Menu customization can be added after the next demo pass.':
+        'Tùy chỉnh menu có thể được thêm sau vòng demo tiếp theo.',
+    'Find rooms, roommates': 'Tìm phòng, ở ghép',
     'Details': 'Chi tiết',
     'Movie pass active until {date}': 'Gói xem phim hoạt động đến {date}',
     'Premium shelves are unlocked for this account.':
@@ -572,8 +743,70 @@ class AppLocalizer {
         'Kéo xuống để làm mới và đồng bộ danh sách phim mới nhất từ API.',
     'Reset filters': 'Đặt lại bộ lọc',
     'soon': 'sắp có',
+    'Quality movie picks, refreshed daily.':
+        'Kho phim chất lượng, cập nhật mỗi ngày.',
+    'Movie vault': 'Kho phim',
+    'Search across the movie vault and open a title right away.':
+        'Tìm trong toàn bộ kho phim và mở xem ngay chỉ với một chạm.',
+    'Trending now': 'Phim thịnh hành',
+    'The most opened titles inside Nails Talk this week.':
+        'Những tựa phim được mở xem nhiều nhất trên Nails Talk tuần này.',
+    'Free tonight': 'Phim miễn phí tối nay',
+    'No plan needed for these picks.':
+        'Không cần gói xem cho các lựa chọn này.',
+    'Fresh releases': 'Mới cập nhật',
+    'New posters and fresh streams for the week.':
+        'Poster mới và luồng phim mới cập nhật trong tuần.',
+    'Popular categories': 'Danh mục phổ biến',
+    'Movie categories': 'Danh mục',
+    'Every shelf available for browsing in one place.':
+        'Tất cả danh mục phim được gom ở một nơi để bạn duyệt nhanh.',
+    'Titles': 'Phim',
+    'View all categories': 'Xem tất cả danh mục',
+    'Newest': 'Mới nhất',
+    'Top rated': 'Đánh giá cao',
+    'Most watched': 'Nhiều người xem',
+    'New': 'Mới',
+    'Subtitled': 'Phụ đề',
+    'reviews': 'đánh giá',
+    'My list': 'Danh sách',
+    'Watched': 'Đã xem',
+    'Download': 'Tải xuống',
+    'Share': 'Chia sẻ',
+    'Your movie list will sync in the next demo update.':
+        'Danh sách xem sau sẽ được đồng bộ ở bản demo kế tiếp.',
+    'Offline movie download will be connected in the next release.':
+        'Tải phim offline sẽ được kết nối ở bản phát hành tiếp theo.',
+    'Tap Watch now to open the stream player right inside this detail page.':
+        'Bấm Xem ngay để mở trình phát ngay trong trang chi tiết này.',
+    'Cast': 'Diễn viên',
+    'Movie link copied.': 'Đã sao chép liên kết phim.',
     'Post Housing': 'Đăng nhà ở',
     'Nail Jobs': 'Việc làm nail',
+    'Salon owners are posting open positions here so members can quickly find the right team.':
+        'Chủ salon đang đăng các vị trí cần người tại đây để cộng đồng nhanh chóng tìm đúng nơi phù hợp.',
+    'Members looking for salon work appear here so owners can discover local talent quickly.':
+        'Những thành viên đang tìm việc salon sẽ hiện ở đây để chủ tiệm dễ tìm ra nhân sự địa phương phù hợp.',
+    'Photo-first rental posts help members browse homes and rooms available right now.':
+        'Các bài đăng cho mướn nhà ưu tiên ảnh giúp thành viên xem nhanh nhà và phòng còn trống.',
+    'Housing-need posts gather members who are searching for rooms, rentals, or a place to move in.':
+        'Các bài đăng cần chỗ ở tập hợp người đang tìm phòng, tìm nhà thuê hoặc nơi có thể dọn vào ở.',
+    'Worker search board': 'Bảng tin kím thợ',
+    'Job seeker board': 'Bảng tin kím việc làm',
+    'Rental board': 'Bảng tin cho mướn nhà',
+    'Housing need board': 'Bảng tin cần mướn nhà',
+    'Open roles are separated into a cleaner list so owners can contact the right people faster.':
+        'Các vị trí đang tuyển được tách ra rõ hơn để chủ salon liên hệ đúng người nhanh hơn.',
+    'Profiles from people looking for salon work are separated here for faster matching.':
+        'Các hồ sơ tìm việc salon được tách riêng tại đây để ghép nhanh hơn.',
+    'Posts from members who need a room or home are grouped here for quicker replies.':
+        'Các bài đăng của thành viên đang cần phòng hoặc cần nhà được gom tại đây để phản hồi nhanh hơn.',
+    'Available homes and rooms are grouped here so renters can browse quickly.':
+        'Các nhà và phòng còn trống được gom tại đây để người thuê xem nhanh hơn.',
+    'Search worker posts': 'Tìm bài đăng kím thợ',
+    'Search job-seeker posts': 'Tìm bài đăng kím việc làm',
+    'Search housing needs': 'Tìm bài đăng cần mướn nhà',
+    'Search rental homes': 'Tìm bài đăng cho mướn nhà',
     'Hiring salon talent, shift openings, and job seekers in one mobile-friendly board.':
         'Tuyển người cho salon, ca làm mở và người tìm việc được gom trên một bảng dễ xem bằng điện thoại.',
     'Rental leads, room shares, and move-in posts laid out with cleaner cards.':
@@ -590,6 +823,18 @@ class AppLocalizer {
         'Hiện chưa thể mở chat với nhà tuyển dụng này.',
     'This host chat is not available yet.':
         'Hiện chưa thể mở chat với chủ bài đăng này.',
+    'No worker-search posts yet': 'Chưa có bài đăng kím thợ nào',
+    'No job-seeker posts yet': 'Chưa có bài đăng kím việc làm nào',
+    'No rental-home posts yet': 'Chưa có bài đăng cho mướn nhà nào',
+    'No housing-need posts yet': 'Chưa có bài đăng cần mướn nhà nào',
+    'Salon owners have not posted any worker searches yet.':
+        'Các chủ salon vẫn chưa đăng bài kím thợ nào.',
+    'No members have posted a job search in this area yet.':
+        'Chưa có thành viên nào đăng bài kím việc làm tại khu vực này.',
+    'No rental homes have been posted in this area yet.':
+        'Chưa có nhà cho thuê nào được đăng tại khu vực này.',
+    'No members have posted a housing need in this area yet.':
+        'Chưa có thành viên nào đăng nhu cầu cần chỗ ở tại khu vực này.',
     'Message candidate': 'Nhắn ứng viên',
     'Chat recruiter': 'Chat với nhà tuyển dụng',
     'Message renter': 'Nhắn người thuê',
@@ -638,6 +883,10 @@ class AppLocalizer {
     'Action': 'Hành động',
     'Comedy': 'Hài',
     'Documentary': 'Tài liệu',
+    'Romance': 'Tình cảm',
+    'Fantasy': 'Kỳ ảo',
+    'Adventure': 'Phiêu lưu',
+    'Sci-Fi': 'Khoa học viễn tưởng',
     'Cosmos Laundromat: First Cycle': 'Cosmos Laundromat: Vòng Quay Đầu Tiên',
     'A lush open-movie fantasy about second chances, perfect for a polished premium streaming demo.':
         'Một phim giả tưởng giàu cảm xúc về cơ hội thứ hai, rất phù hợp cho màn demo phát trực tuyến cao cấp.',
@@ -756,7 +1005,11 @@ class AppLocalizer {
   };
 
   static final Map<String, String> _enReverse = <String, String>{
-    for (final entry in _vi.entries) entry.value: entry.key,
+    for (final entry in _vi.entries)
+      if (!_vi.entries
+          .takeWhile((item) => item.key != entry.key)
+          .any((item) => item.value == entry.value))
+        entry.value: entry.key,
   };
 
   String tr(String source, [Map<String, String> params = const {}]) {
@@ -777,7 +1030,7 @@ class AppLocalizer {
 
 extension AppLocalizationX on BuildContext {
   AppLocaleController get localeController =>
-      Provider.of<AppLocaleController>(this, listen: true);
+      Provider.of<AppLocaleController>(this, listen: false);
 
   AppLocalizer get localizer => AppLocalizer(localeController.language);
 

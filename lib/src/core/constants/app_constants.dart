@@ -5,11 +5,11 @@ class AppConstants {
   static const String appTagline = 'Connect, work, and share around the U.S.';
   static const String bootstrapApiBase = String.fromEnvironment(
     'BOOTSTRAP_API_BASE',
-    defaultValue: 'http://ec2-54-205-74-122.compute-1.amazonaws.com/api',
+    defaultValue: 'http://54.205.74.122/api',
   );
   static const String chatCallBaseUrl = String.fromEnvironment(
     'CHAT_CALL_BASE_URL',
-    defaultValue: 'http://ec2-54-205-74-122.compute-1.amazonaws.com',
+    defaultValue: 'http://54.205.74.122',
   );
 
   static const Duration connectTimeout = Duration(seconds: 20);

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../core/constants/app_constants.dart';
 import '../core/localization/app_localizer.dart';
@@ -237,6 +238,7 @@ class SessionController extends ChangeNotifier {
 
   Future<void> updateProfile({
     required String name,
+    String? email,
     String? phone,
     String? bio,
     String? avatarUrl,
@@ -256,6 +258,7 @@ class SessionController extends ChangeNotifier {
     try {
       final updatedUser = await _apiService.updateProfile(
         name: name,
+        email: email,
         phone: phone,
         bio: bio,
         avatarUrl: avatarUrl,
@@ -263,11 +266,10 @@ class SessionController extends ChangeNotifier {
 
       _user = updatedUser.copyWith(
         name: name,
+        email: email ?? updatedUser.email,
         phone: phone ?? '',
         bio: bio ?? '',
-        avatarUrl: (avatarUrl ?? '').trim().isEmpty
-            ? updatedUser.avatarUrl
-            : avatarUrl,
+        avatarUrl: updatedUser.avatarUrl,
       );
 
       await _storageService.saveUser(_user!);
@@ -278,6 +280,116 @@ class SessionController extends ChangeNotifier {
               'Please review your profile details and try again.',
             )
           : AppLocalizer.current.tr('Could not update profile right now.');
+      rethrow;
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<String> uploadImage(PlatformFile file) async {
+    if (_selectedApp == null || _token == null || _user == null) {
+      _error = AppLocalizer.current.tr(
+        'Service setup is still loading. Please try again.',
+      );
+      notifyListeners();
+      throw Exception(_error);
+    }
+
+    try {
+      _apiService.setContext(app: _selectedApp!, accessToken: _token);
+      final uploaded = await _apiService.uploadFile(file);
+      return uploaded.filePath;
+    } catch (error) {
+      _error = AppLocalizer.current.tr('Could not upload the selected image.');
+      notifyListeners();
+      throw Exception(_error);
+    }
+  }
+
+  Future<({String message, String? demoCode, bool requiresEmailUpdate})>
+  requestPasswordReset({required String login}) async {
+    if (_selectedApp == null) {
+      _error = AppLocalizer.current.tr(
+        'Service setup is still loading. Please try again.',
+      );
+      notifyListeners();
+      throw Exception(_error);
+    }
+
+    _submitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _apiService.setContext(app: _selectedApp!);
+      return await _apiService.requestPasswordReset(login: login);
+    } catch (error) {
+      _error = error.toString().replaceFirst('Exception: ', '').trim();
+      rethrow;
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<String> resetPassword({
+    required String login,
+    required String token,
+    required String password,
+  }) async {
+    if (_selectedApp == null) {
+      _error = AppLocalizer.current.tr(
+        'Service setup is still loading. Please try again.',
+      );
+      notifyListeners();
+      throw Exception(_error);
+    }
+
+    _submitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _apiService.setContext(app: _selectedApp!);
+      return await _apiService.resetPassword(
+        login: login,
+        token: token,
+        password: password,
+      );
+    } catch (error) {
+      _error = error.toString().replaceFirst('Exception: ', '').trim();
+      rethrow;
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<String> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    if (_selectedApp == null || _token == null || _user == null) {
+      _error = AppLocalizer.current.tr(
+        'Service setup is still loading. Please try again.',
+      );
+      notifyListeners();
+      throw Exception(_error);
+    }
+
+    _submitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final message = await _apiService.changePassword(
+        currentPassword: currentPassword,
+        password: newPassword,
+      );
+      return message;
+    } catch (error) {
+      _error = error.toString().replaceFirst('Exception: ', '').trim();
       rethrow;
     } finally {
       _submitting = false;

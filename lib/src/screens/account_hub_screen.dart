@@ -1,3 +1,5 @@
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -24,12 +26,21 @@ class AccountHubScreen extends StatefulWidget {
 
 class _AccountHubScreenState extends State<AccountHubScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _passwordFormKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _avatarController = TextEditingController();
   final _bioController = TextEditingController();
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   late AccountHubSection _section;
+  bool _uploadingAvatar = false;
+  bool _obscureCurrentPassword = true;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void initState() {
@@ -49,14 +60,19 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
     _phoneController.dispose();
     _avatarController.dispose();
     _bioController.dispose();
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   void _hydrateUser(SessionUser user) {
     _nameController.text = user.name;
+    _emailController.text = _recoveryEmailForEditing(user.email);
     _phoneController.text = user.phone;
     _avatarController.text = user.avatarUrl;
     _bioController.text = user.bio;
@@ -75,6 +91,7 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
     try {
       await session.updateProfile(
         name: _nameController.text.trim(),
+        email: _cleanOptional(_emailController.text),
         phone: _cleanOptional(_phoneController.text),
         bio: _cleanOptional(_bioController.text),
         avatarUrl: _cleanOptional(_avatarController.text),
@@ -106,6 +123,99 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
   String? _cleanOptional(String value) {
     final trimmed = value.trim();
     return trimmed.isEmpty ? null : trimmed;
+  }
+
+  String _recoveryEmailForEditing(String rawEmail) {
+    final trimmed = rawEmail.trim();
+    if (trimmed.isEmpty || _isLocalOnlyEmail(trimmed)) {
+      return '';
+    }
+    return trimmed;
+  }
+
+  bool _isLocalOnlyEmail(String rawEmail) {
+    return rawEmail.trim().toLowerCase().endsWith('.local');
+  }
+
+  Future<void> _changePassword() async {
+    if (!(_passwordFormKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+
+    final session = context.read<SessionController>();
+
+    try {
+      final message = await session.changePassword(
+        currentPassword: _currentPasswordController.text,
+        newPassword: _newPasswordController.text,
+      );
+
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
+      _confirmPasswordController.clear();
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(context.tr(message))));
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            session.error ?? context.tr('Could not change password right now.'),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _pickAvatarImage() async {
+    if (_uploadingAvatar) return;
+
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: false,
+      withData: kIsWeb,
+      type: FileType.image,
+    );
+    final file = result?.files.single;
+    if (file == null || !mounted) return;
+
+    setState(() => _uploadingAvatar = true);
+
+    try {
+      final uploadedUrl = await context.read<SessionController>().uploadImage(
+        file,
+      );
+      if (!mounted) return;
+      setState(() => _avatarController.text = uploadedUrl);
+    } catch (_) {
+      if (!mounted) return;
+      final session = context.read<SessionController>();
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            session.error ?? context.tr('Could not upload the selected image.'),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _uploadingAvatar = false);
+      }
+    }
+  }
+
+  void _clearAvatarImage() {
+    setState(() => _avatarController.clear());
   }
 
   String _sectionTitle(BuildContext context) {
@@ -152,12 +262,13 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final user = session.user;
+    final bottomSpacing = MediaQuery.viewPaddingOf(context).bottom + 24;
 
     return Scaffold(
       appBar: AppBar(titleSpacing: 16, title: Text(context.tr('Account'))),
       body: MetroPageBackground(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          padding: EdgeInsets.fromLTRB(16, 12, 16, bottomSpacing),
           children: [
             _AccountHeroCard(
               user: user,
@@ -173,12 +284,38 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
             if (_section == AccountHubSection.profile)
               _ProfileEditorSection(
                 formKey: _formKey,
+                passwordFormKey: _passwordFormKey,
                 session: session,
                 nameController: _nameController,
+                emailController: _emailController,
                 phoneController: _phoneController,
-                avatarController: _avatarController,
+                avatarUrl: _avatarController.text.trim(),
                 bioController: _bioController,
+                currentPasswordController: _currentPasswordController,
+                newPasswordController: _newPasswordController,
+                confirmPasswordController: _confirmPasswordController,
+                uploadingAvatar: _uploadingAvatar,
+                obscureCurrentPassword: _obscureCurrentPassword,
+                obscureNewPassword: _obscureNewPassword,
+                obscureConfirmPassword: _obscureConfirmPassword,
+                onPickAvatar: _pickAvatarImage,
+                onClearAvatar: _clearAvatarImage,
+                onToggleCurrentPassword: () => setState(
+                  () => _obscureCurrentPassword = !_obscureCurrentPassword,
+                ),
+                onToggleNewPassword: () =>
+                    setState(() => _obscureNewPassword = !_obscureNewPassword),
+                onToggleConfirmPassword: () => setState(
+                  () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                ),
                 onSave: _saveProfile,
+                onChangePassword: _changePassword,
+                showRecoveryEmailHint:
+                    user == null ||
+                    _recoveryEmailForEditing(user.email).isEmpty,
+                visibleRecoveryEmail: user == null
+                    ? ''
+                    : _recoveryEmailForEditing(user.email),
               )
             else if (_section == AccountHubSection.faq)
               const _InfoSection(
@@ -322,21 +459,55 @@ class _AccountHeroCard extends StatelessWidget {
 class _ProfileEditorSection extends StatelessWidget {
   const _ProfileEditorSection({
     required this.formKey,
+    required this.passwordFormKey,
     required this.session,
     required this.nameController,
+    required this.emailController,
     required this.phoneController,
-    required this.avatarController,
+    required this.avatarUrl,
     required this.bioController,
+    required this.currentPasswordController,
+    required this.newPasswordController,
+    required this.confirmPasswordController,
+    required this.uploadingAvatar,
+    required this.obscureCurrentPassword,
+    required this.obscureNewPassword,
+    required this.obscureConfirmPassword,
+    required this.onPickAvatar,
+    required this.onClearAvatar,
+    required this.onToggleCurrentPassword,
+    required this.onToggleNewPassword,
+    required this.onToggleConfirmPassword,
     required this.onSave,
+    required this.onChangePassword,
+    required this.showRecoveryEmailHint,
+    required this.visibleRecoveryEmail,
   });
 
   final GlobalKey<FormState> formKey;
+  final GlobalKey<FormState> passwordFormKey;
   final SessionController session;
   final TextEditingController nameController;
+  final TextEditingController emailController;
   final TextEditingController phoneController;
-  final TextEditingController avatarController;
+  final String avatarUrl;
   final TextEditingController bioController;
+  final TextEditingController currentPasswordController;
+  final TextEditingController newPasswordController;
+  final TextEditingController confirmPasswordController;
+  final bool uploadingAvatar;
+  final bool obscureCurrentPassword;
+  final bool obscureNewPassword;
+  final bool obscureConfirmPassword;
+  final Future<void> Function() onPickAvatar;
+  final VoidCallback onClearAvatar;
+  final VoidCallback onToggleCurrentPassword;
+  final VoidCallback onToggleNewPassword;
+  final VoidCallback onToggleConfirmPassword;
   final Future<void> Function() onSave;
+  final Future<void> Function() onChangePassword;
+  final bool showRecoveryEmailHint;
+  final String visibleRecoveryEmail;
 
   @override
   Widget build(BuildContext context) {
@@ -357,6 +528,14 @@ class _ProfileEditorSection extends StatelessWidget {
                     context,
                   ).textTheme.titleMedium?.copyWith(color: kMetroInk),
                 ),
+                if (showRecoveryEmailHint) ...[
+                  const SizedBox(height: 12),
+                  _ProfileHintCard(
+                    icon: Icons.mark_email_unread_outlined,
+                    message:
+                        'Add a recovery email so you can reset your password later.',
+                  ),
+                ],
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: nameController,
@@ -374,6 +553,23 @@ class _ProfileEditorSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: context.tr('Recovery email'),
+                    hintText: 'name@example.com',
+                  ),
+                  validator: (value) {
+                    final trimmed = value?.trim() ?? '';
+                    if (trimmed.isNotEmpty && !trimmed.contains('@')) {
+                      return context.tr('Enter a valid email address');
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
                   controller: phoneController,
                   keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.next,
@@ -383,13 +579,13 @@ class _ProfileEditorSection extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
-                  controller: avatarController,
-                  textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(
-                    labelText: context.tr('Avatar image URL'),
-                    hintText: 'https://',
-                  ),
+                _ProfileAvatarField(
+                  imageUrl: avatarUrl,
+                  displayName: nameController.text.trim(),
+                  username: user?.username ?? '',
+                  uploading: uploadingAvatar,
+                  onPick: onPickAvatar,
+                  onClear: onClearAvatar,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -436,11 +632,167 @@ class _ProfileEditorSection extends StatelessWidget {
               const SizedBox(height: 12),
               _ReadOnlyField(label: 'Username', value: user?.username ?? ''),
               const SizedBox(height: 10),
-              _ReadOnlyField(label: 'Email', value: user?.email ?? ''),
+              _ReadOnlyField(
+                label: 'Email',
+                value: visibleRecoveryEmail.isEmpty
+                    ? context.tr('Not added yet')
+                    : visibleRecoveryEmail,
+              ),
             ],
           ),
         ),
+        const SizedBox(height: 12),
+        MetroInsetPanel(
+          borderColor: kMetroPrimary.withValues(alpha: 0.26),
+          child: Form(
+            key: passwordFormKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('Change password'),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(color: kMetroInk),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  context.tr(
+                    'Use your current password once, then set a new one for future sign-ins.',
+                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: kMetroMuted),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: currentPasswordController,
+                  obscureText: obscureCurrentPassword,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: context.tr('Current password'),
+                    suffixIcon: IconButton(
+                      onPressed: onToggleCurrentPassword,
+                      icon: Icon(
+                        obscureCurrentPassword
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
+                      ),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return context.tr('Enter your current password');
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: newPasswordController,
+                  obscureText: obscureNewPassword,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: context.tr('New password'),
+                    hintText: context.tr('Use at least 6 characters'),
+                    suffixIcon: IconButton(
+                      onPressed: onToggleNewPassword,
+                      icon: Icon(
+                        obscureNewPassword
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
+                      ),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return context.tr('Enter your new password');
+                    }
+                    if (value.length < 6) {
+                      return context.tr('Use at least 6 characters');
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: confirmPasswordController,
+                  obscureText: obscureConfirmPassword,
+                  decoration: InputDecoration(
+                    labelText: context.tr('Confirm new password'),
+                    suffixIcon: IconButton(
+                      onPressed: onToggleConfirmPassword,
+                      icon: Icon(
+                        obscureConfirmPassword
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
+                      ),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return context.tr('Confirm your password');
+                    }
+                    if (value != newPasswordController.text) {
+                      return context.tr('Passwords do not match');
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: session.submitting ? null : onChangePassword,
+                    child: Text(
+                      context.tr(
+                        session.submitting
+                            ? 'Updating password...'
+                            : 'Update password',
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
+    );
+  }
+}
+
+class _ProfileHintCard extends StatelessWidget {
+  const _ProfileHintCard({required this.icon, required this.message});
+
+  final IconData icon;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: kMetroCoralSoft,
+        borderRadius: BorderRadius.circular(kMetroRadius),
+        border: Border.all(color: kMetroLine),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: kMetroCoral),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              context.tr(message),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: kMetroInk),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -722,6 +1074,136 @@ class _AccountAvatar extends StatelessWidget {
                 ),
               ),
             ),
+    );
+  }
+}
+
+class _ProfileAvatarField extends StatelessWidget {
+  const _ProfileAvatarField({
+    required this.imageUrl,
+    required this.displayName,
+    required this.username,
+    required this.uploading,
+    required this.onPick,
+    required this.onClear,
+  });
+
+  final String imageUrl;
+  final String displayName;
+  final String username;
+  final bool uploading;
+  final Future<void> Function() onPick;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final initialSource = displayName.isNotEmpty ? displayName : username;
+    final initial = initialSource.isEmpty ? 'N' : initialSource[0];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: kMetroSurface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: kMetroLine),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 82,
+            height: 82,
+            decoration: BoxDecoration(
+              color: kMetroPrimarySoft,
+              shape: BoxShape.circle,
+              border: Border.all(color: kMetroLine),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: uploading
+                ? const Center(
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.4),
+                    ),
+                  )
+                : imageUrl.isEmpty
+                ? Center(
+                    child: Text(
+                      initial.toUpperCase(),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineSmall?.copyWith(color: kMetroPrimary),
+                    ),
+                  )
+                : RemoteImage(
+                    url: imageUrl,
+                    width: 82,
+                    height: 82,
+                    fit: BoxFit.cover,
+                    errorFallback: Center(
+                      child: Text(
+                        initial.toUpperCase(),
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(color: kMetroPrimary),
+                      ),
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('Avatar photo'),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: kMetroInk,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  context.tr(
+                    'Choose avatar photo from your device instead of pasting a link.',
+                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: kMetroMuted),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: uploading ? null : () => onPick(),
+                      icon: Icon(
+                        uploading
+                            ? Icons.sync_rounded
+                            : Icons.add_a_photo_outlined,
+                      ),
+                      label: Text(
+                        context.tr(
+                          imageUrl.isEmpty
+                              ? 'Choose from device'
+                              : 'Change avatar',
+                        ),
+                      ),
+                    ),
+                    if (imageUrl.isNotEmpty)
+                      TextButton.icon(
+                        onPressed: uploading ? null : onClear,
+                        icon: const Icon(Icons.delete_outline_rounded),
+                        label: Text(context.tr('Remove avatar')),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

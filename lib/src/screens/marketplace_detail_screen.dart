@@ -54,6 +54,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
     final imageUrls = item.imageUrls.isEmpty ? const [''] : item.imageUrls;
     final safeIndex = _imageIndex.clamp(0, imageUrls.length - 1);
     final location = _location(item.city, item.state);
+    final listBottomPadding = MediaQuery.viewPaddingOf(context).bottom + 36;
 
     return Scaffold(
       appBar: AppBar(
@@ -79,7 +80,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
       ),
       body: MetroPageBackground(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
+          padding: EdgeInsets.fromLTRB(16, 10, 16, listBottomPadding),
           children: [
             MetroInsetPanel(
               borderColor: kMetroPrimary,

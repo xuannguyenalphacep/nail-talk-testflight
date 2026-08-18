@@ -19,6 +19,7 @@ import '../models/chat_user_option.dart';
 import '../services/attachment_open_service.dart';
 import 'attachment_preview_screen.dart';
 import '../widgets/app_logo.dart';
+import '../widgets/language_switch_button.dart';
 import '../widgets/metro_ui.dart';
 import '../widgets/remote_image.dart';
 
@@ -938,28 +939,35 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
         final room = chat.activeRoom;
         final canPop = Navigator.of(context).canPop();
 
+        if (room == null) {
+          return Scaffold(
+            backgroundColor: Colors.transparent,
+            body: MetroPageBackground(
+              child: SafeArea(
+                bottom: false,
+                child: _RoomListView(
+                  theme: theme,
+                  roomSearchController: _roomSearchController,
+                ),
+              ),
+            ),
+          );
+        }
+
         return Scaffold(
           appBar: AppBar(
             automaticallyImplyLeading: false,
-            leading: room != null || canPop
-                ? IconButton(
-                    tooltip: context.tr('Back'),
-                    onPressed: () {
-                      if (room != null) {
-                        if (canPop) {
-                          Navigator.of(context).maybePop();
-                        } else {
-                          chat.clearActiveRoom();
-                        }
-                        return;
-                      }
-                      if (canPop) {
-                        Navigator.of(context).maybePop();
-                      }
-                    },
-                    icon: const Icon(Icons.arrow_back_rounded),
-                  )
-                : null,
+            leading: IconButton(
+              tooltip: context.tr('Back'),
+              onPressed: () {
+                if (canPop) {
+                  Navigator.of(context).maybePop();
+                } else {
+                  chat.clearActiveRoom();
+                }
+              },
+              icon: const Icon(Icons.arrow_back_rounded),
+            ),
             titleSpacing: 16,
             title: Row(
               children: [
@@ -977,7 +985,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                         ),
                       ),
                       Text(
-                        context.tr(room?.title ?? 'Community chat'),
+                        context.tr(room.title),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -1024,34 +1032,28 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                     child: Stack(
                       children: [
                         Positioned.fill(
-                          child: room == null
-                              ? _RoomListView(
-                                  theme: theme,
-                                  roomSearchController: _roomSearchController,
-                                )
-                              : _RoomChatView(
-                                  room: room,
-                                  messageController: _messageController,
-                                  scrollController: _messageScrollController,
-                                  replyingMessage: _replyingMessage,
-                                  mentionResults: chat.mentionResults,
-                                  messageKeyBuilder: _messageKeyFor,
-                                  highlightedMessageId: _highlightedMessageId,
-                                  onSendText: _sendText,
-                                  onSendFile: _pickAndSendFile,
-                                  onPickMention: _insertMention,
-                                  onClearReply: () =>
-                                      setState(() => _replyingMessage = null),
-                                  onShowPinnedMessages:
-                                      _showPinnedMessagesSheet,
-                                  onShowMembers: room.isGroup
-                                      ? () => _showGroupMembersSheet(room)
-                                      : null,
-                                  onShowMessageActions: _showMessageActions,
-                                  onReplyTap: (messageId) => context
-                                      .read<ChatController>()
-                                      .jumpToMessage(messageId),
-                                ),
+                          child: _RoomChatView(
+                            room: room,
+                            messageController: _messageController,
+                            scrollController: _messageScrollController,
+                            replyingMessage: _replyingMessage,
+                            mentionResults: chat.mentionResults,
+                            messageKeyBuilder: _messageKeyFor,
+                            highlightedMessageId: _highlightedMessageId,
+                            onSendText: _sendText,
+                            onSendFile: _pickAndSendFile,
+                            onPickMention: _insertMention,
+                            onClearReply: () =>
+                                setState(() => _replyingMessage = null),
+                            onShowPinnedMessages: _showPinnedMessagesSheet,
+                            onShowMembers: room.isGroup
+                                ? () => _showGroupMembersSheet(room)
+                                : null,
+                            onShowMessageActions: _showMessageActions,
+                            onReplyTap: (messageId) => context
+                                .read<ChatController>()
+                                .jumpToMessage(messageId),
+                          ),
                         ),
                       ],
                     ),
@@ -1080,52 +1082,62 @@ class _RoomListView extends StatelessWidget {
     return Consumer<ChatController>(
       builder: (context, chat, _) {
         final rooms = chat.visibleRooms;
+        final unreadCount = rooms.fold<int>(
+          0,
+          (total, room) => total + room.unreadCount,
+        );
         return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 16),
           child: Column(
             children: [
-              SizedBox(
-                height: 188,
-                child: MetroImageFrame(
-                  borderColor: const Color(0xFF214D98),
-                  overlayTop: const Color(0x12000000),
-                  overlayBottom: const Color(0xD6151922),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const MetroBadge(label: 'Community chat'),
-                          const Spacer(),
-                          MetroBadge(
-                            label: '${rooms.length}',
-                            backgroundColor: const Color(0xFF214D98),
-                            foregroundColor: Colors.white,
-                            outlined: false,
-                          ),
-                        ],
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      context.tr('Heart-to-heart chat'),
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        color: kMetroInk,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w900,
                       ),
-                      const Spacer(),
-                      Text(
-                        context.tr('Community chat'),
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          color: Colors.white,
-                          fontSize: 28,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        context.tr(
-                          'Join admin-created groups, switch into private chats, and keep local conversations in one place.',
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.92),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
+                  const LanguageSwitchButton(compact: true),
+                  const SizedBox(width: 10),
+                  _ChatHeaderButton(
+                    icon: Icons.notifications_none_rounded,
+                    badgeVisible: unreadCount > 0,
+                    onTap: chat.refreshRooms,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              MetroInsetPanel(
+                borderColor: const Color(0xFF9AA7CC),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('Heart-to-heart chat'),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: kMetroInk,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      context.tr(
+                        'Join admin-created groups, switch into private chats, and keep local conversations in one place.',
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: kMetroMuted,
+                        height: 1.45,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 14),
@@ -1146,10 +1158,9 @@ class _RoomListView extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        MetroActionButton(
+                        _ChatHeaderButton(
                           icon: Icons.refresh_rounded,
-                          label: 'Refresh',
-                          onPressed: chat.refreshRooms,
+                          onTap: chat.refreshRooms,
                         ),
                       ],
                     ),
@@ -1475,6 +1486,60 @@ class _RoomListView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _ChatHeaderButton extends StatelessWidget {
+  const _ChatHeaderButton({
+    required this.icon,
+    this.badgeVisible = false,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final bool badgeVisible;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Ink(
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.96),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: kMetroLine),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x120F172A),
+              blurRadius: 16,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Center(child: Icon(icon, color: kMetroInk, size: 22)),
+            if (badgeVisible)
+              const Positioned(
+                top: 10,
+                right: 10,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: kMetroCoral,
+                    shape: BoxShape.circle,
+                  ),
+                  child: SizedBox(width: 8, height: 8),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -493,6 +493,7 @@ class ChatController extends ChangeNotifier {
         await refreshHiddenRooms(silent: true);
         room = _findPrivateRoomForUser(userId, preferredRoomId: roomId);
       }
+      room ??= await _fetchPrivateRoomFallback(roomId);
       if (room == null) {
         throw StateError('Private room was not returned for user $userId');
       }
@@ -503,9 +504,33 @@ class ChatController extends ChangeNotifier {
       }
       _roomFilter = RoomCollectionFilter.privateChats;
       await openRoom(room);
-    } catch (_) {
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint(
+          '[ChatController] openPrivateChatByUserId failed user=$userId error=$error',
+        );
+      }
       _error = AppLocalizer.current.tr('Failed to start the chat.');
       notifyListeners();
+    }
+  }
+
+  Future<ChatRoom?> _fetchPrivateRoomFallback(int roomId) async {
+    if (roomId <= 0) {
+      return null;
+    }
+
+    try {
+      final room = await _apiService.fetchRoom(roomId);
+      _replaceRoom(room);
+      return findRoomById(roomId) ?? room;
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint(
+          '[ChatController] private room fallback failed room=$roomId error=$error',
+        );
+      }
+      return null;
     }
   }
 

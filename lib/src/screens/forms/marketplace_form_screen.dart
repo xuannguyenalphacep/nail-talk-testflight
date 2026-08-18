@@ -1,8 +1,12 @@
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../controllers/session_controller.dart';
 import '../../controllers/social_hub_controller.dart';
 import '../../core/localization/app_localizer.dart';
+import '../../widgets/listing_image_picker_field.dart';
 import '../../widgets/us_state_dropdown_field.dart';
 
 class MarketplaceFormScreen extends StatefulWidget {
@@ -20,9 +24,10 @@ class _MarketplaceFormScreenState extends State<MarketplaceFormScreen> {
   final _cityController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
-  final _imageUrlsController = TextEditingController();
   String? _selectedState;
   int? _selectedCategoryId;
+  List<String> _imageUrls = const [];
+  bool _uploadingImages = false;
 
   @override
   void initState() {
@@ -41,8 +46,56 @@ class _MarketplaceFormScreenState extends State<MarketplaceFormScreen> {
     _cityController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
-    _imageUrlsController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImages() async {
+    if (_uploadingImages) return;
+
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      withData: kIsWeb,
+      type: FileType.image,
+    );
+    final files = result?.files ?? const <PlatformFile>[];
+    if (files.isEmpty || !mounted) return;
+
+    setState(() => _uploadingImages = true);
+
+    try {
+      final session = context.read<SessionController>();
+      final nextUrls = List<String>.from(_imageUrls);
+
+      for (final file in files) {
+        final uploadedUrl = await session.uploadImage(file);
+        nextUrls.add(uploadedUrl);
+      }
+
+      if (!mounted) return;
+      setState(() => _imageUrls = nextUrls);
+    } catch (_) {
+      if (!mounted) return;
+      final session = context.read<SessionController>();
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            session.error ?? context.tr('Could not upload the selected image.'),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _uploadingImages = false);
+      }
+    }
+  }
+
+  void _removeImageAt(int index) {
+    setState(() {
+      final next = List<String>.from(_imageUrls);
+      next.removeAt(index);
+      _imageUrls = next;
+    });
   }
 
   Future<void> _submit() async {
@@ -58,7 +111,7 @@ class _MarketplaceFormScreenState extends State<MarketplaceFormScreen> {
       contactPhone: _phoneController.text.trim(),
       contactEmail: _emailController.text.trim(),
       categoryId: _selectedCategoryId,
-      imageUrls: _splitInputValues(_imageUrlsController.text),
+      imageUrls: _imageUrls,
     );
 
     if (!mounted) return;
@@ -68,11 +121,12 @@ class _MarketplaceFormScreenState extends State<MarketplaceFormScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<SocialHubController>();
+    final bottomSpacing = MediaQuery.viewPaddingOf(context).bottom + 28;
 
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('Create Market Listing'))),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.fromLTRB(16, 16, 16, bottomSpacing),
         child: Form(
           key: _formKey,
           child: Column(
@@ -133,11 +187,14 @@ class _MarketplaceFormScreenState extends State<MarketplaceFormScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              _Field(
-                controller: _imageUrlsController,
-                label: context.tr('Image URLs (comma or new line separated)'),
-                lines: 3,
-                required: false,
+              ListingImagePickerField(
+                imageUrls: _imageUrls,
+                uploading: _uploadingImages,
+                label: 'Listing photos',
+                helperText:
+                    'Choose clear product photos from your device and the app will upload them automatically.',
+                onPick: _pickImages,
+                onRemoveAt: _removeImageAt,
               ),
               const SizedBox(height: 12),
               _Field(controller: _phoneController, label: context.tr('Phone')),
@@ -147,9 +204,13 @@ class _MarketplaceFormScreenState extends State<MarketplaceFormScreen> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: controller.submitting ? null : _submit,
+                  onPressed: controller.submitting || _uploadingImages
+                      ? null
+                      : _submit,
                   child: Text(
-                    controller.submitting
+                    _uploadingImages
+                        ? context.tr('Uploading images...')
+                        : controller.submitting
                         ? context.tr('Posting...')
                         : context.tr('Publish Listing'),
                   ),
@@ -169,14 +230,12 @@ class _Field extends StatelessWidget {
     required this.label,
     this.lines = 1,
     this.keyboard,
-    this.required = true,
   });
 
   final TextEditingController controller;
   final String label;
   final int lines;
   final TextInputType? keyboard;
-  final bool required;
 
   @override
   Widget build(BuildContext context) {
@@ -185,20 +244,9 @@ class _Field extends StatelessWidget {
       keyboardType: keyboard,
       minLines: lines,
       maxLines: lines,
-      validator: required
-          ? (value) => value == null || value.trim().isEmpty
-                ? context.tr('Required')
-                : null
-          : null,
+      validator: (value) =>
+          value == null || value.trim().isEmpty ? context.tr('Required') : null,
       decoration: InputDecoration(labelText: label),
     );
   }
-}
-
-List<String> _splitInputValues(String raw) {
-  return raw
-      .split(RegExp(r'[\n,]+'))
-      .map((value) => value.trim())
-      .where((value) => value.isNotEmpty)
-      .toList();
 }

@@ -121,7 +121,9 @@ class ChatApiService {
     final payload = response.data as Map<String, dynamic>;
     return (
       token: (payload['access_token'] ?? '').toString(),
-      user: SessionUser.fromJson(payload['user'] as Map<String, dynamic>),
+      user: _normalizeSessionUser(
+        SessionUser.fromJson(payload['user'] as Map<String, dynamic>),
+      ),
       app: _normalizeAppModel(
         ChatAppModel.fromJson(payload['app'] as Map<String, dynamic>),
         _appUrl,
@@ -150,14 +152,18 @@ class ChatApiService {
     final payload = response.data as Map<String, dynamic>;
     return (
       token: (payload['access_token'] ?? '').toString(),
-      user: SessionUser.fromJson(payload['user'] as Map<String, dynamic>),
+      user: _normalizeSessionUser(
+        SessionUser.fromJson(payload['user'] as Map<String, dynamic>),
+      ),
     );
   }
 
   Future<SessionUser> me() async {
     final response = await _dio.get('/mobile-chat/me');
     final payload = response.data as Map<String, dynamic>;
-    return SessionUser.fromJson(payload['user'] as Map<String, dynamic>);
+    return _normalizeSessionUser(
+      SessionUser.fromJson(payload['user'] as Map<String, dynamic>),
+    );
   }
 
   Future<void> logout() async {
@@ -171,16 +177,87 @@ class ChatApiService {
 
   Future<SessionUser> updateProfile({
     required String name,
+    String? email,
     String? phone,
     String? bio,
     String? avatarUrl,
   }) async {
     final response = await _dio.patch(
       '/me',
-      data: {'name': name, 'phone': phone, 'bio': bio, 'avatar_url': avatarUrl},
+      data: {
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'bio': bio,
+        'avatar_url': avatarUrl,
+      },
     );
     final payload = response.data as Map<String, dynamic>;
-    return SessionUser.fromJson(payload['user'] as Map<String, dynamic>);
+    return _normalizeSessionUser(
+      SessionUser.fromJson(payload['user'] as Map<String, dynamic>),
+    );
+  }
+
+  Future<({String message, String? demoCode, bool requiresEmailUpdate})>
+  requestPasswordReset({required String login}) async {
+    try {
+      final response = await _dio.post(
+        '/auth/password/forgot',
+        data: {'login': login},
+      );
+      final payload = response.data as Map<String, dynamic>;
+      return (
+        message: (payload['message'] ?? '').toString(),
+        demoCode: (payload['demo_reset_code'] ?? '').toString().trim().isEmpty
+            ? null
+            : (payload['demo_reset_code'] ?? '').toString(),
+        requiresEmailUpdate: payload['requires_email_update'] == true,
+      );
+    } on DioException catch (error) {
+      throw Exception(_extractErrorMessage(error));
+    }
+  }
+
+  Future<String> resetPassword({
+    required String login,
+    required String token,
+    required String password,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/auth/password/reset',
+        data: {
+          'login': login,
+          'token': token,
+          'password': password,
+          'password_confirmation': password,
+        },
+      );
+      final payload = response.data as Map<String, dynamic>;
+      return (payload['message'] ?? '').toString();
+    } on DioException catch (error) {
+      throw Exception(_extractErrorMessage(error));
+    }
+  }
+
+  Future<String> changePassword({
+    required String currentPassword,
+    required String password,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/auth/password/change',
+        data: {
+          'current_password': currentPassword,
+          'password': password,
+          'password_confirmation': password,
+        },
+      );
+      final payload = response.data as Map<String, dynamic>;
+      return (payload['message'] ?? '').toString();
+    } on DioException catch (error) {
+      throw Exception(_extractErrorMessage(error));
+    }
   }
 
   Future<List<SavedItemModel>> fetchBookmarks() async {
@@ -217,13 +294,18 @@ class ChatApiService {
       },
     );
     final payload = response.data as Map<String, dynamic>;
-    return _mapPaginatedList(payload, MovieItem.fromJson);
+    return _mapPaginatedList(
+      payload,
+      (json) => _normalizeMovieItem(MovieItem.fromJson(json)),
+    );
   }
 
   Future<MovieItem> fetchMovieDetail(int movieId) async {
     final response = await _dio.get('/movies/$movieId');
     final payload = response.data as Map<String, dynamic>;
-    return MovieItem.fromJson(payload['data'] as Map<String, dynamic>);
+    return _normalizeMovieItem(
+      MovieItem.fromJson(payload['data'] as Map<String, dynamic>),
+    );
   }
 
   Future<List<MoviePlanModel>> fetchMoviePlans() async {
@@ -280,7 +362,10 @@ class ChatApiService {
       },
     );
     final payload = response.data as Map<String, dynamic>;
-    return _mapPaginatedList(payload, MarketplaceItem.fromJson);
+    return _mapPaginatedList(
+      payload,
+      (json) => _normalizeMarketplaceItem(MarketplaceItem.fromJson(json)),
+    );
   }
 
   Future<MarketplaceItem> createMarketplaceListing({
@@ -312,7 +397,9 @@ class ChatApiService {
       },
     );
     final payload = response.data as Map<String, dynamic>;
-    return MarketplaceItem.fromJson(payload['data'] as Map<String, dynamic>);
+    return _normalizeMarketplaceItem(
+      MarketplaceItem.fromJson(payload['data'] as Map<String, dynamic>),
+    );
   }
 
   Future<List<JobListingItem>> fetchJobs({
@@ -331,7 +418,10 @@ class ChatApiService {
       },
     );
     final payload = response.data as Map<String, dynamic>;
-    return _mapPaginatedList(payload, JobListingItem.fromJson);
+    return _mapPaginatedList(
+      payload,
+      (json) => _normalizeJobListingItem(JobListingItem.fromJson(json)),
+    );
   }
 
   Future<JobListingItem> createJobListing({
@@ -369,7 +459,9 @@ class ChatApiService {
       },
     );
     final payload = response.data as Map<String, dynamic>;
-    return JobListingItem.fromJson(payload['data'] as Map<String, dynamic>);
+    return _normalizeJobListingItem(
+      JobListingItem.fromJson(payload['data'] as Map<String, dynamic>),
+    );
   }
 
   Future<List<PropertyListingItem>> fetchProperties({
@@ -388,7 +480,11 @@ class ChatApiService {
       },
     );
     final payload = response.data as Map<String, dynamic>;
-    return _mapPaginatedList(payload, PropertyListingItem.fromJson);
+    return _mapPaginatedList(
+      payload,
+      (json) =>
+          _normalizePropertyListingItem(PropertyListingItem.fromJson(json)),
+    );
   }
 
   Future<PropertyListingItem> createPropertyListing({
@@ -402,7 +498,7 @@ class ChatApiService {
     required String contactPhone,
     required String contactEmail,
     required List<String> amenities,
-    String mode = 'room_share',
+    String mode = 'rent_out',
     List<String> imageUrls = const [],
   }) async {
     final response = await _dio.post(
@@ -426,8 +522,8 @@ class ChatApiService {
       },
     );
     final payload = response.data as Map<String, dynamic>;
-    return PropertyListingItem.fromJson(
-      payload['data'] as Map<String, dynamic>,
+    return _normalizePropertyListingItem(
+      PropertyListingItem.fromJson(payload['data'] as Map<String, dynamic>),
     );
   }
 
@@ -778,14 +874,186 @@ class ChatApiService {
           _replaceUrlHost(app.apiBaseUrl, preferred, ensureApiPath: true) ??
           '${preferred.toString().replaceAll(RegExp(r"/+$"), "")}/api',
       socketUrl:
-          _replaceUrlHost(app.socketUrl, preferred) ?? preferred.toString(),
+          _replaceUrlHost(
+            app.socketUrl,
+            preferred,
+            preserveCandidatePort: true,
+          ) ??
+          preferred.toString(),
     );
+  }
+
+  SessionUser _normalizeSessionUser(SessionUser user) {
+    return user.copyWith(avatarUrl: _normalizeMediaUrl(user.avatarUrl));
+  }
+
+  MovieItem _normalizeMovieItem(MovieItem movie) {
+    return MovieItem(
+      id: movie.id,
+      uuid: movie.uuid,
+      title: movie.title,
+      slug: movie.slug,
+      summary: movie.summary,
+      posterUrl: _normalizeMediaUrl(movie.posterUrl),
+      bannerUrl: _normalizeMediaUrl(movie.bannerUrl),
+      thirdPartyProvider: movie.thirdPartyProvider,
+      thirdPartyUrl: movie.thirdPartyUrl,
+      accessType: movie.accessType,
+      canWatch: movie.canWatch,
+      isPublished: movie.isPublished,
+      category: movie.category,
+    );
+  }
+
+  MarketplaceItem _normalizeMarketplaceItem(MarketplaceItem item) {
+    return MarketplaceItem(
+      id: item.id,
+      uuid: item.uuid,
+      title: item.title,
+      description: item.description,
+      price: item.price,
+      currency: item.currency,
+      condition: item.condition,
+      city: item.city,
+      state: item.state,
+      contactPhone: item.contactPhone,
+      contactEmail: item.contactEmail,
+      imageUrls: item.imageUrls.map(_normalizeMediaUrl).toList(growable: false),
+      status: item.status,
+      userId: item.userId,
+      categoryName: item.categoryName,
+      userName: item.userName,
+      userAvatarUrl: _normalizeMediaUrl(item.userAvatarUrl),
+      saved: item.saved,
+    );
+  }
+
+  JobListingItem _normalizeJobListingItem(JobListingItem item) {
+    return JobListingItem(
+      id: item.id,
+      uuid: item.uuid,
+      listingMode: item.listingMode,
+      title: item.title,
+      salonName: item.salonName,
+      description: item.description,
+      requirements: item.requirements,
+      salaryMin: item.salaryMin,
+      salaryMax: item.salaryMax,
+      salaryCurrency: item.salaryCurrency,
+      city: item.city,
+      state: item.state,
+      contactPhone: item.contactPhone,
+      contactEmail: item.contactEmail,
+      imageUrls: item.imageUrls.map(_normalizeMediaUrl).toList(growable: false),
+      status: item.status,
+      userId: item.userId,
+      userName: item.userName,
+      userAvatarUrl: _normalizeMediaUrl(item.userAvatarUrl),
+      saved: item.saved,
+    );
+  }
+
+  PropertyListingItem _normalizePropertyListingItem(PropertyListingItem item) {
+    return PropertyListingItem(
+      id: item.id,
+      uuid: item.uuid,
+      listingMode: item.listingMode,
+      title: item.title,
+      description: item.description,
+      price: item.price,
+      depositAmount: item.depositAmount,
+      currency: item.currency,
+      city: item.city,
+      state: item.state,
+      addressLine: item.addressLine,
+      contactPhone: item.contactPhone,
+      contactEmail: item.contactEmail,
+      availableFrom: item.availableFrom,
+      amenities: item.amenities,
+      imageUrls: item.imageUrls.map(_normalizeMediaUrl).toList(growable: false),
+      status: item.status,
+      userId: item.userId,
+      userName: item.userName,
+      userAvatarUrl: _normalizeMediaUrl(item.userAvatarUrl),
+      saved: item.saved,
+    );
+  }
+
+  String _normalizeMediaUrl(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return '';
+
+    final preferred = Uri.tryParse((_appUrl ?? _inferAppUrl(_baseUrl)).trim());
+    final candidate = Uri.tryParse(trimmed);
+    if (preferred != null &&
+        preferred.host.isNotEmpty &&
+        candidate != null &&
+        _shouldReplaceMediaHost(candidate, preferred)) {
+      final replaced = _replaceUrlHost(trimmed, preferred);
+      if (replaced != null) {
+        return replaced;
+      }
+    }
+
+    return resolvePublicUrl(trimmed);
+  }
+
+  bool _shouldReplaceMediaHost(Uri candidate, Uri preferred) {
+    if (candidate.host.isEmpty || preferred.host.isEmpty) {
+      return false;
+    }
+
+    if (candidate.host == preferred.host) {
+      return candidate.hasPort != preferred.hasPort ||
+          (candidate.hasPort &&
+              preferred.hasPort &&
+              candidate.port != preferred.port) ||
+          candidate.scheme != preferred.scheme;
+    }
+
+    return _isLocalLikeHost(candidate.host);
+  }
+
+  bool _isLocalLikeHost(String host) {
+    final normalized = host.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return false;
+    }
+
+    if (normalized == 'localhost' ||
+        normalized == '0.0.0.0' ||
+        normalized == '127.0.0.1' ||
+        normalized == '10.0.2.2' ||
+        normalized == 'host.docker.internal' ||
+        normalized.endsWith('.local')) {
+      return true;
+    }
+
+    final parts = normalized.split('.');
+    if (parts.length != 4) {
+      return false;
+    }
+
+    final octets = parts.map(int.tryParse).toList(growable: false);
+    if (octets.any((value) => value == null)) {
+      return false;
+    }
+
+    final values = octets.cast<int>();
+    final first = values[0];
+    final second = values[1];
+
+    return first == 10 ||
+        first == 127 ||
+        (first == 192 && second == 168) ||
+        (first == 172 && second >= 16 && second <= 31);
   }
 
   String? _replaceUrlHost(
     String rawUrl,
     Uri preferred, {
     bool ensureApiPath = false,
+    bool preserveCandidatePort = false,
   }) {
     final trimmed = rawUrl.trim();
     if (trimmed.isEmpty) {
@@ -806,11 +1074,19 @@ class ChatApiService {
       }
     }
 
+    final nextPort = preserveCandidatePort
+        ? (candidate.hasPort
+              ? candidate.port
+              : (preferred.hasPort ? preferred.port : null))
+        : (preferred.hasPort
+              ? preferred.port
+              : (candidate.hasPort ? candidate.port : null));
+
     return candidate
         .replace(
           scheme: preferred.scheme,
           host: preferred.host,
-          port: preferred.hasPort ? preferred.port : candidate.port,
+          port: nextPort,
           path: nextPath,
         )
         .toString()
@@ -837,5 +1113,16 @@ class ChatApiService {
         .whereType<Map>()
         .map((item) => builder(Map<String, dynamic>.from(item)))
         .toList();
+  }
+
+  String _extractErrorMessage(DioException error) {
+    final data = error.response?.data;
+    if (data is Map<String, dynamic>) {
+      final message = (data['message'] ?? '').toString().trim();
+      if (message.isNotEmpty) {
+        return message;
+      }
+    }
+    return error.message ?? 'Unexpected request failure.';
   }
 }

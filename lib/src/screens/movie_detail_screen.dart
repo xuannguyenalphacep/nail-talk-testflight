@@ -6,8 +6,10 @@ import 'package:video_player/video_player.dart';
 import '../controllers/social_hub_controller.dart';
 import '../core/localization/app_localizer.dart';
 import '../core/utils/app_date_utils.dart';
+import '../core/utils/movie_showcase_utils.dart';
 import '../models/movie_item.dart';
 import '../models/movie_plan_model.dart';
+import '../widgets/metro_ui.dart';
 import '../widgets/remote_image.dart';
 
 class MovieDetailScreen extends StatefulWidget {
@@ -31,8 +33,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
   Future<void>? _videoFuture;
   bool _initializingVideo = false;
   bool _loadingDetail = false;
+  bool _requestedPlayback = false;
   String? _videoError;
   late MovieItem _movie;
+  final GlobalKey _playerSectionKey = GlobalKey();
+  final GlobalKey _lockedSectionKey = GlobalKey();
 
   @override
   void initState() {
@@ -187,6 +192,58 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
     await controller.play();
   }
 
+  void _showMessage(String message) {
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(context.tr(message)),
+      ),
+    );
+  }
+
+  Future<void> _scrollToSection(GlobalKey key) async {
+    final currentContext = key.currentContext;
+    if (currentContext == null) return;
+    await Scrollable.ensureVisible(
+      currentContext,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+      alignment: 0.12,
+    );
+  }
+
+  Future<void> _handlePrimaryWatch(SocialHubController controller) async {
+    if (!_canWatch(controller)) {
+      await _scrollToSection(_lockedSectionKey);
+      return;
+    }
+
+    setState(() => _requestedPlayback = true);
+    _maybeInitializeVideo(controller);
+
+    if (_videoController?.value.isInitialized == true &&
+        _videoController?.value.isPlaying != true) {
+      await _videoController?.play();
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _scrollToSection(_playerSectionKey);
+    });
+  }
+
+  Future<void> _copyMovieLink() async {
+    final link = _movie.thirdPartyUrl.trim();
+    if (link.isEmpty) {
+      _showMessage('This stream link is not available yet.');
+      return;
+    }
+
+    await Clipboard.setData(ClipboardData(text: link));
+    if (!mounted) return;
+    _showMessage('Movie link copied.');
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.inactive ||
@@ -210,13 +267,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
     final social = context.watch<SocialHubController>();
     final unlocked = _canWatch(social);
     final activePlan = social.activeSubscription;
-
-    if (unlocked && _videoController == null && !_initializingVideo) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _maybeInitializeVideo(context.read<SocialHubController>());
-      });
-    }
+    final primaryPlan = social.moviePlans.isNotEmpty
+        ? social.moviePlans.first
+        : null;
 
     return PopScope<void>(
       onPopInvokedWithResult: (didPop, result) {
@@ -225,52 +278,100 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            onPressed: () {
-              _videoController?.pause();
-              Navigator.of(context).maybePop();
-            },
-            icon: const Icon(Icons.arrow_back_rounded),
-          ),
-          title: Text(context.tr(_movie.title)),
-          actions: [
-            if (_loadingDetail)
-              const Padding(
-                padding: EdgeInsets.only(right: 18),
-                child: Center(
-                  child: SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+        backgroundColor: Colors.transparent,
+        body: MetroPageBackground(
+          child: SafeArea(
+            bottom: false,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 132),
+              children: [
+                _MovieHero(
+                  movie: _movie,
+                  unlocked: unlocked,
+                  loadingDetail: _loadingDetail,
+                  onBack: () {
+                    _videoController?.pause();
+                    Navigator.of(context).maybePop();
+                  },
+                  onPlay: () => _handlePrimaryWatch(social),
+                  onShare: _copyMovieLink,
+                ),
+                const SizedBox(height: 16),
+                _MovieMetaCard(
+                  movie: _movie,
+                  activePlan: activePlan,
+                  unlocked: unlocked,
+                  onPlay: () => _handlePrimaryWatch(social),
+                  onCopyLink: _copyMovieLink,
+                  onShowMessage: _showMessage,
+                ),
+                if (unlocked &&
+                    (_requestedPlayback ||
+                        _videoController != null ||
+                        _initializingVideo ||
+                        _videoError != null)) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    key: _playerSectionKey,
+                    child: _MoviePlayerCard(
+                      controller: _videoController,
+                      videoFuture: _videoFuture,
+                      initializing: _initializingVideo,
+                      errorMessage: _videoError,
+                      onRestart: _restartVideo,
+                    ),
                   ),
+                ],
+                if (!unlocked) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    key: _lockedSectionKey,
+                    child: _MovieLockedCard(
+                      activePlan: activePlan,
+                      plans: social.moviePlans,
+                      submitting: social.submitting,
+                      onSubscribe: _subscribe,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                _MovieCastCard(movie: _movie),
+              ],
+            ),
+          ),
+        ),
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+            child: FilledButton.icon(
+              onPressed: unlocked
+                  ? () => _handlePrimaryWatch(social)
+                  : primaryPlan == null || social.submitting
+                  ? null
+                  : () => _subscribe(primaryPlan),
+              style: FilledButton.styleFrom(
+                backgroundColor: kMetroCoral,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22),
                 ),
               ),
-          ],
-        ),
-        body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-          children: [
-            _MovieHero(movie: _movie),
-            const SizedBox(height: 16),
-            _MovieMetaCard(movie: _movie, activePlan: activePlan),
-            const SizedBox(height: 16),
-            if (unlocked)
-              _MoviePlayerCard(
-                controller: _videoController,
-                videoFuture: _videoFuture,
-                initializing: _initializingVideo,
-                errorMessage: _videoError,
-                onRestart: _restartVideo,
-              )
-            else
-              _MovieLockedCard(
-                activePlan: activePlan,
-                plans: social.moviePlans,
-                submitting: social.submitting,
-                onSubscribe: _subscribe,
+              icon: Icon(
+                unlocked
+                    ? Icons.play_circle_fill_rounded
+                    : Icons.workspace_premium_rounded,
               ),
-          ],
+              label: Text(
+                context.tr(unlocked ? 'Watch now' : 'Activate'),
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -278,115 +379,220 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
 }
 
 class _MovieHero extends StatelessWidget {
-  const _MovieHero({required this.movie});
+  const _MovieHero({
+    required this.movie,
+    required this.unlocked,
+    required this.loadingDetail,
+    required this.onBack,
+    required this.onPlay,
+    required this.onShare,
+  });
 
   final MovieItem movie;
+  final bool unlocked;
+  final bool loadingDetail;
+  final VoidCallback onBack;
+  final VoidCallback onPlay;
+  final VoidCallback onShare;
 
   @override
   Widget build(BuildContext context) {
+    final meta = movieShowcaseMeta(movie);
     final imageUrl = movie.bannerUrl.isNotEmpty
         ? movie.bannerUrl
         : movie.posterUrl;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(30),
-      child: Stack(
-        children: [
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: imageUrl.isEmpty
-                ? Container(
-                    color: const Color(0xFF173A70),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.movie_creation_rounded,
-                      color: Colors.white,
-                      size: 48,
-                    ),
-                  )
-                : RemoteImage(
-                    url: imageUrl,
-                    fit: BoxFit.cover,
-                    errorFallback:
-                        movie.posterUrl.isNotEmpty &&
-                            movie.posterUrl != imageUrl
-                        ? RemoteImage(url: movie.posterUrl, fit: BoxFit.cover)
-                        : Container(
-                            color: const Color(0xFF173A70),
-                            alignment: Alignment.center,
-                            child: const Icon(
-                              Icons.movie_creation_rounded,
-                              color: Colors.white,
-                              size: 48,
-                            ),
-                          ),
+    return SizedBox(
+      height: 460,
+      child: MetroImageFrame(
+        borderColor: kMetroCoral,
+        imageUrl: imageUrl,
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+        overlayTop: const Color(0x12000000),
+        overlayBottom: const Color(0xEA111724),
+        child: Stack(
+          children: [
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Row(
+                children: [
+                  _MovieHeroActionButton(
+                    icon: Icons.arrow_back_rounded,
+                    onTap: onBack,
                   ),
-          ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF09111E).withValues(alpha: 0.12),
-                    const Color(0xFF09111E).withValues(alpha: 0.84),
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                  const Spacer(),
+                  if (loadingDetail)
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.16),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 10),
+                  _MovieHeroActionButton(
+                    icon: Icons.share_outlined,
+                    onTap: onShare,
+                  ),
+                ],
+              ),
+            ),
+            Align(
+              child: InkWell(
+                onTap: onPlay,
+                borderRadius: BorderRadius.circular(999),
+                child: Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: kMetroCoral.withValues(alpha: 0.96),
+                    shape: BoxShape.circle,
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x30FF5E88),
+                        blurRadius: 28,
+                        offset: Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 44,
+                  ),
                 ),
               ),
             ),
-          ),
-          Positioned(
-            left: 18,
-            right: 18,
-            bottom: 18,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (meta.isHd)
+                        const MetroBadge(
+                          label: 'HD',
+                          backgroundColor: Color(0x26000000),
+                          foregroundColor: Colors.white,
+                          outlined: false,
+                        ),
+                      const MetroBadge(
+                        label: 'Subtitled',
+                        backgroundColor: Color(0x26000000),
+                        foregroundColor: Colors.white,
+                        outlined: false,
+                      ),
+                      const MetroBadge(
+                        label: 'Vietnamese',
+                        backgroundColor: Color(0x26000000),
+                        foregroundColor: Colors.white,
+                        outlined: false,
+                      ),
+                    ],
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    movie.category?.name.isNotEmpty == true
-                        ? context.tr(movie.category!.name)
-                        : context.tr('Movie feature'),
-                    style: const TextStyle(
+                  const SizedBox(height: 16),
+                  Text(
+                    context.tr(movie.title),
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       color: Colors.white,
+                      fontSize: 34,
+                      height: 1.04,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${meta.year} • ${movieDurationLabel(meta.durationMinutes)} • ${meta.tags.take(2).map(context.tr).join(', ')}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.88),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  context.tr(movie.title),
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Colors.white,
-                    height: 1.08,
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.star_rounded,
+                        color: Color(0xFFFFD34D),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        meta.rating.toStringAsFixed(1),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${movieReviewLabel(meta.reviewCount)} ${context.tr('reviews')}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.82),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        context.tr(
+                          unlocked ? 'Ready to watch' : 'Subscription',
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.84),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
 class _MovieMetaCard extends StatelessWidget {
-  const _MovieMetaCard({required this.movie, required this.activePlan});
+  const _MovieMetaCard({
+    required this.movie,
+    required this.activePlan,
+    required this.unlocked,
+    required this.onPlay,
+    required this.onCopyLink,
+    required this.onShowMessage,
+  });
 
   final MovieItem movie;
   final MovieSubscriptionModel? activePlan;
+  final bool unlocked;
+  final VoidCallback onPlay;
+  final VoidCallback onCopyLink;
+  final ValueChanged<String> onShowMessage;
 
   @override
   Widget build(BuildContext context) {
+    final meta = movieShowcaseMeta(movie);
     final chips = <Widget>[
       _MovieInfoChip(
         icon: Icons.public_rounded,
@@ -427,11 +633,25 @@ class _MovieMetaCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            context.tr('About this movie'),
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontSize: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  context.tr('About this movie'),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontSize: 20),
+                ),
+              ),
+              Text(
+                '${meta.year} • ${movieDurationLabel(meta.durationMinutes)}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: kMetroMuted,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           Text(
@@ -440,6 +660,247 @@ class _MovieMetaCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Wrap(spacing: 8, runSpacing: 8, children: chips),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: _MovieQuickAction(
+                  icon: Icons.playlist_add_rounded,
+                  label: 'My list',
+                  onTap: () => onShowMessage(
+                    'Your movie list will sync in the next demo update.',
+                  ),
+                ),
+              ),
+              Expanded(
+                child: _MovieQuickAction(
+                  icon: Icons.check_circle_outline_rounded,
+                  label: 'Watched',
+                  onTap: onPlay,
+                ),
+              ),
+              Expanded(
+                child: _MovieQuickAction(
+                  icon: Icons.download_rounded,
+                  label: 'Download',
+                  onTap: () => onShowMessage(
+                    'Offline movie download will be connected in the next release.',
+                  ),
+                ),
+              ),
+              Expanded(
+                child: _MovieQuickAction(
+                  icon: Icons.share_outlined,
+                  label: 'Share',
+                  onTap: onCopyLink,
+                ),
+              ),
+            ],
+          ),
+          if (unlocked) ...[
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF5F7),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFFFE1E8)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: kMetroCoralSoft,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.play_circle_fill_rounded,
+                      color: kMetroCoral,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      context.tr(
+                        'Tap Watch now to open the stream player right inside this detail page.',
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: kMetroInk,
+                        height: 1.45,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MovieHeroActionButton extends StatelessWidget {
+  const _MovieHeroActionButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.16),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+        ),
+        child: Icon(icon, color: Colors.white, size: 22),
+      ),
+    );
+  }
+}
+
+class _MovieQuickAction extends StatelessWidget {
+  const _MovieQuickAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: Column(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F8FD),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: kMetroLine),
+              ),
+              child: Icon(icon, color: kMetroInk, size: 22),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              context.tr(label),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: kMetroInk,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MovieCastCard extends StatelessWidget {
+  const _MovieCastCard({required this.movie});
+
+  final MovieItem movie;
+
+  @override
+  Widget build(BuildContext context) {
+    final meta = movieShowcaseMeta(movie);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x120F172A),
+            blurRadius: 26,
+            offset: Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.tr('Cast'),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontSize: 20),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 116,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: meta.cast.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 14),
+              itemBuilder: (context, index) {
+                final member = meta.cast[index];
+                return SizedBox(
+                  width: 78,
+                  child: Column(
+                    children: [
+                      ClipOval(
+                        child: SizedBox(
+                          width: 60,
+                          height: 60,
+                          child: RemoteImage(
+                            url: member.avatarUrl,
+                            fit: BoxFit.cover,
+                            errorFallback: Container(
+                              color: const Color(0xFFF4F6FB),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.person_rounded,
+                                color: kMetroMuted,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 38,
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: Text(
+                            member.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: kMetroInk,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.18,
+                                ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
         ],
       ),
     );

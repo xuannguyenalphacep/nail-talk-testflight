@@ -88,6 +88,27 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _openForgotPassword() async {
+    final restoredLogin = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ChangeNotifierProvider.value(
+        value: context.read<SessionController>(),
+        child: _ForgotPasswordSheet(
+          initialLogin: _loginUsernameController.text.trim(),
+        ),
+      ),
+    );
+
+    if (!mounted || restoredLogin == null || restoredLogin.trim().isEmpty) {
+      return;
+    }
+
+    _loginUsernameController.text = restoredLogin.trim();
+    setState(() => _mode = _AuthMode.login);
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
@@ -162,6 +183,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                                       () => _obscureLogin =
                                                           !_obscureLogin,
                                                     ),
+                                                onForgotPassword:
+                                                    _openForgotPassword,
                                                 onSubmit: _submitLogin,
                                               )
                                             : _RegisterForm(
@@ -233,6 +256,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                                 () => _obscureLogin =
                                                     !_obscureLogin,
                                               ),
+                                              onForgotPassword:
+                                                  _openForgotPassword,
                                               onSubmit: _submitLogin,
                                             )
                                           : _RegisterForm(
@@ -545,6 +570,7 @@ class _LoginForm extends StatelessWidget {
     required this.submitting,
     required this.ready,
     required this.onTogglePassword,
+    required this.onForgotPassword,
     required this.onSubmit,
     super.key,
   });
@@ -556,6 +582,7 @@ class _LoginForm extends StatelessWidget {
   final bool submitting;
   final bool ready;
   final VoidCallback onTogglePassword;
+  final VoidCallback onForgotPassword;
   final VoidCallback onSubmit;
 
   @override
@@ -592,6 +619,13 @@ class _LoginForm extends StatelessWidget {
                     ? Icons.visibility_off_rounded
                     : Icons.visibility_rounded,
               ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: submitting ? null : onForgotPassword,
+              child: Text(context.tr('Forgot password?')),
             ),
           ),
           const SizedBox(height: 12),
@@ -641,6 +675,416 @@ class _LoginForm extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ForgotPasswordSheet extends StatefulWidget {
+  const _ForgotPasswordSheet({required this.initialLogin});
+
+  final String initialLogin;
+
+  @override
+  State<_ForgotPasswordSheet> createState() => _ForgotPasswordSheetState();
+}
+
+class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
+  final _requestFormKey = GlobalKey<FormState>();
+  final _resetFormKey = GlobalKey<FormState>();
+  final _loginController = TextEditingController();
+  final _codeController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
+  bool _requested = false;
+  bool _requiresEmailUpdate = false;
+  String? _helperMessage;
+  String? _demoCode;
+
+  @override
+  void initState() {
+    super.initState();
+    _loginController.text = widget.initialLogin;
+  }
+
+  @override
+  void dispose() {
+    _loginController.dispose();
+    _codeController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _requestCode() async {
+    if (!(_requestFormKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    final session = context.read<SessionController>();
+
+    try {
+      final result = await session.requestPasswordReset(
+        login: _loginController.text.trim(),
+      );
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _requested = true;
+        _requiresEmailUpdate = result.requiresEmailUpdate;
+        _helperMessage = result.message;
+        _demoCode = result.demoCode;
+        if ((result.demoCode ?? '').trim().isNotEmpty) {
+          _codeController.text = result.demoCode!;
+        }
+      });
+
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(context.tr(result.message))));
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            session.error ?? context.tr('Could not start password recovery.'),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    if (!(_resetFormKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    final session = context.read<SessionController>();
+
+    try {
+      final message = await session.resetPassword(
+        login: _loginController.text.trim(),
+        token: _codeController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(context.tr(message))));
+      Navigator.of(context).pop(_loginController.text.trim());
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            session.error ?? context.tr('Could not reset the password yet.'),
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final session = context.watch<SessionController>();
+    final viewInsets = MediaQuery.of(context).viewInsets;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: viewInsets.bottom),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(color: Colors.transparent),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 620),
+            margin: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.98),
+              border: Border.all(color: _authLine),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x140F172A),
+                  blurRadius: 24,
+                  offset: Offset(0, 14),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 70,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: _authLine,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            context.tr('Reset password'),
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  color: _authInk,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      context.tr(
+                        'Enter your email or username. Nails Talk will prepare a recovery code so you can set a new password.',
+                      ),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: _authMuted,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Form(
+                      key: _requestFormKey,
+                      child: Column(
+                        children: [
+                          _AuthInput(
+                            controller: _loginController,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.done,
+                            label: context.tr('Email or username'),
+                            hint: context.tr('Enter your email or username'),
+                            icon: Icons.manage_accounts_outlined,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return context.tr(
+                                  'Enter your email or username',
+                                );
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed: session.submitting
+                                  ? null
+                                  : _requestCode,
+                              icon: session.submitting
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(Icons.mark_email_read_outlined),
+                              label: Text(
+                                context.tr(
+                                  session.submitting
+                                      ? 'Sending recovery code...'
+                                      : 'Send recovery code',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_requested) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: _requiresEmailUpdate
+                              ? _authCoralSoft
+                              : _authMintSoft,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: _authLine),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.tr(
+                                _requiresEmailUpdate
+                                    ? 'Recovery code ready for this demo.'
+                                    : 'Recovery code sent.',
+                              ),
+                              style: const TextStyle(
+                                color: _authInk,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            if ((_helperMessage ?? '').trim().isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                context.tr(_helperMessage!),
+                                style: const TextStyle(
+                                  color: _authInk,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                            if ((_demoCode ?? '').trim().isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              SelectableText(
+                                '${context.tr('Demo code')}: ${_demoCode!}',
+                                style: const TextStyle(
+                                  color: _authInk,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Form(
+                        key: _resetFormKey,
+                        child: Column(
+                          children: [
+                            _AuthInput(
+                              controller: _codeController,
+                              keyboardType: TextInputType.number,
+                              textInputAction: TextInputAction.next,
+                              label: context.tr('Recovery code'),
+                              hint: context.tr('Enter the recovery code'),
+                              icon: Icons.pin_outlined,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return context.tr('Enter the recovery code');
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 14),
+                            _AuthInput(
+                              controller: _passwordController,
+                              obscureText: _obscurePassword,
+                              textInputAction: TextInputAction.next,
+                              label: context.tr('New password'),
+                              hint: context.tr('Use at least 6 characters'),
+                              icon: Icons.lock_reset_rounded,
+                              suffix: IconButton(
+                                onPressed: () => setState(
+                                  () => _obscurePassword = !_obscurePassword,
+                                ),
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off_rounded
+                                      : Icons.visibility_rounded,
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return context.tr('Enter your new password');
+                                }
+                                if (value.length < 6) {
+                                  return context.tr(
+                                    'Use at least 6 characters',
+                                  );
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 14),
+                            _AuthInput(
+                              controller: _confirmPasswordController,
+                              obscureText: _obscureConfirm,
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) => _resetPassword(),
+                              label: context.tr('Confirm new password'),
+                              hint: context.tr('Repeat your password'),
+                              icon: Icons.verified_user_outlined,
+                              suffix: IconButton(
+                                onPressed: () => setState(
+                                  () => _obscureConfirm = !_obscureConfirm,
+                                ),
+                                icon: Icon(
+                                  _obscureConfirm
+                                      ? Icons.visibility_off_rounded
+                                      : Icons.visibility_rounded,
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return context.tr('Confirm your password');
+                                }
+                                if (value != _passwordController.text) {
+                                  return context.tr('Passwords do not match');
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.icon(
+                                onPressed: session.submitting
+                                    ? null
+                                    : _resetPassword,
+                                icon: session.submitting
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(Icons.lock_open_rounded),
+                                label: Text(
+                                  context.tr(
+                                    session.submitting
+                                        ? 'Resetting password...'
+                                        : 'Save new password',
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -1,17 +1,26 @@
-# erp_chat_flutter
+# Nail Talk Flutter App
 
-A new Flutter project.
+Nail Talk is the Flutter mobile app for chat, movies, marketplace, jobs, and room-share flows.
 
-## Getting Started
+## Project docs
 
-This project is a starting point for a Flutter application.
+- TestFlight deploy guide: [docs/testflight-deploy.md](docs/testflight-deploy.md)
 
-A few resources to get you started if this is your first Flutter project:
+## iOS release
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+This project already has a working GitHub Actions pipeline for TestFlight upload.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Workflow file:
+
+- `.github/workflows/testflight.yml`
+
+Recommended release path:
+
+1. Push to `main`, or run the `iOS TestFlight` workflow manually from GitHub Actions.
+2. Wait for GitHub Actions to finish successfully.
+3. Open App Store Connect `TestFlight` and wait for build processing to finish.
+4. Add the build to the needed tester groups.
+
+For the full deploy notes, use:
+
+- [docs/testflight-deploy.md](docs/testflight-deploy.md)

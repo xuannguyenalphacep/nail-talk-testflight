@@ -28,21 +28,21 @@ class LanguageSwitchButton extends StatelessWidget {
       ],
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: compact ? 9 : 12,
-          vertical: compact ? 8 : 8,
+          horizontal: compact ? 11 : 12,
+          vertical: compact ? 10 : 8,
         ),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(compact ? 2 : 999),
+          borderRadius: BorderRadius.circular(compact ? 16 : 999),
           border: Border.all(
-            color: compact ? const Color(0x2F355077) : const Color(0x19355077),
+            color: compact ? const Color(0x1F355077) : const Color(0x19355077),
           ),
           boxShadow: compact
               ? const [
                   BoxShadow(
-                    color: Color(0x0C0F172A),
-                    blurRadius: 8,
-                    offset: Offset(0, 4),
+                    color: Color(0x120F172A),
+                    blurRadius: 14,
+                    offset: Offset(0, 6),
                   ),
                 ]
               : const [

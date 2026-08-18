@@ -54,6 +54,7 @@ class _JobListingDetailScreenState extends State<JobListingDetailScreen> {
     final item = _resolveCurrentItem(controller);
     final imageUrls = item.imageUrls.isEmpty ? const [''] : item.imageUrls;
     final safeIndex = _imageIndex.clamp(0, imageUrls.length - 1);
+    final listBottomPadding = MediaQuery.viewPaddingOf(context).bottom + 36;
 
     return Scaffold(
       appBar: AppBar(
@@ -66,7 +67,7 @@ class _JobListingDetailScreenState extends State<JobListingDetailScreen> {
       ),
       body: MetroPageBackground(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
+          padding: EdgeInsets.fromLTRB(16, 10, 16, listBottomPadding),
           children: [
             MetroInsetPanel(
               borderColor: kMetroGold,
@@ -290,6 +291,7 @@ class _PropertyListingDetailScreenState
     final item = _resolveCurrentItem(controller);
     final imageUrls = item.imageUrls.isEmpty ? const [''] : item.imageUrls;
     final safeIndex = _imageIndex.clamp(0, imageUrls.length - 1);
+    final listBottomPadding = MediaQuery.viewPaddingOf(context).bottom + 36;
 
     return Scaffold(
       appBar: AppBar(
@@ -302,7 +304,7 @@ class _PropertyListingDetailScreenState
       ),
       body: MetroPageBackground(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
+          padding: EdgeInsets.fromLTRB(16, 10, 16, listBottomPadding),
           children: [
             MetroInsetPanel(
               borderColor: kMetroPrimary,
@@ -651,11 +653,11 @@ class _DetailFallbackArt extends StatelessWidget {
 
 String _jobModeLabel(String mode) {
   switch (mode) {
-    case 'looking_for_job':
-      return 'Job seekers';
     case 'hiring':
-    default:
       return 'Hiring nail staff';
+    case 'looking_for_job':
+    default:
+      return 'Job seekers';
   }
 }
 
@@ -667,7 +669,7 @@ String _propertyModeLabel(String mode) {
       return 'Looking for a room';
     case 'room_share':
     default:
-      return 'Room share';
+      return 'Homes for rent';
   }
 }
 

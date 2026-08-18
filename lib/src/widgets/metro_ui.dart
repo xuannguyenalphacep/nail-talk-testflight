@@ -3,21 +3,98 @@ import 'package:flutter/material.dart';
 import '../core/localization/app_localizer.dart';
 import 'remote_image.dart';
 
-const double kMetroRadius = 2;
-const Color kMetroCanvas = Color(0xFFFFF7F3);
-const Color kMetroCanvasDeep = Color(0xFFF7E9E2);
-const Color kMetroSurface = Color(0xFFFFFCF8);
+const double kMetroRadius = 24;
+const Color kMetroCanvas = Color(0xFFFFFCFA);
+const Color kMetroCanvasDeep = Color(0xFFFFF2EC);
+const Color kMetroSurface = Color(0xFFFFFFFF);
 const Color kMetroPrimary = Color(0xFF27366E);
-const Color kMetroPrimarySoft = Color(0xFFE8ECF8);
+const Color kMetroPrimarySoft = Color(0xFFF1F4FF);
 const Color kMetroInk = Color(0xFF243053);
-const Color kMetroMuted = Color(0xFF787E92);
-const Color kMetroLine = Color(0xFFE7D7CF);
-const Color kMetroCoral = Color(0xFFF36C84);
-const Color kMetroCoralSoft = Color(0xFFFFEEF2);
-const Color kMetroRose = Color(0xFFC76883);
-const Color kMetroPeach = Color(0xFFF8D7C9);
-const Color kMetroGold = Color(0xFFE3B469);
-const Color kMetroSuccess = Color(0xFF73A58B);
+const Color kMetroMuted = Color(0xFF7D87A7);
+const Color kMetroLine = Color(0xFFF2E8E3);
+const Color kMetroCoral = Color(0xFFFF5E88);
+const Color kMetroCoralSoft = Color(0xFFFFF0F4);
+const Color kMetroRose = Color(0xFFE56A93);
+const Color kMetroPeach = Color(0xFFFFE8DD);
+const Color kMetroGold = Color(0xFFF2BC62);
+const Color kMetroSuccess = Color(0xFF68C279);
+
+InputDecoration metroSoftInputDecoration(
+  BuildContext context, {
+  required String hintText,
+  Widget? prefixIcon,
+  Widget? suffixIcon,
+  String? labelText,
+  String? helperText,
+}) {
+  OutlineInputBorder border(Color color, {double width = 1.1}) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: BorderSide(color: color, width: width),
+    );
+  }
+
+  return InputDecoration(
+    hintText: context.tr(hintText),
+    labelText: labelText == null ? null : context.tr(labelText),
+    helperText: helperText == null ? null : context.tr(helperText),
+    filled: true,
+    fillColor: const Color(0xFFFFFBF8),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+    prefixIcon: prefixIcon,
+    suffixIcon: suffixIcon,
+    hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+      color: const Color(0xFF9298AD),
+      fontWeight: FontWeight.w600,
+    ),
+    labelStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: kMetroMuted,
+      fontWeight: FontWeight.w800,
+    ),
+    helperStyle: Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: kMetroMuted),
+    border: border(const Color(0xFFE9DDD6)),
+    enabledBorder: border(const Color(0xFFE9DDD6)),
+    focusedBorder: border(kMetroCoral.withValues(alpha: 0.74), width: 1.35),
+    errorBorder: border(const Color(0xFFD15D6F), width: 1.2),
+    focusedErrorBorder: border(const Color(0xFFD15D6F), width: 1.3),
+  );
+}
+
+ButtonStyle metroSoftOutlinedButtonStyle(BuildContext context) {
+  return OutlinedButton.styleFrom(
+    foregroundColor: kMetroPrimary,
+    backgroundColor: Colors.white.withValues(alpha: 0.94),
+    side: const BorderSide(color: Color(0xFFE7DDD7)),
+    minimumSize: const Size(0, 46),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    textStyle: Theme.of(
+      context,
+    ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+  );
+}
+
+ButtonStyle metroSoftFilledButtonStyle(BuildContext context, Color accent) {
+  final background = Color.alphaBlend(
+    Colors.white.withValues(alpha: 0.18),
+    accent,
+  );
+
+  return FilledButton.styleFrom(
+    backgroundColor: background,
+    foregroundColor: Colors.white,
+    disabledBackgroundColor: background.withValues(alpha: 0.48),
+    minimumSize: const Size(0, 46),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    elevation: 0,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    textStyle: Theme.of(
+      context,
+    ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+  );
+}
 
 class MetroPageBackground extends StatelessWidget {
   const MetroPageBackground({required this.child, super.key});
@@ -29,46 +106,38 @@ class MetroPageBackground extends StatelessWidget {
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [kMetroCanvas, Color(0xFFFDF0EA), kMetroCanvasDeep],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          colors: [kMetroCanvas, Color(0xFFFFF7F1), kMetroCanvasDeep],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
       ),
       child: Stack(
         children: [
           const Positioned(
-            top: -22,
-            right: -40,
-            child: _MetroBackdropBlock(
+            top: -28,
+            right: -18,
+            child: _MetroBackdropOrb(
               width: 220,
-              height: 176,
-              colors: [Color(0x30F7D5D0), Color(0x12FFFFFF)],
-              borderColor: Color(0x26E3BBB2),
+              height: 220,
+              colors: [Color(0x1AFAB5C4), Color(0x00FFFFFF)],
             ),
           ),
           const Positioned(
-            top: 148,
-            left: -28,
-            child: _MetroBackdropBlock(
-              width: 132,
-              height: 200,
-              colors: [Color(0x24F6D3C4), Color(0x0EFFFFFF)],
-              borderColor: Color(0x22E8B49A),
+            top: 120,
+            left: -34,
+            child: _MetroBackdropOrb(
+              width: 150,
+              height: 210,
+              colors: [Color(0x15F5D3C8), Color(0x00FFFFFF)],
             ),
           ),
           const Positioned(
-            bottom: 92,
-            right: 24,
-            child: _MetroBackdropBlock(
-              width: 168,
-              height: 132,
-              colors: [Color(0x1A35467D), Color(0x10FFFFFF)],
-              borderColor: Color(0x205867A2),
-            ),
-          ),
-          Positioned.fill(
-            child: IgnorePointer(
-              child: CustomPaint(painter: _MetroGridPainter()),
+            bottom: 96,
+            right: 8,
+            child: _MetroBackdropOrb(
+              width: 170,
+              height: 170,
+              colors: [Color(0x12BFD4FF), Color(0x00FFFFFF)],
             ),
           ),
           child,
@@ -106,12 +175,12 @@ class MetroActionButton extends StatelessWidget {
           height: 42,
           decoration: BoxDecoration(
             color: enabled ? tint : tint.withValues(alpha: 0.56),
-            borderRadius: BorderRadius.circular(kMetroRadius),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: kMetroLine),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x0A2C2143),
-                blurRadius: 12,
+                color: Color(0x120F172A),
+                blurRadius: 16,
                 offset: Offset(0, 6),
               ),
             ],
@@ -154,8 +223,8 @@ class MetroSectionHeader extends StatelessWidget {
                 context.tr(title),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: kMetroInk,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 4),
@@ -200,8 +269,8 @@ class MetroBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(kMetroRadius),
+        color: backgroundColor.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(12),
         border: outlined ? Border.all(color: kMetroLine) : null,
       ),
       child: Text(
@@ -234,8 +303,15 @@ class MetroMetricTile extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: BoxDecoration(
         color: kMetroSurface,
-        borderRadius: BorderRadius.circular(kMetroRadius),
-        border: Border.all(color: borderColor, width: 1.5),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: borderColor.withValues(alpha: 0.22)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x120F172A),
+            blurRadius: 18,
+            offset: Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,7 +369,7 @@ class MetroImageFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final content = ClipRRect(
-      borderRadius: BorderRadius.circular(kMetroRadius),
+      borderRadius: BorderRadius.circular(24),
       child: Stack(
         children: [
           Positioned.fill(
@@ -322,7 +398,7 @@ class MetroImageFrame extends StatelessWidget {
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
               ),
             ),
           ),
@@ -336,13 +412,18 @@ class MetroImageFrame extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(kMetroRadius),
-        border: Border.all(color: borderColor, width: 1.8),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.88)),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 12,
-            offset: Offset(0, 6),
+            color: borderColor.withValues(alpha: 0.14),
+            blurRadius: 26,
+            offset: const Offset(0, 14),
+          ),
+          const BoxShadow(
+            color: Color(0x120F172A),
+            blurRadius: 22,
+            offset: Offset(0, 10),
           ),
         ],
       ),
@@ -350,7 +431,7 @@ class MetroImageFrame extends StatelessWidget {
           ? content
           : InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(kMetroRadius),
+              borderRadius: BorderRadius.circular(28),
               child: content,
             ),
     );
@@ -382,7 +463,7 @@ class MetroFilterChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: selected ? accentColor : kMetroSurface,
-            borderRadius: BorderRadius.circular(kMetroRadius),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: selected ? accentColor : kMetroLine,
               width: 1.2,
@@ -419,13 +500,13 @@ class MetroInsetPanel extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: kMetroSurface,
-        borderRadius: BorderRadius.circular(kMetroRadius),
-        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: borderColor.withValues(alpha: 0.22)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0B000000),
-            blurRadius: 12,
-            offset: Offset(0, 6),
+            color: Color(0x120F172A),
+            blurRadius: 18,
+            offset: Offset(0, 10),
           ),
         ],
       ),
@@ -503,8 +584,8 @@ class _MetroFallbackArt extends StatelessWidget {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(28),
               ),
             ),
           ),
@@ -516,9 +597,7 @@ class _MetroFallbackArt extends StatelessWidget {
               height: 90,
               decoration: BoxDecoration(
                 color: kMetroPrimary.withValues(alpha: 0.16),
-                border: Border.all(
-                  color: kMetroPrimary.withValues(alpha: 0.22),
-                ),
+                borderRadius: BorderRadius.circular(24),
               ),
             ),
           ),
@@ -530,7 +609,7 @@ class _MetroFallbackArt extends StatelessWidget {
               height: 56,
               decoration: BoxDecoration(
                 color: kMetroCoral.withValues(alpha: 0.16),
-                border: Border.all(color: kMetroCoral.withValues(alpha: 0.2)),
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
           ),
@@ -540,18 +619,16 @@ class _MetroFallbackArt extends StatelessWidget {
   }
 }
 
-class _MetroBackdropBlock extends StatelessWidget {
-  const _MetroBackdropBlock({
+class _MetroBackdropOrb extends StatelessWidget {
+  const _MetroBackdropOrb({
     required this.width,
     required this.height,
     required this.colors,
-    required this.borderColor,
   });
 
   final double width;
   final double height;
   final List<Color> colors;
-  final Color borderColor;
 
   @override
   Widget build(BuildContext context) {
@@ -565,39 +642,16 @@ class _MetroBackdropBlock extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          border: Border.all(color: borderColor),
+          borderRadius: BorderRadius.circular(width / 2),
           boxShadow: const [
             BoxShadow(
               color: Color(0x06000000),
-              blurRadius: 20,
-              offset: Offset(0, 10),
+              blurRadius: 28,
+              offset: Offset(0, 12),
             ),
           ],
         ),
       ),
     );
   }
-}
-
-class _MetroGridPainter extends CustomPainter {
-  const _MetroGridPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0x0ED0BEB4)
-      ..strokeWidth = 1;
-
-    const gap = 40.0;
-
-    for (double x = 0; x < size.width; x += gap) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += gap) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

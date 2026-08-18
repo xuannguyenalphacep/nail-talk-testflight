@@ -362,7 +362,7 @@ class SocialHubController extends ChangeNotifier {
     required String contactPhone,
     required String contactEmail,
     required List<String> amenities,
-    String mode = 'room_share',
+    String mode = 'rent_out',
     List<String> imageUrls = const [],
   }) async {
     await _guardedSubmit(() async {
