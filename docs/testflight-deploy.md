@@ -92,8 +92,10 @@ After the workflow succeeds:
 1. Open App Store Connect.
 2. Go to `TestFlight`.
 3. Wait for the new build to move from `Processing` to `Complete`.
-4. Add the build to internal or external groups if needed.
-5. For external testing, fill `What to Test` and submit for beta review.
+4. Always add the new build to the internal group `Nail Talk Internal`.
+   This group is the one used by `kennguyennj@icloud.com`, `inails.kantek@gmail.com`, Kiệt Nguyen, and the internal demo testers. If the build is uploaded but not added to this group, testers can keep seeing the previous build only.
+5. Add the build to other internal or external groups if needed.
+6. For external testing, fill `What to Test` and submit for beta review.
 
 ## Current proven result
 
@@ -130,5 +132,6 @@ Because build number uses `GITHUB_RUN_NUMBER`, every workflow run creates a new 
 - Push code to `main` or run workflow manually
 - Wait for GitHub Actions success
 - Wait for App Store Connect processing
-- Add build to TestFlight groups
+- Add build to `Nail Talk Internal`
+- Add build to any other required TestFlight groups
 - Submit beta review if external testing is needed

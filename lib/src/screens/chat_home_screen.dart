@@ -1068,6 +1068,29 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
   }
 }
 
+String _groupMetaLabel(BuildContext context, ChatRoom room) {
+  if (!room.isGroup) {
+    return '';
+  }
+
+  if (!room.hasMemberCount && !room.hasVisibilityState) {
+    return context.tr('Group chat');
+  }
+
+  if (room.hasMemberCount && room.hasVisibilityState) {
+    return context.tr('{count} members • {type}', {
+      'count': '${room.memberCount}',
+      'type': context.tr(room.isPublic ? 'Public group' : 'Group chat'),
+    });
+  }
+
+  if (room.hasMemberCount) {
+    return context.tr('{count} members', {'count': '${room.memberCount}'});
+  }
+
+  return context.tr(room.isPublic ? 'Public group' : 'Group chat');
+}
+
 class _RoomListView extends StatelessWidget {
   const _RoomListView({
     required this.theme,
@@ -1299,14 +1322,7 @@ class _RoomListView extends StatelessWidget {
                                   room.lastMessage!.content,
                                 );
                           final metaLine = room.isGroup
-                              ? context.tr('{count} members • {type}', {
-                                  'count': '${room.memberCount}',
-                                  'type': context.tr(
-                                    room.isPublic
-                                        ? 'Public group'
-                                        : 'Private group',
-                                  ),
-                                })
+                              ? _groupMetaLabel(context, room)
                               : null;
                           final borderColor = room.isGroup
                               ? const Color(0xFF214D98)
@@ -1629,14 +1645,7 @@ class _RoomChatView extends StatelessWidget {
                               ? (chat.isUserOnline(room.peerId)
                                     ? context.tr('Online')
                                     : context.tr('Private chat'))
-                              : context.tr('{count} members • {type}', {
-                                  'count': '${room.memberCount}',
-                                  'type': context.tr(
-                                    room.isPublic
-                                        ? 'Public group'
-                                        : 'Group chat',
-                                  ),
-                                }),
+                              : _groupMetaLabel(context, room),
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF6F8098),

@@ -953,6 +953,8 @@ class ChatController extends ChangeNotifier {
           isJoined: true,
           canJoin: false,
           memberCount: 0,
+          hasMemberCount: false,
+          hasVisibilityState: false,
         ),
       )).unreadCount;
       _markRoomUnread(message.roomId, currentUnread + 1);

@@ -262,8 +262,8 @@ class AppLocalizer {
         'Tạo bài tuyển dụng cho kỹ thuật viên nail, nhân viên salon, quản lý hoặc cộng tác viên bán thời gian.',
     'Create a profile for professionals looking for work, a new salon, or licensing support.':
         'Tạo hồ sơ cho người đang tìm việc, tìm salon mới hoặc cần hỗ trợ về giấy phép.',
-    'Hiring nail staff': 'Kím Thợ',
-    'Job seekers': 'Kím Việc Làm',
+    'Hiring nail staff': 'Đăng Kiếm Thợ',
+    'Job seekers': 'Kiếm Việc Làm',
     'Job Title': 'Chức danh công việc',
     'Profile Headline': 'Tiêu đề hồ sơ',
     'Salon Name': 'Tên salon',
@@ -328,12 +328,12 @@ class AppLocalizer {
     'Preferred Area / Address': 'Khu vực / địa chỉ mong muốn',
     'Address': 'Địa chỉ',
     'Amenities (comma separated)': 'Tiện ích (ngăn cách bằng dấu phẩy)',
-    'Post Hiring Request': 'Đăng tin kím thợ',
-    'Post Job Search': 'Đăng tin kím việc làm',
+    'Post Hiring Request': 'Đăng tin kiếm thợ',
+    'Post Job Search': 'Đăng tin kiếm việc làm',
     'Post Housing Need': 'Đăng tin cần mướn nhà',
     'Post Rental Home': 'Đăng tin cho mướn nhà',
-    'Publish Worker Search': 'Đăng tin kím thợ',
-    'Publish Job Search': 'Đăng tin kím việc làm',
+    'Publish Worker Search': 'Đăng tin kiếm thợ',
+    'Publish Job Search': 'Đăng tin kiếm việc làm',
     'Publish Housing Need': 'Đăng tin cần mướn nhà',
     'Publish Rental Home': 'Đăng tin cho mướn nhà',
     'Create a hiring post so salon owners can quickly find nail staff, front-desk help, or support workers.':
@@ -497,8 +497,8 @@ class AppLocalizer {
     'Guest': 'Khách',
     'Heart-to-heart chat': 'Trò chuyện và Tâm Sự',
     'Movie picks': 'Phim Hay',
-    'Find a job': 'Kím Việc Làm',
-    'Find a tech': 'Kím Thợ',
+    'Find a job': 'Kiếm Việc Làm',
+    'Find a tech': 'Đăng Kiếm Thợ',
     'Buy & Sell': 'Mua Và Bán',
     'Rent out a home': 'Cho mướn nhà',
     'Need a room': 'Cần mướn nhà',
@@ -506,8 +506,9 @@ class AppLocalizer {
     'Hiring salons': 'Salon đang tuyển',
     'Trò chuyện và Tâm Sự': 'Trò chuyện và Tâm Sự',
     'Xem phim hay': 'Xem phim hay',
-    'Kím Việc Làm': 'Kím Việc Làm',
-    'Kím Thợ': 'Kím Thợ',
+    'Kiếm Việc Làm': 'Kiếm Việc Làm',
+    'Kiếm Thợ': 'Đăng Kiếm Thợ',
+    'Đăng Kiếm Thợ': 'Đăng Kiếm Thợ',
     'Mua Và Bán': 'Mua Và Bán',
     'Cho mướn nhà': 'Cho mướn nhà',
     'Cần mướn nhà': 'Cần mướn nhà',
@@ -791,8 +792,8 @@ class AppLocalizer {
         'Các bài đăng cho mướn nhà ưu tiên ảnh giúp thành viên xem nhanh nhà và phòng còn trống.',
     'Housing-need posts gather members who are searching for rooms, rentals, or a place to move in.':
         'Các bài đăng cần chỗ ở tập hợp người đang tìm phòng, tìm nhà thuê hoặc nơi có thể dọn vào ở.',
-    'Worker search board': 'Bảng tin kím thợ',
-    'Job seeker board': 'Bảng tin kím việc làm',
+    'Worker search board': 'Bảng tin kiếm thợ',
+    'Job seeker board': 'Bảng tin kiếm việc làm',
     'Rental board': 'Bảng tin cho mướn nhà',
     'Housing need board': 'Bảng tin cần mướn nhà',
     'Open roles are separated into a cleaner list so owners can contact the right people faster.':
@@ -803,8 +804,8 @@ class AppLocalizer {
         'Các bài đăng của thành viên đang cần phòng hoặc cần nhà được gom tại đây để phản hồi nhanh hơn.',
     'Available homes and rooms are grouped here so renters can browse quickly.':
         'Các nhà và phòng còn trống được gom tại đây để người thuê xem nhanh hơn.',
-    'Search worker posts': 'Tìm bài đăng kím thợ',
-    'Search job-seeker posts': 'Tìm bài đăng kím việc làm',
+    'Search worker posts': 'Tìm bài đăng kiếm thợ',
+    'Search job-seeker posts': 'Tìm bài đăng kiếm việc làm',
     'Search housing needs': 'Tìm bài đăng cần mướn nhà',
     'Search rental homes': 'Tìm bài đăng cho mướn nhà',
     'Hiring salon talent, shift openings, and job seekers in one mobile-friendly board.':
@@ -823,14 +824,14 @@ class AppLocalizer {
         'Hiện chưa thể mở chat với nhà tuyển dụng này.',
     'This host chat is not available yet.':
         'Hiện chưa thể mở chat với chủ bài đăng này.',
-    'No worker-search posts yet': 'Chưa có bài đăng kím thợ nào',
-    'No job-seeker posts yet': 'Chưa có bài đăng kím việc làm nào',
+    'No worker-search posts yet': 'Chưa có bài đăng kiếm thợ nào',
+    'No job-seeker posts yet': 'Chưa có bài đăng kiếm việc làm nào',
     'No rental-home posts yet': 'Chưa có bài đăng cho mướn nhà nào',
     'No housing-need posts yet': 'Chưa có bài đăng cần mướn nhà nào',
     'Salon owners have not posted any worker searches yet.':
-        'Các chủ salon vẫn chưa đăng bài kím thợ nào.',
+        'Các chủ salon vẫn chưa đăng bài kiếm thợ nào.',
     'No members have posted a job search in this area yet.':
-        'Chưa có thành viên nào đăng bài kím việc làm tại khu vực này.',
+        'Chưa có thành viên nào đăng bài kiếm việc làm tại khu vực này.',
     'No rental homes have been posted in this area yet.':
         'Chưa có nhà cho thuê nào được đăng tại khu vực này.',
     'No members have posted a housing need in this area yet.':
@@ -980,6 +981,7 @@ class AppLocalizer {
     'West Coast Hiring': 'Tuyển dụng Bờ Tây',
     'You have {count} unread chat updates.':
         'Bạn có {count} cập nhật chat chưa đọc.',
+    '{count} members': '{count} thành viên',
     '{count} members • {type}': '{count} thành viên • {type}',
     '{currency} {price} / {days} days': '{currency} {price} / {days} ngày',
     '{currency} {price} / {days}d': '{currency} {price} / {days} ngày',

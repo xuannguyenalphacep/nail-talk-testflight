@@ -51,6 +51,8 @@ class ChatRoom {
     required this.isJoined,
     required this.canJoin,
     required this.memberCount,
+    required this.hasMemberCount,
+    required this.hasVisibilityState,
   });
 
   final int id;
@@ -70,17 +72,25 @@ class ChatRoom {
   final bool isJoined;
   final bool canJoin;
   final int memberCount;
+  final bool hasMemberCount;
+  final bool hasVisibilityState;
 
   bool get isPrivate => type == 'private';
   bool get isGroup => type == 'group';
 
   factory ChatRoom.fromJson(Map<String, dynamic> json) {
+    final hasMemberCount =
+        json.containsKey('member_count') && json['member_count'] != null;
+    final hasVisibilityState =
+        json.containsKey('is_public') && json['is_public'] != null;
     return ChatRoom(
       id: (json['id'] as num?)?.toInt() ?? 0,
       type: (json['type'] ?? 'group').toString(),
       title: (json['title'] ?? json['name'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
-      avatar: (json['avatar'] ?? json['avatar_url'] ?? json['peer_avatar'] ?? '').toString(),
+      avatar:
+          (json['avatar'] ?? json['avatar_url'] ?? json['peer_avatar'] ?? '')
+              .toString(),
       peerId: (json['peer_id'] as num?)?.toInt(),
       tableName: json['table_name']?.toString(),
       uuidTableRecord: json['uuid_table_record']?.toString(),
@@ -88,12 +98,19 @@ class ChatRoom {
       bookmarked: (json['bookmarked'] == true) || (json['bookmarked'] == 1),
       hiddenAt: AppDateUtils.tryParse(json['hidden_at']),
       isPublic: json['is_public'] == true || json['is_public'] == 1,
-      isActive: json['is_active'] == null || json['is_active'] == true || json['is_active'] == 1,
+      isActive:
+          json['is_active'] == null ||
+          json['is_active'] == true ||
+          json['is_active'] == 1,
       isJoined: json['is_joined'] == true || json['is_joined'] == 1,
       canJoin: json['can_join'] == true || json['can_join'] == 1,
       memberCount: (json['member_count'] as num?)?.toInt() ?? 0,
+      hasMemberCount: hasMemberCount,
+      hasVisibilityState: hasVisibilityState,
       lastMessage: json['last_message'] is Map<String, dynamic>
-          ? ChatRoomLastMessage.fromJson(json['last_message'] as Map<String, dynamic>)
+          ? ChatRoomLastMessage.fromJson(
+              json['last_message'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
@@ -110,6 +127,8 @@ class ChatRoom {
     bool? isJoined,
     bool? canJoin,
     int? memberCount,
+    bool? hasMemberCount,
+    bool? hasVisibilityState,
   }) {
     return ChatRoom(
       id: id,
@@ -129,6 +148,8 @@ class ChatRoom {
       isJoined: isJoined ?? this.isJoined,
       canJoin: canJoin ?? this.canJoin,
       memberCount: memberCount ?? this.memberCount,
+      hasMemberCount: hasMemberCount ?? this.hasMemberCount,
+      hasVisibilityState: hasVisibilityState ?? this.hasVisibilityState,
     );
   }
 }
