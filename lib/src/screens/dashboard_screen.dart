@@ -80,7 +80,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        content: Text(context.tr('Tien len card game is coming soon.')),
+        content: Text(
+          context.tr(
+            'The Tien len game room is being polished. You will be able to open a table with friends in an upcoming update.',
+          ),
+        ),
       ),
     );
   }
@@ -541,6 +545,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
+                _TienLenComingSoonBanner(onTap: _showGameComingSoon),
+                const SizedBox(height: 14),
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -558,8 +564,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     );
                   },
                 ),
-                const SizedBox(height: 22),
-                _TienLenComingSoonBanner(onTap: _showGameComingSoon),
                 if (social.error != null) ...[
                   const SizedBox(height: 16),
                   Container(
@@ -1429,13 +1433,9 @@ class _TienLenComingSoonBanner extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(_homeRadius),
       child: Ink(
+        height: 190,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(_homeRadius),
-          gradient: const LinearGradient(
-            colors: [Color(0xFFFFF8F6), Color(0xFFFFEEF2), Color(0xFFFFF7EF)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
           border: Border.all(color: const Color(0xFFFFD7E3)),
           boxShadow: const [
             BoxShadow(
@@ -1446,132 +1446,140 @@ class _TienLenComingSoonBanner extends StatelessWidget {
           ],
         ),
         child: Stack(
+          fit: StackFit.expand,
           children: [
-            const Positioned(
-              top: -14,
-              right: 16,
-              child: _BlurBubble(
-                width: 120,
-                height: 120,
-                colors: [Color(0x22FF8CA5), Color(0x00FFFFFF)],
+            ClipRRect(
+              borderRadius: BorderRadius.circular(_homeRadius),
+              child: Image.asset(
+                'assets/branding/tien_len_banner_bg.png',
+                fit: BoxFit.cover,
+                alignment: Alignment.centerRight,
               ),
             ),
-            const Positioned(
-              bottom: -22,
-              left: -6,
-              child: _BlurBubble(
-                width: 170,
-                height: 130,
-                colors: [Color(0x14FFD6A5), Color(0x00FFFFFF)],
+            ClipRRect(
+              borderRadius: BorderRadius.circular(_homeRadius),
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xAA27142A),
+                      Color(0x6627142A),
+                      Color(0x1810182D),
+                    ],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    stops: [0, 0.54, 1],
+                  ),
+                ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-              child: Row(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.86),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: const Color(0xFFFFD8E2)),
-                          ),
-                          child: Text(
-                            context.tr('Entertainment preview'),
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: const Color(0xFFF35F86),
-                                  fontWeight: FontWeight.w900,
-                                ),
-                          ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _CardChip(
+                        label: 'Entertainment preview',
+                        backgroundColor: Colors.white,
+                        foregroundColor: _homeText,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 13,
+                          vertical: 8,
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          context.tr('Tien len card game'),
-                          style: Theme.of(context).textTheme.headlineMedium
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF35F86),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x33F35F86),
+                              blurRadius: 16,
+                              offset: Offset(0, 7),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          context.tr('Coming soon'),
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                fontSize: 24,
-                                color: _homeText,
+                                color: Colors.white,
                                 fontWeight: FontWeight.w900,
-                                height: 1.02,
                               ),
                         ),
-                        const SizedBox(height: 10),
-                        Text(
-                          context.tr(
-                            'An entertainment room for friends and the local nail community is coming soon to Nails Talk.',
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    width: 214,
+                    child: Text(
+                      context.tr('Tien len card game'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: Colors.white,
+                            fontSize: 23,
+                            height: 1.04,
+                            fontWeight: FontWeight.w900,
                           ),
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: _homeText.withValues(alpha: 0.82),
-                                height: 1.42,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                        const SizedBox(height: 14),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: const [
-                            _CardChipData(
-                              label: 'Four-player tables',
-                              backgroundColor: Color(0xFFFFF5F8),
-                              foregroundColor: Color(0xFFF35F86),
-                            ),
-                            _CardChipData(
-                              label: 'Play with friends',
-                              backgroundColor: Color(0xFFFFF7EE),
-                              foregroundColor: Color(0xFFF4A22F),
-                            ),
-                          ].map(_GameFeatureChip.new).toList(),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(18),
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFF35F86), Color(0xFFFF9B55)],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x26F35F86),
-                                blurRadius: 20,
-                                offset: Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: FilledButton.icon(
-                            onPressed: onTap,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(150, 46),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                              ),
-                            ),
-                            icon: const Icon(
-                              Icons.visibility_rounded,
-                              size: 18,
-                            ),
-                            label: Text(context.tr('Preview feature')),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  const _TienLenShowcaseArtwork(),
+                  const SizedBox(height: 7),
+                  SizedBox(
+                    width: 224,
+                    child: Text(
+                      context.tr(
+                        'Open tables with friends and join the Nails Talk community when this game room launches.',
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.96),
+                        height: 1.28,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _MiniInfoPill(label: 'Four-player tables'),
+                      const SizedBox(width: 8),
+                      _MiniInfoPill(label: 'Play with friends'),
+                      const Spacer(),
+                      DecoratedBox(
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF35F86),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x44F35F86),
+                              blurRadius: 18,
+                              offset: Offset(0, 7),
+                            ),
+                          ],
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.all(11),
+                          child: Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -1582,220 +1590,29 @@ class _TienLenComingSoonBanner extends StatelessWidget {
   }
 }
 
-class _GameFeatureChip extends StatelessWidget {
-  const _GameFeatureChip(this.data);
+class _MiniInfoPill extends StatelessWidget {
+  const _MiniInfoPill({required this.label});
 
-  final _CardChipData data;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: data.backgroundColor,
+        color: Colors.white.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.9)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
       ),
       child: Text(
-        context.tr(data.label),
+        context.tr(label),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: data.foregroundColor,
+          color: Colors.white,
+          fontSize: 11,
           fontWeight: FontWeight.w900,
         ),
-      ),
-    );
-  }
-}
-
-class _TienLenShowcaseArtwork extends StatelessWidget {
-  const _TienLenShowcaseArtwork();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 136,
-      height: 148,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFFF1F5), Color(0xFFFFF8EF)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 10,
-            right: 8,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [Color(0xFFFFB061), Color(0xFFF35F86)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: const Icon(
-                Icons.stars_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 16,
-            top: 22,
-            child: Transform.rotate(
-              angle: -0.2,
-              child: const _GameCardFace(
-                rank: 'A',
-                suit: '♠',
-                accent: Color(0xFF27366E),
-                background: Colors.white,
-              ),
-            ),
-          ),
-          Positioned(
-            right: 18,
-            top: 30,
-            child: Transform.rotate(
-              angle: 0.18,
-              child: const _GameCardFace(
-                rank: 'K',
-                suit: '♥',
-                accent: Color(0xFFF35F86),
-                background: Colors.white,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 28,
-            bottom: 14,
-            child: Container(
-              width: 86,
-              height: 32,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                color: Colors.white.withValues(alpha: 0.94),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x180F172A),
-                    blurRadius: 14,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  _MiniChip(color: Color(0xFFF35F86)),
-                  _MiniChip(color: Color(0xFFF4A22F)),
-                  _MiniChip(color: Color(0xFF4E67C8)),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GameCardFace extends StatelessWidget {
-  const _GameCardFace({
-    required this.rank,
-    required this.suit,
-    required this.accent,
-    required this.background,
-  });
-
-  final String rank;
-  final String suit;
-  final Color accent;
-  final Color background;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 60,
-      height: 82,
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x180F172A),
-            blurRadius: 18,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            rank,
-            textScaler: TextScaler.noScaling,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: accent,
-              fontWeight: FontWeight.w900,
-              height: 1,
-            ),
-          ),
-          Text(
-            suit,
-            textScaler: TextScaler.noScaling,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: accent,
-              fontWeight: FontWeight.w900,
-              height: 1,
-            ),
-          ),
-          const Spacer(),
-          Align(
-            alignment: Alignment.bottomRight,
-            child: Text(
-              suit,
-              textScaler: TextScaler.noScaling,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: accent.withValues(alpha: 0.9),
-                fontWeight: FontWeight.w900,
-                height: 1,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniChip extends StatelessWidget {
-  const _MiniChip({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 16,
-      height: 16,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-        border: Border.all(color: Colors.white, width: 2),
       ),
     );
   }

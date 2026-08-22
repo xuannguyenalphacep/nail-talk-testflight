@@ -535,6 +535,10 @@ class AppLocalizer {
         'Bấm vào để xem trước tính năng giải trí sắp ra mắt.',
     'Coming soon': 'Sắp ra mắt',
     'Tien len card game is coming soon.': 'Game bài tiến lên sẽ sớm ra mắt.',
+    'Open tables with friends and join the Nails Talk community when this game room launches.':
+        'Mở bàn chơi cùng bạn bè và cộng đồng Nails Talk khi phòng game ra mắt.',
+    'The Tien len game room is being polished. You will be able to open a table with friends in an upcoming update.':
+        'Phòng game bài tiến lên đang được hoàn thiện. Bạn sẽ sớm mở bàn chơi cùng bạn bè trong bản cập nhật tới.',
     'Welcome back, {name}': 'Chào mừng quay lại, {name}',
     'Find jobs, movie nights, homes, and local updates in one place.':
         'Tìm việc làm, đêm xem phim, chỗ ở và cập nhật địa phương trong cùng một nơi.',
