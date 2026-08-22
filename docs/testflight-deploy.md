@@ -94,6 +94,7 @@ After the workflow succeeds:
 3. Wait for the new build to move from `Processing` to `Complete`.
 4. Always add the new build to the internal group `Nail Talk Internal`.
    This group is the one used by `kennguyennj@icloud.com`, `inails.kantek@gmail.com`, Kiệt Nguyen, and the internal demo testers. If the build is uploaded but not added to this group, testers can keep seeing the previous build only.
+   The workflow or App Store Connect can show the new build under `KenGroup` first; that is not enough for the main internal testers.
 5. Add the build to other internal or external groups if needed.
 6. For external testing, fill `What to Test` and submit for beta review.
 
