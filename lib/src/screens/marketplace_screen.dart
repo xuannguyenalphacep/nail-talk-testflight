@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../controllers/chat_controller.dart';
 import '../controllers/social_hub_controller.dart';
 import '../core/localization/app_localizer.dart';
+import '../models/app_option.dart';
 import '../models/marketplace_item.dart';
 import '../widgets/language_switch_button.dart';
 import '../widgets/metro_ui.dart';
@@ -51,6 +53,11 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 
   Future<void> _contactSeller(MarketplaceItem item) async {
+    if (item.isImportedSource && _hasVisiblePublicContact(item)) {
+      await _showPublicContactSheet(item);
+      return;
+    }
+
     if (item.userId <= 0) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(
@@ -82,6 +89,19 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     ).push(MaterialPageRoute(builder: (_) => const ChatHomeScreen()));
   }
 
+  Future<void> _showPublicContactSheet(MarketplaceItem item) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFFFFFBFA),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => _MarketplaceContactSheet(item: item),
+    );
+  }
+
   Future<void> _openDetail(MarketplaceItem item) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -98,6 +118,37 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     if (created == true && mounted) {
       await _refresh();
     }
+  }
+
+  String _selectedCategoryLabel(List<AppOption> categories) {
+    if (_categoryId == null) return 'All categories';
+    for (final category in categories) {
+      if (category.id == _categoryId) return category.name;
+    }
+    return 'All categories';
+  }
+
+  Future<void> _openCategoryPicker(List<AppOption> categories) async {
+    final selectedId = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _MarketplaceCategoryPicker(
+          categories: categories,
+          selectedCategoryId: _categoryId,
+        );
+      },
+    );
+
+    if (!mounted || selectedId == null) return;
+
+    final nextCategoryId = selectedId <= 0 ? null : selectedId;
+    if (nextCategoryId == _categoryId) return;
+
+    setState(() => _categoryId = nextCategoryId);
+    await _refresh();
   }
 
   @override
@@ -183,29 +234,13 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         ).textTheme.titleMedium?.copyWith(color: kMetroInk),
                       ),
                       const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _MarketplaceFilterChipButton(
-                            label: 'All categories',
-                            selected: _categoryId == null,
-                            onTap: () {
-                              setState(() => _categoryId = null);
-                              _refresh();
-                            },
-                          ),
-                          for (final category
-                              in controller.marketplaceCategories)
-                            _MarketplaceFilterChipButton(
-                              label: category.name,
-                              selected: _categoryId == category.id,
-                              onTap: () {
-                                setState(() => _categoryId = category.id);
-                                _refresh();
-                              },
-                            ),
-                        ],
+                      _MarketplaceCategorySelector(
+                        label: _selectedCategoryLabel(
+                          controller.marketplaceCategories,
+                        ),
+                        onTap: () => _openCategoryPicker(
+                          controller.marketplaceCategories,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       Row(
@@ -404,6 +439,9 @@ class _MarketplaceHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final title = _cleanMarketplaceText(item.title);
+    final description = _cleanMarketplaceText(item.description);
+
     return SizedBox(
       height: 226,
       child: MetroImageFrame(
@@ -429,7 +467,7 @@ class _MarketplaceHero extends StatelessWidget {
             ),
             const Spacer(),
             Text(
-              context.tr(item.title),
+              context.tr(title.isEmpty ? 'Marketplace item' : title),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -440,9 +478,9 @@ class _MarketplaceHero extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               context.tr(
-                item.description.isEmpty
+                description.isEmpty
                     ? 'Useful finds, salon gear, and community listings.'
-                    : item.description,
+                    : description,
               ),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
@@ -475,6 +513,9 @@ class _MarketplaceEditorialTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = _location(item.city, item.state);
+    final sellerBadge = _sellerDisplayName(item);
+    final title = _cleanMarketplaceText(item.title);
+    final description = _cleanMarketplaceText(item.description);
 
     return InkWell(
       onTap: onOpen,
@@ -528,7 +569,7 @@ class _MarketplaceEditorialTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    context.tr(item.title),
+                    context.tr(title.isEmpty ? 'Marketplace item' : title),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -538,7 +579,7 @@ class _MarketplaceEditorialTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _money(item.price, item.currency),
+                    context.tr(_money(item.price, item.currency)),
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       color: borderColor,
                       fontWeight: FontWeight.w900,
@@ -557,7 +598,11 @@ class _MarketplaceEditorialTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    context.tr(item.description),
+                    context.tr(
+                      description.isEmpty
+                          ? 'Useful finds, salon gear, and community listings.'
+                          : description,
+                    ),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(
@@ -574,9 +619,9 @@ class _MarketplaceEditorialTile extends StatelessWidget {
                           label: _humanize(item.condition),
                           backgroundColor: const Color(0xFFFFF2DE),
                         ),
-                      if (item.userName.isNotEmpty)
+                      if (sellerBadge.isNotEmpty)
                         MetroBadge(
-                          label: item.userName,
+                          label: sellerBadge,
                           backgroundColor: const Color(0xFFF0F3FA),
                         ),
                     ],
@@ -604,7 +649,13 @@ class _MarketplaceEditorialTile extends StatelessWidget {
                               context,
                               borderColor,
                             ),
-                            child: Text(context.tr('Message seller')),
+                            child: Text(
+                              context.tr(
+                                _hasVisiblePublicContact(item)
+                                    ? 'Contact seller'
+                                    : 'Message seller',
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -615,6 +666,210 @@ class _MarketplaceEditorialTile extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MarketplaceCategorySelector extends StatelessWidget {
+  const _MarketplaceCategorySelector({
+    required this.label,
+    required this.onTap,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        height: 58,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.96),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: kMetroLine),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x100F172A),
+              blurRadius: 16,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: kMetroCoralSoft,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.category_rounded,
+                color: kMetroCoral,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr('Category'),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: kMetroMuted,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    context.tr(label),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: kMetroInk,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: kMetroPrimary,
+              size: 24,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MarketplaceCategoryPicker extends StatelessWidget {
+  const _MarketplaceCategoryPicker({
+    required this.categories,
+    required this.selectedCategoryId,
+  });
+
+  final List<AppOption> categories;
+  final int? selectedCategoryId;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
+    final choices = [
+      AppOption(id: 0, uuid: '', name: 'All categories', slug: 'all'),
+      ...categories,
+    ];
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.72,
+      ),
+      margin: const EdgeInsets.all(12),
+      padding: EdgeInsets.fromLTRB(18, 12, 18, 18 + bottomPadding),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBFA),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x260F172A),
+            blurRadius: 30,
+            offset: Offset(0, 18),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 52,
+              height: 5,
+              decoration: BoxDecoration(
+                color: kMetroLine,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            context.tr('Choose category'),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: kMetroInk,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Flexible(
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: choices.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final category = choices[index];
+                final isAll = category.id == 0;
+                final selected = isAll
+                    ? selectedCategoryId == null
+                    : selectedCategoryId == category.id;
+
+                return InkWell(
+                  onTap: () => Navigator.of(context).pop(category.id),
+                  borderRadius: BorderRadius.circular(18),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 13,
+                    ),
+                    decoration: BoxDecoration(
+                      color: selected ? kMetroCoralSoft : Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: selected ? kMetroCoral : kMetroLine,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          selected
+                              ? Icons.radio_button_checked_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          color: selected ? kMetroCoral : kMetroMuted,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            context.tr(category.name),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: selected ? kMetroPrimary : kMetroInk,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.2,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -665,12 +920,245 @@ class _MarketplaceFilterChipButton extends StatelessWidget {
   }
 }
 
+class _MarketplaceContactSheet extends StatelessWidget {
+  const _MarketplaceContactSheet({required this.item});
+
+  final MarketplaceItem item;
+
+  Future<void> _launch(BuildContext context, Uri uri) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final errorMessage = context.tr('Unable to open this contact link.');
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched) {
+      messenger?.showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(errorMessage),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.viewPaddingOf(context).bottom;
+    final contactName = _sellerDisplayName(item);
+    final phone = _publicPhone(item);
+    final email = _publicEmail(item);
+    final sourceUrl = item.sourceUrl.trim();
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 4, 20, 20 + bottomPadding),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.tr('Contact seller'),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(color: kMetroInk),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            context.tr('Use the public contact shown on this listing.'),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: kMetroMuted),
+          ),
+          const SizedBox(height: 18),
+          if (contactName.isNotEmpty)
+            _MarketplaceContactRow(
+              icon: Icons.person_outline_rounded,
+              label: 'Name',
+              value: contactName,
+            ),
+          if (phone.isNotEmpty)
+            _MarketplaceContactAction(
+              icon: Icons.call_outlined,
+              label: 'Call seller',
+              value: phone,
+              onTap: () => _launch(context, Uri(scheme: 'tel', path: phone)),
+            ),
+          if (email.isNotEmpty)
+            _MarketplaceContactAction(
+              icon: Icons.email_outlined,
+              label: 'Email seller',
+              value: email,
+              onTap: () => _launch(context, Uri(scheme: 'mailto', path: email)),
+            ),
+          if (sourceUrl.isNotEmpty)
+            _MarketplaceContactAction(
+              icon: Icons.open_in_new_rounded,
+              label: 'Open original listing',
+              value: item.sourceName.trim().isEmpty
+                  ? sourceUrl
+                  : item.sourceName.trim(),
+              onTap: () => _launch(context, Uri.parse(sourceUrl)),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MarketplaceContactRow extends StatelessWidget {
+  const _MarketplaceContactRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: kMetroLine),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: kMetroCoral, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr(label),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: kMetroMuted,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: kMetroInk,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MarketplaceContactAction extends StatelessWidget {
+  const _MarketplaceContactAction({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: _MarketplaceContactRow(icon: icon, label: label, value: value),
+    );
+  }
+}
+
 String _location(String city, String state) {
   final parts = <String>[
     if (city.trim().isNotEmpty) city.trim(),
     if (state.trim().isNotEmpty) state.trim(),
   ];
   return parts.join(', ');
+}
+
+String _sellerDisplayName(MarketplaceItem item) {
+  final contactName = item.contactName.trim();
+  if (contactName.isNotEmpty && !_isSyntheticSeller(contactName)) {
+    return contactName;
+  }
+
+  final userName = item.userName.trim();
+  if (!item.isImportedSource && !_isSyntheticSeller(userName)) {
+    return userName;
+  }
+
+  return '';
+}
+
+String _publicPhone(MarketplaceItem item) {
+  final phone = item.contactPhone.trim();
+  if (phone.isNotEmpty) return phone;
+  return _firstPhone('${item.title} ${item.description}');
+}
+
+String _publicEmail(MarketplaceItem item) {
+  final email = item.contactEmail.trim();
+  if (email.isNotEmpty) return email;
+  return _firstEmail('${item.title} ${item.description}');
+}
+
+bool _hasVisiblePublicContact(MarketplaceItem item) {
+  return _sellerDisplayName(item).isNotEmpty ||
+      _publicPhone(item).isNotEmpty ||
+      _publicEmail(item).isNotEmpty ||
+      item.sourceUrl.trim().isNotEmpty;
+}
+
+bool _isSyntheticSeller(String value) {
+  final lower = value.trim().toLowerCase();
+  return lower.isEmpty ||
+      lower == 'nails talk market source' ||
+      lower == 'hỗ trợ mua và bán' ||
+      lower == 'ho tro mua va ban';
+}
+
+String _cleanMarketplaceText(String raw) {
+  return raw
+      .replaceAll(
+        RegExp(r'\s*Nguồn tham khảo:.*$', caseSensitive: false, dotAll: true),
+        ' ',
+      )
+      .replaceAll(
+        RegExp(r'\s*Nails Talk Market Source\s*', caseSensitive: false),
+        ' ',
+      )
+      .replaceAll(
+        RegExp(r'\s*liên hệ theo tin gốc\.?', caseSensitive: false),
+        ' ',
+      )
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+}
+
+String _firstPhone(String text) {
+  final match = RegExp(
+    r'(?:(?:\+?1[\s\-.]?)?(?:\(?\d{3}\)?[\s\-.]?\d{3}[\s\-.]?\d{4}))',
+  ).firstMatch(text);
+  return match?.group(0)?.trim() ?? '';
+}
+
+String _firstEmail(String text) {
+  final match = RegExp(
+    r'[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}',
+    caseSensitive: false,
+  ).firstMatch(text);
+  return match?.group(0)?.trim() ?? '';
 }
 
 String _humanize(String raw) {
@@ -687,6 +1175,10 @@ String _humanize(String raw) {
 }
 
 String _money(double value, String currency) {
+  if (value <= 0) {
+    return 'Price on request';
+  }
+
   final prefix = currency.toUpperCase() == 'USD'
       ? '\$'
       : '${currency.toUpperCase()} ';

@@ -4,6 +4,7 @@ import '../models/app_option.dart';
 import '../models/job_listing_item.dart';
 import '../models/marketplace_item.dart';
 import '../models/movie_item.dart';
+import '../models/movie_page.dart';
 import '../models/movie_plan_model.dart';
 import '../models/property_listing_item.dart';
 import '../models/saved_item.dart';
@@ -12,6 +13,8 @@ import '../services/chat_api_service.dart';
 import 'session_controller.dart';
 
 class SocialHubController extends ChangeNotifier {
+  static const int _moviePageSize = 10;
+
   SocialHubController({
     required SessionController sessionController,
     required ChatApiService apiService,
@@ -26,6 +29,7 @@ class SocialHubController extends ChangeNotifier {
   bool _initializedForSession = false;
   bool _loadingHome = false;
   bool _loadingMovies = false;
+  bool _loadingMoreMovies = false;
   bool _loadingMarketplace = false;
   bool _loadingJobs = false;
   bool _loadingProperties = false;
@@ -37,6 +41,10 @@ class SocialHubController extends ChangeNotifier {
   List<SavedItemModel> _bookmarks = const [];
   List<AppOption> _movieCategories = const [];
   List<MovieItem> _movies = const [];
+  int _moviePage = 0;
+  int _movieLastPage = 1;
+  int? _movieCategoryId;
+  String? _movieSearch;
   List<MoviePlanModel> _moviePlans = const [];
   MovieSubscriptionModel? _activeSubscription;
   List<AppOption> _marketplaceCategories = const [];
@@ -47,6 +55,7 @@ class SocialHubController extends ChangeNotifier {
 
   bool get loadingHome => _loadingHome;
   bool get loadingMovies => _loadingMovies;
+  bool get loadingMoreMovies => _loadingMoreMovies;
   bool get loadingMarketplace => _loadingMarketplace;
   bool get loadingJobs => _loadingJobs;
   bool get loadingProperties => _loadingProperties;
@@ -58,6 +67,7 @@ class SocialHubController extends ChangeNotifier {
   List<SavedItemModel> get bookmarks => List.unmodifiable(_bookmarks);
   List<AppOption> get movieCategories => List.unmodifiable(_movieCategories);
   List<MovieItem> get movies => List.unmodifiable(_movies);
+  bool get hasMoreMovies => _moviePage < _movieLastPage;
   List<MoviePlanModel> get moviePlans => List.unmodifiable(_moviePlans);
   MovieSubscriptionModel? get activeSubscription => _activeSubscription;
   List<AppOption> get marketplaceCategories =>
@@ -102,8 +112,12 @@ class SocialHubController extends ChangeNotifier {
 
   Future<void> refreshMovies({int? categoryId, String? search}) async {
     if (!_sessionController.isLoggedIn) return;
+    if (_loadingMovies) return;
 
     _loadingMovies = true;
+    _loadingMoreMovies = false;
+    _movieCategoryId = categoryId;
+    _movieSearch = search;
     _error = null;
     notifyListeners();
 
@@ -111,18 +125,60 @@ class SocialHubController extends ChangeNotifier {
       final results = await Future.wait([
         _apiService.fetchMovieCategories(),
         _apiService.fetchMoviePlans(),
-        _apiService.fetchMovies(categoryId: categoryId, search: search),
+        _apiService.fetchMovies(
+          categoryId: categoryId,
+          search: search,
+          page: 1,
+          perPage: _moviePageSize,
+        ),
         _apiService.fetchActiveSubscription(),
       ]);
+      final moviePage = results[2] as MoviePage;
 
       _movieCategories = results[0] as List<AppOption>;
       _moviePlans = results[1] as List<MoviePlanModel>;
-      _movies = results[2] as List<MovieItem>;
+      _movies = moviePage.movies;
+      _moviePage = moviePage.currentPage;
+      _movieLastPage = moviePage.lastPage;
       _activeSubscription = results[3] as MovieSubscriptionModel?;
     } catch (error) {
       _error = error.toString();
     } finally {
       _loadingMovies = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadMoreMovies() async {
+    if (!_sessionController.isLoggedIn ||
+        _loadingMovies ||
+        _loadingMoreMovies ||
+        !hasMoreMovies) {
+      return;
+    }
+
+    _loadingMoreMovies = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final moviePage = await _apiService.fetchMovies(
+        categoryId: _movieCategoryId,
+        search: _movieSearch,
+        page: _moviePage + 1,
+        perPage: _moviePageSize,
+      );
+      final seenIds = _movies.map((movie) => movie.id).toSet();
+      _movies = [
+        ..._movies,
+        ...moviePage.movies.where((movie) => seenIds.add(movie.id)),
+      ];
+      _moviePage = moviePage.currentPage;
+      _movieLastPage = moviePage.lastPage;
+    } catch (error) {
+      _error = error.toString();
+    } finally {
+      _loadingMoreMovies = false;
       notifyListeners();
     }
   }
@@ -413,6 +469,11 @@ class SocialHubController extends ChangeNotifier {
     _bookmarks = const [];
     _movieCategories = const [];
     _movies = const [];
+    _loadingMoreMovies = false;
+    _moviePage = 0;
+    _movieLastPage = 1;
+    _movieCategoryId = null;
+    _movieSearch = null;
     _moviePlans = const [];
     _activeSubscription = null;
     _marketplaceCategories = const [];

@@ -14,6 +14,7 @@ import '../models/chat_user_option.dart';
 import '../models/job_listing_item.dart';
 import '../models/marketplace_item.dart';
 import '../models/movie_item.dart';
+import '../models/movie_page.dart';
 import '../models/movie_plan_model.dart';
 import '../models/property_listing_item.dart';
 import '../models/saved_item.dart';
@@ -67,6 +68,17 @@ class ChatApiService {
 
   String? _baseUrl;
   String? _appUrl;
+  String? _deviceUuid;
+
+  void setDeviceUuid(String? deviceUuid) {
+    final normalized = deviceUuid?.trim();
+    _deviceUuid = normalized == null || normalized.isEmpty ? null : normalized;
+    if (_deviceUuid == null) {
+      _dio.options.headers.remove('X-Device-Uuid');
+    } else {
+      _dio.options.headers['X-Device-Uuid'] = _deviceUuid;
+    }
+  }
 
   void setBootstrapBase(String baseUrl) {
     _baseUrl = _normalizeBaseUrl(baseUrl);
@@ -284,24 +296,57 @@ class ChatApiService {
     return _mapSimpleList(payload, AppOption.fromJson);
   }
 
-  Future<List<MovieItem>> fetchMovies({int? categoryId, String? search}) async {
+  Future<MoviePage> fetchMovies({
+    int? categoryId,
+    String? search,
+    int page = 1,
+    int perPage = 10,
+  }) async {
     final response = await _dio.get(
       '/movies',
       queryParameters: {
+        'page': page,
+        'per_page': perPage,
         if (categoryId != null && categoryId > 0)
           'movie_category_id': categoryId,
         if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+        if (_deviceUuid != null) 'device_uuid': _deviceUuid,
       },
     );
     final payload = response.data as Map<String, dynamic>;
-    return _mapPaginatedList(
-      payload,
-      (json) => _normalizeMovieItem(MovieItem.fromJson(json)),
+    final paginator = payload['data'];
+    if (paginator is! Map<String, dynamic>) {
+      return MoviePage(
+        movies: const [],
+        currentPage: page,
+        lastPage: page,
+        hasMore: false,
+      );
+    }
+    final movies = (paginator['data'] as List<dynamic>? ?? const <dynamic>[])
+        .whereType<Map>()
+        .map(
+          (item) => _normalizeMovieItem(
+            MovieItem.fromJson(Map<String, dynamic>.from(item)),
+          ),
+        )
+        .toList();
+    final currentPage = (paginator['current_page'] as num?)?.toInt() ?? page;
+    final lastPage = (paginator['last_page'] as num?)?.toInt() ?? currentPage;
+
+    return MoviePage(
+      movies: movies,
+      currentPage: currentPage,
+      lastPage: lastPage,
+      hasMore: currentPage < lastPage,
     );
   }
 
   Future<MovieItem> fetchMovieDetail(int movieId) async {
-    final response = await _dio.get('/movies/$movieId');
+    final response = await _dio.get(
+      '/movies/$movieId',
+      queryParameters: {if (_deviceUuid != null) 'device_uuid': _deviceUuid},
+    );
     final payload = response.data as Map<String, dynamic>;
     return _normalizeMovieItem(
       MovieItem.fromJson(payload['data'] as Map<String, dynamic>),
@@ -897,8 +942,16 @@ class ChatApiService {
       posterUrl: _normalizeMediaUrl(movie.posterUrl),
       bannerUrl: _normalizeMediaUrl(movie.bannerUrl),
       thirdPartyProvider: movie.thirdPartyProvider,
-      thirdPartyUrl: movie.thirdPartyUrl,
+      thirdPartyUrl: _normalizeMediaUrl(movie.thirdPartyUrl),
+      sourceType: movie.sourceType,
+      youtubeUrl: movie.youtubeUrl,
+      youtubeVideoId: movie.youtubeVideoId,
+      youtubeEmbedUrl: movie.youtubeEmbedUrl,
+      hostedVideoUrl: _normalizeMediaUrl(movie.hostedVideoUrl),
       accessType: movie.accessType,
+      price: movie.price,
+      currency: movie.currency,
+      requiresPayment: movie.requiresPayment,
       canWatch: movie.canWatch,
       isPublished: movie.isPublished,
       category: movie.category,
@@ -916,6 +969,7 @@ class ChatApiService {
       condition: item.condition,
       city: item.city,
       state: item.state,
+      contactName: item.contactName,
       contactPhone: item.contactPhone,
       contactEmail: item.contactEmail,
       imageUrls: item.imageUrls.map(_normalizeMediaUrl).toList(growable: false),
@@ -924,6 +978,9 @@ class ChatApiService {
       categoryName: item.categoryName,
       userName: item.userName,
       userAvatarUrl: _normalizeMediaUrl(item.userAvatarUrl),
+      sourceName: item.sourceName,
+      sourceUrl: item.sourceUrl,
+      externalId: item.externalId,
       saved: item.saved,
     );
   }

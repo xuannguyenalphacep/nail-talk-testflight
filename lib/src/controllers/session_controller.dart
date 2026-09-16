@@ -60,6 +60,7 @@ class SessionController extends ChangeNotifier {
 
     try {
       _deviceIdentity = await _deviceIdentityService.resolve();
+      _apiService.setDeviceUuid(_deviceIdentity?.uuid);
       final storedApp = await _storageService.loadSelectedApp();
       final storedToken = await _storageService.loadToken();
       final storedUser = await _storageService.loadUser();
@@ -157,6 +158,7 @@ class SessionController extends ChangeNotifier {
       final deviceIdentity =
           _deviceIdentity ?? await _deviceIdentityService.resolve();
       _deviceIdentity = deviceIdentity;
+      _apiService.setDeviceUuid(deviceIdentity.uuid);
 
       _apiService.setContext(app: _selectedApp!);
       final result = await _apiService.login(
@@ -208,6 +210,7 @@ class SessionController extends ChangeNotifier {
       final deviceIdentity =
           _deviceIdentity ?? await _deviceIdentityService.resolve();
       _deviceIdentity = deviceIdentity;
+      _apiService.setDeviceUuid(deviceIdentity.uuid);
 
       _apiService.setContext(app: _selectedApp!);
       final result = await _apiService.register(
@@ -426,6 +429,7 @@ class SessionController extends ChangeNotifier {
 
     _user = null;
     _token = null;
+    _apiService.setDeviceUuid(_deviceIdentity?.uuid);
     if (selectedApp != null) {
       _apiService.setContext(app: selectedApp);
     }

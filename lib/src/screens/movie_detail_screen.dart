@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 import '../controllers/social_hub_controller.dart';
 import '../core/localization/app_localizer.dart';
@@ -51,9 +54,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
   }
 
   bool _canWatch(SocialHubController controller) {
-    return _movie.accessType == 'free' ||
+    return _movie.isYoutube ||
+        _movie.accessType == 'free' ||
         _movie.canWatch ||
-        controller.activeSubscription?.isActive == true;
+        (_movie.accessType == 'subscription' &&
+            controller.activeSubscription?.isActive == true);
   }
 
   VideoFormat? _resolveVideoFormat(String url) {
@@ -76,7 +81,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
       final requiresPlayerReset =
           latestMovie.bannerUrl != _movie.bannerUrl ||
           latestMovie.posterUrl != _movie.posterUrl ||
-          latestMovie.thirdPartyUrl != _movie.thirdPartyUrl;
+          latestMovie.playableUrl != _movie.playableUrl ||
+          latestMovie.sourceType != _movie.sourceType;
 
       if (requiresPlayerReset) {
         await _resetVideoPlayer();
@@ -114,9 +120,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
 
   void _maybeInitializeVideo(SocialHubController controller) {
     if (!_canWatch(controller)) return;
+    if (_movie.isYoutube) return;
     if (_videoController != null || _initializingVideo) return;
 
-    final uri = Uri.tryParse(_movie.thirdPartyUrl);
+    final videoUrl = _movie.playableUrl;
+    final uri = Uri.tryParse(videoUrl);
     if (uri == null) {
       setState(
         () => _videoError = AppLocalizer.current.tr(
@@ -128,7 +136,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
 
     final controllerInstance = VideoPlayerController.networkUrl(
       uri,
-      formatHint: _resolveVideoFormat(_movie.thirdPartyUrl),
+      formatHint: _resolveVideoFormat(videoUrl),
       httpHeaders: _networkHeaders,
     );
 
@@ -158,31 +166,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
             setState(() => _initializingVideo = false);
           });
     });
-  }
-
-  Future<void> _subscribe(MoviePlanModel plan) async {
-    final messenger = ScaffoldMessenger.of(context);
-
-    try {
-      await context.read<SocialHubController>().subscribeToMoviePlan(plan.id);
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            context.tr('{plan} is now active for this account.', {
-              'plan': context.tr(plan.name),
-            }),
-          ),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(context.tr('Could not activate the plan right now.')),
-        ),
-      );
-    }
   }
 
   Future<void> _restartVideo() async {
@@ -219,9 +202,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
     }
 
     setState(() => _requestedPlayback = true);
-    _maybeInitializeVideo(controller);
+    if (!_movie.isYoutube) {
+      _maybeInitializeVideo(controller);
+    }
 
-    if (_videoController?.value.isInitialized == true &&
+    if (!_movie.isYoutube &&
+        _videoController?.value.isInitialized == true &&
         _videoController?.value.isPlaying != true) {
       await _videoController?.play();
     }
@@ -233,7 +219,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
   }
 
   Future<void> _copyMovieLink() async {
-    final link = _movie.thirdPartyUrl.trim();
+    final link = (_movie.isYoutube ? _movie.youtubeUrl : _movie.playableUrl)
+        .trim();
     if (link.isEmpty) {
       _showMessage('This stream link is not available yet.');
       return;
@@ -267,9 +254,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
     final social = context.watch<SocialHubController>();
     final unlocked = _canWatch(social);
     final activePlan = social.activeSubscription;
-    final primaryPlan = social.moviePlans.isNotEmpty
-        ? social.moviePlans.first
-        : null;
 
     return PopScope<void>(
       onPopInvokedWithResult: (didPop, result) {
@@ -283,7 +267,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
           child: SafeArea(
             bottom: false,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 12, 18, 132),
+              padding: EdgeInsets.fromLTRB(
+                18,
+                12,
+                18,
+                MediaQuery.paddingOf(context).bottom + 28,
+              ),
               children: [
                 _MovieHero(
                   movie: _movie,
@@ -300,7 +289,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
                 _MovieMetaCard(
                   movie: _movie,
                   activePlan: activePlan,
-                  unlocked: unlocked,
                   onPlay: () => _handlePrimaryWatch(social),
                   onCopyLink: _copyMovieLink,
                   onShowMessage: _showMessage,
@@ -313,13 +301,15 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
                   const SizedBox(height: 16),
                   Container(
                     key: _playerSectionKey,
-                    child: _MoviePlayerCard(
-                      controller: _videoController,
-                      videoFuture: _videoFuture,
-                      initializing: _initializingVideo,
-                      errorMessage: _videoError,
-                      onRestart: _restartVideo,
-                    ),
+                    child: _movie.isYoutube
+                        ? _MovieYoutubePlayerCard(movie: _movie)
+                        : _MoviePlayerCard(
+                            controller: _videoController,
+                            videoFuture: _videoFuture,
+                            initializing: _initializingVideo,
+                            errorMessage: _videoError,
+                            onRestart: _restartVideo,
+                          ),
                   ),
                 ],
                 if (!unlocked) ...[
@@ -327,49 +317,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
                   Container(
                     key: _lockedSectionKey,
                     child: _MovieLockedCard(
+                      movie: _movie,
                       activePlan: activePlan,
-                      plans: social.moviePlans,
-                      submitting: social.submitting,
-                      onSubscribe: _subscribe,
                     ),
                   ),
                 ],
                 const SizedBox(height: 16),
                 _MovieCastCard(movie: _movie),
               ],
-            ),
-          ),
-        ),
-        bottomNavigationBar: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-            child: FilledButton.icon(
-              onPressed: unlocked
-                  ? () => _handlePrimaryWatch(social)
-                  : primaryPlan == null || social.submitting
-                  ? null
-                  : () => _subscribe(primaryPlan),
-              style: FilledButton.styleFrom(
-                backgroundColor: kMetroCoral,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22),
-                ),
-              ),
-              icon: Icon(
-                unlocked
-                    ? Icons.play_circle_fill_rounded
-                    : Icons.workspace_premium_rounded,
-              ),
-              label: Text(
-                context.tr(unlocked ? 'Watch now' : 'Activate'),
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
             ),
           ),
         ),
@@ -554,7 +509,11 @@ class _MovieHero extends StatelessWidget {
                       const Spacer(),
                       Text(
                         context.tr(
-                          unlocked ? 'Ready to watch' : 'Subscription',
+                          unlocked
+                              ? (movie.isYoutube
+                                    ? 'YouTube free'
+                                    : 'Ready to watch')
+                              : 'Paid movie',
                         ),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.white.withValues(alpha: 0.84),
@@ -577,7 +536,6 @@ class _MovieMetaCard extends StatelessWidget {
   const _MovieMetaCard({
     required this.movie,
     required this.activePlan,
-    required this.unlocked,
     required this.onPlay,
     required this.onCopyLink,
     required this.onShowMessage,
@@ -585,7 +543,6 @@ class _MovieMetaCard extends StatelessWidget {
 
   final MovieItem movie;
   final MovieSubscriptionModel? activePlan;
-  final bool unlocked;
   final VoidCallback onPlay;
   final VoidCallback onCopyLink;
   final ValueChanged<String> onShowMessage;
@@ -601,13 +558,23 @@ class _MovieMetaCard extends StatelessWidget {
             : context.tr(movie.thirdPartyProvider),
       ),
       _MovieInfoChip(
-        icon: movie.accessType == 'free'
+        icon: movie.isYoutube || movie.accessType == 'free'
             ? Icons.lock_open_rounded
             : Icons.workspace_premium_rounded,
         label: context.tr(
-          movie.accessType == 'free' ? 'Free access' : 'Monthly access',
+          movie.isYoutube || movie.accessType == 'free'
+              ? 'Free access'
+              : 'Paid movie',
         ),
       ),
+      if (movie.isPaid)
+        _MovieInfoChip(
+          icon: Icons.attach_money_rounded,
+          label: context.tr('{currency} {price}', {
+            'currency': movie.currency,
+            'price': movie.price.toStringAsFixed(2),
+          }),
+        ),
       if (activePlan?.isActive == true)
         _MovieInfoChip(
           icon: Icons.schedule_rounded,
@@ -660,6 +627,8 @@ class _MovieMetaCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Wrap(spacing: 8, runSpacing: 8, children: chips),
+          const SizedBox(height: 16),
+          _MovieWatchNowButton(onTap: onPlay),
           const SizedBox(height: 18),
           Row(
             children: [
@@ -697,47 +666,67 @@ class _MovieMetaCard extends StatelessWidget {
               ),
             ],
           ),
-          if (unlocked) ...[
-            const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF5F7),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFFFE1E8)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: kMetroCoralSoft,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(
-                      Icons.play_circle_fill_rounded,
-                      color: kMetroCoral,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      context.tr(
-                        'Tap Watch now to open the stream player right inside this detail page.',
-                      ),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: kMetroInk,
-                        height: 1.45,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
+      ),
+    );
+  }
+}
+
+class _MovieWatchNowButton extends StatelessWidget {
+  const _MovieWatchNowButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Ink(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [kMetroCoral, Color(0xFFFF8B58)],
+            ),
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: kMetroCoral.withValues(alpha: 0.24),
+                blurRadius: 22,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.play_arrow_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                context.tr('Watch now'),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -899,6 +888,258 @@ class _MovieCastCard extends StatelessWidget {
                   ),
                 );
               },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MovieYoutubePlayerCard extends StatefulWidget {
+  const _MovieYoutubePlayerCard({required this.movie});
+
+  final MovieItem movie;
+
+  @override
+  State<_MovieYoutubePlayerCard> createState() =>
+      _MovieYoutubePlayerCardState();
+}
+
+class _MovieYoutubePlayerCardState extends State<_MovieYoutubePlayerCard> {
+  static const String _youtubeOrigin = 'https://nailtalk.app';
+  static const String _youtubeBaseUrl = 'https://nailtalk.app/player';
+
+  WebViewController? _controller;
+  bool _loading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupPlayer();
+  }
+
+  void _setupPlayer() {
+    final videoId = _resolveYoutubeVideoId();
+    final rawUrl = widget.movie.youtubeEmbedUrl.trim().isNotEmpty
+        ? widget.movie.youtubeEmbedUrl.trim()
+        : widget.movie.youtubeUrl.trim();
+    final uri = Uri.tryParse(rawUrl);
+
+    if (videoId.isEmpty &&
+        (rawUrl.isEmpty || uri == null || uri.host.isEmpty)) {
+      _errorMessage = AppLocalizer.current.tr(
+        'This YouTube embed is not available yet.',
+      );
+      _loading = false;
+      return;
+    }
+
+    final controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0xFF020817))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (_) {
+            if (mounted) {
+              setState(() => _loading = true);
+            }
+          },
+          onPageFinished: (_) {
+            if (mounted) {
+              setState(() => _loading = false);
+            }
+          },
+          onWebResourceError: (error) {
+            if (!mounted || error.isForMainFrame == false) return;
+            setState(() {
+              _loading = false;
+              _errorMessage = AppLocalizer.current.tr(
+                'Unable to load the YouTube player right now.',
+              );
+            });
+          },
+        ),
+      );
+
+    _controller = controller;
+
+    if (videoId.isNotEmpty) {
+      controller.loadHtmlString(
+        _youtubePlayerHtml(videoId),
+        baseUrl: _youtubeBaseUrl,
+      );
+      return;
+    }
+
+    controller.loadRequest(
+      uri!,
+      headers: const {
+        'Referer': 'https://nailtalk.app/',
+        'Origin': _youtubeOrigin,
+        'User-Agent':
+            'Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36',
+      },
+    );
+  }
+
+  String _resolveYoutubeVideoId() {
+    final directId = widget.movie.youtubeVideoId.trim();
+    if (directId.isNotEmpty) return directId;
+
+    final rawUrl = widget.movie.youtubeEmbedUrl.trim().isNotEmpty
+        ? widget.movie.youtubeEmbedUrl.trim()
+        : widget.movie.youtubeUrl.trim();
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null) return '';
+
+    if (uri.host.contains('youtu.be') && uri.pathSegments.isNotEmpty) {
+      return uri.pathSegments.first;
+    }
+
+    final queryId = uri.queryParameters['v'];
+    if (queryId != null && queryId.isNotEmpty) return queryId;
+
+    final embedIndex = uri.pathSegments.indexOf('embed');
+    if (embedIndex >= 0 && uri.pathSegments.length > embedIndex + 1) {
+      return uri.pathSegments[embedIndex + 1];
+    }
+
+    return '';
+  }
+
+  String _youtubePlayerHtml(String videoId) {
+    final embedUrl = Uri.https('www.youtube.com', '/embed/$videoId', {
+      'playsinline': '1',
+      'rel': '0',
+      'modestbranding': '1',
+      'enablejsapi': '1',
+      'origin': _youtubeOrigin,
+    }).toString();
+    final escapedUrl = const HtmlEscape(
+      HtmlEscapeMode.attribute,
+    ).convert(embedUrl);
+
+    return '''
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="referrer" content="origin-when-cross-origin">
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: #020817;
+      overflow: hidden;
+    }
+
+    .frame {
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 72% 20%, rgba(233, 78, 127, .22), transparent 32%),
+        #020817;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <iframe
+      src="$escapedUrl"
+      title="Nails Talk YouTube player"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowfullscreen
+      referrerpolicy="origin-when-cross-origin">
+    </iframe>
+  </div>
+</body>
+</html>
+''';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF081122),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  context.tr('Now playing'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 20,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: kMetroCoral.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  context.tr('Free YouTube'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: DecoratedBox(
+                decoration: const BoxDecoration(color: Color(0xFF020817)),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (controller != null && _errorMessage == null)
+                      WebViewWidget(controller: controller),
+                    if (_errorMessage != null)
+                      _PlayerMessage(
+                        icon: Icons.ondemand_video_rounded,
+                        message: _errorMessage!,
+                      ),
+                    if (_loading)
+                      _PlayerLoadingOverlay(
+                        message: context.tr('Loading YouTube player...'),
+                        compact: controller != null,
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -1634,20 +1875,17 @@ class _PlayerLoadingOverlay extends StatelessWidget {
 }
 
 class _MovieLockedCard extends StatelessWidget {
-  const _MovieLockedCard({
-    required this.activePlan,
-    required this.plans,
-    required this.submitting,
-    required this.onSubscribe,
-  });
+  const _MovieLockedCard({required this.movie, required this.activePlan});
 
+  final MovieItem movie;
   final MovieSubscriptionModel? activePlan;
-  final List<MoviePlanModel> plans;
-  final bool submitting;
-  final Future<void> Function(MoviePlanModel plan) onSubscribe;
 
   @override
   Widget build(BuildContext context) {
+    final priceLabel = movie.price > 0
+        ? '${movie.currency} ${movie.price.toStringAsFixed(2)}'
+        : context.tr('Paid access');
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -1680,71 +1918,79 @@ class _MovieLockedCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  activePlan?.isActive == true
-                      ? context.tr(
-                          'Your plan is active. Refresh this page or reopen the movie to start streaming.',
-                        )
-                      : context.tr(
-                          'This title is part of the monthly movie access plan.',
-                        ),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(height: 1.45),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('Paid hosted movie'),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: kMetroInk,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      context.tr(
+                        'Admin must activate this movie for your account and this device before playback.',
+                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(height: 1.45),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          ...plans.map(
-            (plan) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F8FE),
-                  borderRadius: BorderRadius.circular(24),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF5F7),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFFFFD8E2)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.lock_rounded, color: kMetroCoral),
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.tr(plan.name),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        priceLabel,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: kMetroInk,
+                              fontWeight: FontWeight.w900,
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            context.tr('{currency} {price} for {days} days', {
-                              'currency': plan.currency,
-                              'price': plan.price.toStringAsFixed(2),
-                              'days': '${plan.durationDays}',
-                            }),
-                          ),
-                          if (plan.description.trim().isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              context.tr(plan.description),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ],
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    FilledButton(
-                      onPressed: submitting ? null : () => onSubscribe(plan),
-                      child: Text(context.tr('Activate')),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        context.tr(
+                          activePlan?.isActive == true
+                              ? 'Your old movie plan is active, but this paid title uses device-level access.'
+                              : 'Payment and device unlock are managed from the admin panel for this demo.',
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: kMetroMuted,
+                          height: 1.4,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],

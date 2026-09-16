@@ -330,7 +330,7 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
                   ),
                   (
                     'Why can some movies require a plan?',
-                    'Some titles are free while premium shelves unlock after an active movie plan is purchased.',
+                    'Some YouTube titles are free, while hosted premium movies can be activated for a paid account and device from admin.',
                   ),
                   (
                     'How do I join a group chat?',

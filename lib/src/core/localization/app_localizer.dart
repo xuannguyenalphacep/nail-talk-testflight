@@ -432,9 +432,11 @@ class AppLocalizer {
     'Tap the contact or chat button on any listing and Nails Talk will open a direct chat room.':
         'Chạm nút liên hệ hoặc chat trên bất kỳ bài đăng nào và Nails Talk sẽ mở phòng chat riêng.',
     'Why can some movies require a plan?':
-        'Vì sao một số phim yêu cầu mua gói?',
+        'Vì sao một số phim cần kích hoạt quyền xem?',
     'Some titles are free while premium shelves unlock after an active movie plan is purchased.':
         'Một số phim miễn phí, còn các kệ phim cao cấp sẽ mở sau khi tài khoản có gói phim đang hoạt động.',
+    'Some YouTube titles are free, while hosted premium movies can be activated for a paid account and device from admin.':
+        'Một số phim YouTube được xem miễn phí, còn phim cao cấp từ hosting có thể được admin kích hoạt trả phí theo tài khoản và thiết bị.',
     'How do I join a group chat?': 'Tham gia chat nhóm như thế nào?',
     'Admin-created groups appear in the Chat tab. Tap a group to join and start reading or sending messages.':
         'Các nhóm do admin tạo sẽ xuất hiện ở tab Chat. Chạm vào nhóm để tham gia và bắt đầu đọc hoặc gửi tin nhắn.',
@@ -604,27 +606,54 @@ class AppLocalizer {
     'Post Item': 'Đăng món hàng',
     'Search products': 'Tìm sản phẩm',
     'Browse by category': 'Duyệt theo danh mục',
+    'Choose category': 'Chọn danh mục',
     'All categories': 'Tất cả danh mục',
     'My posts': 'Bài đăng của tôi',
     'View details': 'Xem chi tiết',
     'Save item': 'Lưu bài',
     'About this item': 'Về món hàng này',
     'Seller info': 'Thông tin người bán',
+    'Contact information': 'Thông tin liên hệ',
+    'Seller contact': 'Liên hệ người bán',
+    'Location': 'Vị trí',
     'Name': 'Tên',
+    'Price on request': 'Liên hệ giá',
+    'Contact to confirm location': 'Liên hệ để xác nhận vị trí',
     'This seller chat is not available yet.':
         'Hiện chưa thể mở chat với người bán này.',
     'Message seller': 'Nhắn người bán',
+    'Contact seller': 'Liên hệ người bán',
+    'Call seller': 'Gọi người bán',
+    'Email seller': 'Email người bán',
+    'Open original listing': 'Mở tin gốc',
+    'Use the public contact shown on this listing.':
+        'Dùng thông tin liên hệ công khai trên tin này.',
+    'Unable to open this contact link.': 'Chưa thể mở liên kết liên hệ này.',
     'This stream link is not available yet.':
         'Liên kết phát này hiện chưa khả dụng.',
     'Unable to load the movie stream right now.':
         'Hiện chưa thể tải luồng phát phim.',
+    'Unable to load the YouTube player right now.':
+        'Hiện chưa thể tải trình phát YouTube.',
+    'This YouTube embed is not available yet.':
+        'Video YouTube nhúng này chưa sẵn sàng.',
+    'Loading YouTube player...': 'Đang tải trình phát YouTube...',
+    'Tap play inside the video if it does not start automatically.':
+        'Nếu video chưa tự chạy, hãy bấm nút phát trong khung video.',
     '{plan} is now active for this account.':
         '{plan} hiện đã được kích hoạt cho tài khoản này.',
     'Could not activate the plan right now.':
         'Hiện chưa thể kích hoạt gói này.',
     'Movie feature': 'Điểm nổi bật phim',
     'Internet library': 'Thư viện Internet',
+    'YouTube': 'YouTube',
+    'Hosted Demo': 'Hosting demo',
     'Free access': 'Xem miễn phí',
+    'Paid access': 'Quyền xem thu phí',
+    'Paid movie': 'Phim thu phí',
+    'Paid hosted movie': 'Phim thu phí từ hosting',
+    'Free YouTube': 'YouTube miễn phí',
+    'YouTube free': 'YouTube miễn phí',
     'Monthly access': 'Gói theo tháng',
     'Active until {date}': 'Hiệu lực đến {date}',
     'About this movie': 'Giới thiệu phim',
@@ -643,6 +672,7 @@ class AppLocalizer {
         'Tựa phim này thuộc gói xem phim theo tháng.',
     '{currency} {price} for {days} days':
         '{currency} {price} trong {days} ngày',
+    '{currency} {price}': '{currency} {price}',
     'Activate': 'Kích hoạt',
     'Popular on Nails Talk': 'Nổi bật trên Nails Talk',
     'Top picks laid out like a real streaming browse page.':
@@ -682,6 +712,7 @@ class AppLocalizer {
     'All': 'Tất cả',
     'Ready': 'Sẵn sàng',
     'Free': 'Miễn phí',
+    'Paid': 'Có phí',
     'Subscription': 'Thuê bao',
     'Categories': 'Danh mục',
     'All genres': 'Tất cả thể loại',
@@ -692,6 +723,18 @@ class AppLocalizer {
     'Movie': 'Phim',
     'Plan': 'Gói',
     'Community stream': 'Luồng cộng đồng',
+    'Tap Watch now to play the YouTube embed inside this detail page.':
+        'Bấm Xem ngay để phát video YouTube nhúng ngay trong trang chi tiết này.',
+    'Tap Watch now to open the hosted stream player right inside this detail page.':
+        'Bấm Xem ngay để mở trình phát phim hosting ngay trong trang chi tiết này.',
+    'This paid movie must be activated for your account and device by admin.':
+        'Phim thu phí này cần được admin kích hoạt cho tài khoản và thiết bị của bạn.',
+    'Admin must activate this movie for your account and this device before playback.':
+        'Admin cần kích hoạt phim này cho tài khoản và thiết bị của bạn trước khi xem.',
+    'Payment and device unlock are managed from the admin panel for this demo.':
+        'Thanh toán và quyền xem theo thiết bị được quản lý trong trang admin cho bản demo này.',
+    'Your old movie plan is active, but this paid title uses device-level access.':
+        'Gói phim cũ của bạn đang hoạt động, nhưng phim thu phí này dùng quyền xem theo thiết bị.',
     'Watch': 'Xem',
     'Search in Nails Talk...': 'Tìm kiếm trên Nails Talk...',
     'Search suggestions': 'Gợi ý tìm kiếm',
@@ -734,10 +777,18 @@ class AppLocalizer {
     'Find rooms, roommates': 'Tìm phòng, ở ghép',
     'Details': 'Chi tiết',
     'Movie pass active until {date}': 'Gói xem phim hoạt động đến {date}',
+    'Paid access active until {date}':
+        'Quyền xem phim thu phí hoạt động đến {date}',
     'Premium shelves are unlocked for this account.':
         'Các kệ phim cao cấp đã được mở cho tài khoản này.',
     'Unlock more titles and keep the movie rows open.':
         'Mở khóa thêm nhiều tựa phim và giữ các hàng phim luôn sẵn sàng.',
+    '{count} hosted paid movies available':
+        '{count} phim hosting thu phí đang có',
+    'Paid hosted movies can be opened on this approved device.':
+        'Phim thu phí từ hosting có thể mở trên thiết bị đã được duyệt này.',
+    'Admin can activate each hosted paid movie for this account and device.':
+        'Admin có thể kích hoạt từng phim hosting thu phí cho tài khoản và thiết bị này.',
     'Active': 'Đang hoạt động',
     'Unlock': 'Mở khóa',
     'Plan required': 'Cần gói xem phim',
@@ -762,6 +813,8 @@ class AppLocalizer {
     'Fresh releases': 'Mới cập nhật',
     'New posters and fresh streams for the week.':
         'Poster mới và luồng phim mới cập nhật trong tuần.',
+    'Loading more movies...': 'Đang tải thêm phim...',
+    'Scroll down to load more movies.': 'Kéo xuống để tải thêm phim.',
     'Popular categories': 'Danh mục phổ biến',
     'Movie categories': 'Danh mục',
     'Every shelf available for browsing in one place.':

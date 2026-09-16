@@ -4,6 +4,7 @@ Nail Talk is the Flutter mobile app for chat, movies, marketplace, jobs, and roo
 
 ## Project docs
 
+- Live environment notes: [docs/live-environment.md](docs/live-environment.md)
 - TestFlight deploy guide: [docs/testflight-deploy.md](docs/testflight-deploy.md)
 
 ## iOS release

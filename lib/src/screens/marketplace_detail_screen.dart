@@ -54,13 +54,27 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
     final imageUrls = item.imageUrls.isEmpty ? const [''] : item.imageUrls;
     final safeIndex = _imageIndex.clamp(0, imageUrls.length - 1);
     final location = _location(item.city, item.state);
-    final listBottomPadding = MediaQuery.viewPaddingOf(context).bottom + 36;
+    final displayTitle = _cleanMarketplaceText(item.title);
+    final displayDescription = _cleanMarketplaceText(item.description);
+    final safeTitle = displayTitle.isEmpty ? 'Marketplace item' : displayTitle;
+    final safeDescription = displayDescription.isEmpty
+        ? 'Useful finds, salon gear, and community listings.'
+        : displayDescription;
+    final contactName = _sellerDisplayName(item);
+    final contactPhone = _publicPhone(item);
+    final contactEmail = _publicEmail(item);
+    final showContactInfo =
+        contactName.isNotEmpty ||
+        contactPhone.isNotEmpty ||
+        contactEmail.isNotEmpty ||
+        item.city.trim().isNotEmpty ||
+        item.state.trim().isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 16,
         title: Text(
-          context.tr(item.title.isEmpty ? 'Marketplace item' : item.title),
+          context.tr('Buy & Sell'),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -78,12 +92,69 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
           const SizedBox(width: 16),
         ],
       ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBFA).withValues(alpha: 0.98),
+          border: const Border(top: BorderSide(color: kMetroLine)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x180F172A),
+              blurRadius: 22,
+              offset: Offset(0, -10),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 52,
+                    child: FilledButton.icon(
+                      onPressed: () => widget.onContact(item),
+                      style: metroSoftFilledButtonStyle(context, kMetroPrimary),
+                      icon: const Icon(Icons.chat_bubble_outline_rounded),
+                      label: Text(
+                        context.tr(
+                          _hasVisiblePublicContact(item)
+                              ? 'Contact seller'
+                              : 'Message seller',
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    onPressed: () => controller.toggleBookmark(
+                      type: 'marketplace_listing',
+                      id: item.id,
+                    ),
+                    style: metroSoftOutlinedButtonStyle(context),
+                    icon: Icon(
+                      item.saved
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_add_outlined,
+                    ),
+                    label: Text(context.tr(item.saved ? 'Saved' : 'Save item')),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
       body: MetroPageBackground(
         child: ListView(
-          padding: EdgeInsets.fromLTRB(16, 10, 16, listBottomPadding),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
           children: [
             MetroInsetPanel(
-              borderColor: kMetroPrimary,
+              borderColor: kMetroCoral,
               padding: EdgeInsets.zero,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,66 +267,56 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          context.tr(item.title),
-                          style: Theme.of(context).textTheme.headlineMedium
-                              ?.copyWith(color: kMetroInk, fontSize: 30),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _money(item.price, item.currency),
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                color: kMetroCoral,
-                                fontWeight: FontWeight.w900,
-                              ),
-                        ),
-                        const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            if (location.isNotEmpty)
+                            if (item.categoryName.isNotEmpty)
                               MetroBadge(
-                                label: location,
-                                backgroundColor: const Color(0xFFF0F3FA),
+                                label: item.categoryName,
+                                backgroundColor: kMetroCoralSoft,
                               ),
                             if (item.status.isNotEmpty)
                               MetroBadge(
                                 label: _marketplaceStatusLabel(item.status),
                                 backgroundColor: const Color(0xFFEFF8F2),
                               ),
-                            if (item.userName.isNotEmpty)
+                            if (location.isNotEmpty)
                               MetroBadge(
-                                label: item.userName,
-                                backgroundColor: const Color(0xFFFFEEF2),
+                                label: location,
+                                backgroundColor: const Color(0xFFF0F3FA),
                               ),
                           ],
                         ),
+                        const SizedBox(height: 12),
+                        Text(
+                          context.tr(safeTitle),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(
+                                color: kMetroInk,
+                                fontSize: 25,
+                                height: 1.08,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          context.tr(_money(item.price, item.currency)),
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                color: kMetroCoral,
+                                fontSize: 26,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
                         const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: FilledButton(
-                                onPressed: () => widget.onContact(item),
-                                child: Text(context.tr('Message seller')),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => controller.toggleBookmark(
-                                  type: 'marketplace_listing',
-                                  id: item.id,
-                                ),
-                                child: Text(
-                                  context.tr(
-                                    item.saved ? 'Saved' : 'Save item',
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                        _MarketplaceSummaryGrid(
+                          location: location,
+                          contactName: contactName,
+                          phone: contactPhone,
+                          category: item.categoryName,
                         ),
                       ],
                     ),
@@ -277,52 +338,186 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    context.tr(
-                      item.description.isEmpty
-                          ? 'Useful finds, salon gear, and community listings.'
-                          : item.description,
+                    context.tr(safeDescription),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: kMetroMuted,
+                      height: 1.5,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
                     ),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: kMetroMuted),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            MetroInsetPanel(
-              borderColor: kMetroCoral,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.tr('Seller info'),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleMedium?.copyWith(color: kMetroInk),
-                  ),
-                  const SizedBox(height: 12),
-                  _DetailRow(
-                    label: 'Name',
-                    value: item.userName.isEmpty ? '...' : item.userName,
-                  ),
-                  if (item.contactPhone.trim().isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    _DetailRow(label: 'Phone', value: item.contactPhone),
+            if (showContactInfo) ...[
+              const SizedBox(height: 12),
+              MetroInsetPanel(
+                borderColor: kMetroCoral,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('Contact information'),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleMedium?.copyWith(color: kMetroInk),
+                    ),
+                    const SizedBox(height: 12),
+                    if (contactName.isNotEmpty)
+                      _DetailRow(label: 'Name', value: contactName),
+                    if (contactPhone.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _DetailRow(label: 'Phone', value: contactPhone),
+                    ],
+                    if (contactEmail.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _DetailRow(label: 'Email', value: contactEmail),
+                    ],
+                    if (item.city.trim().isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _DetailRow(label: 'City', value: item.city.trim()),
+                    ],
+                    if (item.state.trim().isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _DetailRow(label: 'State', value: item.state.trim()),
+                    ],
+                    if (item.categoryName.trim().isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _DetailRow(label: 'Category', value: item.categoryName),
+                    ],
                   ],
-                  if (item.contactEmail.trim().isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    _DetailRow(label: 'Email', value: item.contactEmail),
-                  ],
-                  if (item.categoryName.trim().isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    _DetailRow(label: 'Category', value: item.categoryName),
-                  ],
-                ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MarketplaceSummaryGrid extends StatelessWidget {
+  const _MarketplaceSummaryGrid({
+    required this.location,
+    required this.contactName,
+    required this.phone,
+    required this.category,
+  });
+
+  final String location;
+  final String contactName;
+  final String phone;
+  final String category;
+
+  @override
+  Widget build(BuildContext context) {
+    final contactValue = contactName.isNotEmpty
+        ? contactName
+        : (phone.isNotEmpty ? phone : 'Contact seller');
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _MarketplaceSummaryTile(
+                icon: Icons.place_outlined,
+                label: 'Location',
+                value: location.isEmpty
+                    ? 'Contact to confirm location'
+                    : location,
+                accent: kMetroPrimary,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _MarketplaceSummaryTile(
+                icon: Icons.person_outline_rounded,
+                label: 'Seller contact',
+                value: contactValue,
+                accent: kMetroCoral,
               ),
             ),
           ],
         ),
+        if (category.trim().isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _MarketplaceSummaryTile(
+            icon: Icons.category_outlined,
+            label: 'Category',
+            value: category.trim(),
+            accent: kMetroGold,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _MarketplaceSummaryTile extends StatelessWidget {
+  const _MarketplaceSummaryTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.accent,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 74),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: kMetroLine),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: accent, size: 19),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  context.tr(label),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: kMetroMuted,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  context.tr(value),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: kMetroInk,
+                    fontWeight: FontWeight.w900,
+                    height: 1.12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -395,6 +590,80 @@ String _location(String city, String state) {
   return parts.join(', ');
 }
 
+String _sellerDisplayName(MarketplaceItem item) {
+  final contactName = item.contactName.trim();
+  if (contactName.isNotEmpty && !_isSyntheticSeller(contactName)) {
+    return contactName;
+  }
+
+  final userName = item.userName.trim();
+  if (!item.isImportedSource && !_isSyntheticSeller(userName)) {
+    return userName;
+  }
+
+  return '';
+}
+
+String _publicPhone(MarketplaceItem item) {
+  final phone = item.contactPhone.trim();
+  if (phone.isNotEmpty) return phone;
+  return _firstPhone('${item.title} ${item.description}');
+}
+
+String _publicEmail(MarketplaceItem item) {
+  final email = item.contactEmail.trim();
+  if (email.isNotEmpty) return email;
+  return _firstEmail('${item.title} ${item.description}');
+}
+
+bool _hasVisiblePublicContact(MarketplaceItem item) {
+  return _sellerDisplayName(item).isNotEmpty ||
+      _publicPhone(item).isNotEmpty ||
+      _publicEmail(item).isNotEmpty ||
+      item.sourceUrl.trim().isNotEmpty;
+}
+
+bool _isSyntheticSeller(String value) {
+  final lower = value.trim().toLowerCase();
+  return lower.isEmpty ||
+      lower == 'nails talk market source' ||
+      lower == 'hỗ trợ mua và bán' ||
+      lower == 'ho tro mua va ban';
+}
+
+String _cleanMarketplaceText(String raw) {
+  return raw
+      .replaceAll(
+        RegExp(r'\s*Nguồn tham khảo:.*$', caseSensitive: false, dotAll: true),
+        ' ',
+      )
+      .replaceAll(
+        RegExp(r'\s*Nails Talk Market Source\s*', caseSensitive: false),
+        ' ',
+      )
+      .replaceAll(
+        RegExp(r'\s*liên hệ theo tin gốc\.?', caseSensitive: false),
+        ' ',
+      )
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+}
+
+String _firstPhone(String text) {
+  final match = RegExp(
+    r'(?:(?:\+?1[\s\-.]?)?(?:\(?\d{3}\)?[\s\-.]?\d{3}[\s\-.]?\d{4}))',
+  ).firstMatch(text);
+  return match?.group(0)?.trim() ?? '';
+}
+
+String _firstEmail(String text) {
+  final match = RegExp(
+    r'[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}',
+    caseSensitive: false,
+  ).firstMatch(text);
+  return match?.group(0)?.trim() ?? '';
+}
+
 String _humanize(String raw) {
   final cleaned = raw.replaceAll('_', ' ').replaceAll('-', ' ').trim();
   if (cleaned.isEmpty) return '';
@@ -409,6 +678,10 @@ String _humanize(String raw) {
 }
 
 String _money(double value, String currency) {
+  if (value <= 0) {
+    return 'Price on request';
+  }
+
   final prefix = currency.toUpperCase() == 'USD'
       ? '\$'
       : '${currency.toUpperCase()} ';

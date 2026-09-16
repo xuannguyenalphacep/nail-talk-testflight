@@ -4,11 +4,9 @@ import 'package:provider/provider.dart';
 import '../controllers/chat_controller.dart';
 import '../controllers/social_hub_controller.dart';
 import '../core/localization/app_localizer.dart';
-import '../core/utils/app_date_utils.dart';
 import '../core/utils/movie_showcase_utils.dart';
 import '../models/app_option.dart';
 import '../models/movie_item.dart';
-import '../models/movie_plan_model.dart';
 import '../widgets/language_switch_button.dart';
 import '../widgets/metro_ui.dart';
 import 'chat_home_screen.dart';
@@ -28,6 +26,7 @@ class MoviesScreen extends StatefulWidget {
 class _MoviesScreenState extends State<MoviesScreen> {
   final TextEditingController _searchController = TextEditingController();
   final PageController _heroController = PageController();
+  final ScrollController _scrollController = ScrollController();
 
   int _heroIndex = 0;
 
@@ -39,12 +38,16 @@ class _MoviesScreenState extends State<MoviesScreen> {
       context.read<SocialHubController>().refreshMovies();
     });
     _searchController.addListener(_handleSearchChanged);
+    _scrollController.addListener(_handleScroll);
   }
 
   @override
   void dispose() {
     _searchController
       ..removeListener(_handleSearchChanged)
+      ..dispose();
+    _scrollController
+      ..removeListener(_handleScroll)
       ..dispose();
     _heroController.dispose();
     super.dispose();
@@ -56,8 +59,16 @@ class _MoviesScreenState extends State<MoviesScreen> {
     }
   }
 
+  void _handleScroll() {
+    if (!_scrollController.hasClients) return;
+    if (_scrollController.position.extentAfter > 420) return;
+    context.read<SocialHubController>().loadMoreMovies();
+  }
+
   bool _isUnlocked(MovieItem movie, bool hasActivePlan) {
-    return movie.accessType == 'free' || movie.canWatch || hasActivePlan;
+    return movie.isFree ||
+        movie.canWatch ||
+        (movie.accessType == 'subscription' && hasActivePlan);
   }
 
   List<MovieItem> _filterMovies(List<MovieItem> movies) {
@@ -168,16 +179,13 @@ class _MoviesScreenState extends State<MoviesScreen> {
         .where((movie) => _isUnlocked(movie, hasActivePlan))
         .toList(growable: false);
     final freeMovies = visibleMovies
-        .where((movie) => movie.accessType == 'free')
+        .where((movie) => movie.isFree)
         .toList(growable: false);
     final trendingMovies = _sortMovies(visibleMovies, _MovieBrowseSort.popular);
     final newestMovies = _sortMovies(visibleMovies, _MovieBrowseSort.newest);
     final heroMovies = (visibleMovies.isNotEmpty ? visibleMovies : library)
         .take(4)
         .toList(growable: false);
-    final highlightedPlan = controller.moviePlans.isNotEmpty
-        ? controller.moviePlans.first
-        : null;
     final categorySummaries = _buildMovieCategorySummaries(
       controller.movieCategories,
       visibleMovies.isNotEmpty ? visibleMovies : library,
@@ -192,6 +200,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
           child: RefreshIndicator(
             onRefresh: _refreshMovies,
             child: ListView(
+              controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
               children: [
                 _TopScreenBar(
@@ -267,15 +276,6 @@ class _MoviesScreenState extends State<MoviesScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  if (highlightedPlan != null ||
-                      controller.activeSubscription != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 18),
-                      child: _MoviePlanPanel(
-                        plan: highlightedPlan,
-                        activeSubscription: controller.activeSubscription,
-                      ),
-                    ),
                   if (readyMovies.isNotEmpty)
                     _MoviePosterStripSection(
                       title: 'Ready to watch',
@@ -337,6 +337,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
                         initialSort: _MovieBrowseSort.newest,
                       ),
                     ),
+                  _MovieLoadMoreFooter(controller: controller),
                 ],
               ],
             ),
@@ -572,11 +573,17 @@ class _MovieHeroSlide extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          MetroBadge(
-            label: 'Featured movie',
-            backgroundColor: kMetroCoral,
-            foregroundColor: Colors.white,
-            outlined: false,
+          Row(
+            children: [
+              MetroBadge(
+                label: 'Featured movie',
+                backgroundColor: kMetroCoral,
+                foregroundColor: Colors.white,
+                outlined: false,
+              ),
+              const Spacer(),
+              _MoviePriceBadge(movie: movie),
+            ],
           ),
           const Spacer(),
           Text(
@@ -664,7 +671,7 @@ class _MovieHeroSlide extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                context.tr(unlocked ? 'Ready to watch' : 'Subscription'),
+                context.tr(unlocked ? 'Ready to watch' : 'Paid movie'),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.white.withValues(alpha: 0.84),
                   fontWeight: FontWeight.w700,
@@ -962,6 +969,8 @@ class _MoviePosterCard extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
+                const Spacer(),
+                _MoviePriceBadge(movie: movie, compact: true),
               ],
             ),
           ],
@@ -971,91 +980,123 @@ class _MoviePosterCard extends StatelessWidget {
   }
 }
 
-class _MoviePlanPanel extends StatelessWidget {
-  const _MoviePlanPanel({required this.plan, required this.activeSubscription});
+class _MoviePriceBadge extends StatelessWidget {
+  const _MoviePriceBadge({required this.movie, this.compact = false});
 
-  final MoviePlanModel? plan;
-  final MovieSubscriptionModel? activeSubscription;
+  final MovieItem movie;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final active = activeSubscription?.isActive == true;
-    final label = active
-        ? context.tr('Movie pass active until {date}', {
-            'date': activeSubscription?.endsAt == null
-                ? context.tr('soon')
-                : AppDateUtils.formatDate(activeSubscription?.endsAt),
-          })
-        : plan == null
-        ? context.tr('Subscription ready')
-        : context.tr('{currency} {price} / {days} days', {
-            'currency': plan!.currency,
-            'price': plan!.price.toStringAsFixed(2),
-            'days': '${plan!.durationDays}',
-          });
+    final free = movie.isFree || (movie.price <= 0 && !movie.isPaid);
+    final label = free
+        ? context.tr('Free')
+        : (movie.price > 0 ? _formatMoviePrice(movie) : context.tr('Paid'));
+    final icon = free
+        ? Icons.play_circle_fill_rounded
+        : Icons.workspace_premium_rounded;
+    final colors = free
+        ? const [Color(0xFFE8FFF4), Color(0xFFFFFFFF)]
+        : const [Color(0xFFFF4F86), Color(0xFFFF8A5B)];
+    final foreground = free ? const Color(0xFF13835E) : Colors.white;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 10,
+        vertical: compact ? 6 : 8,
+      ),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFF5F7), Color(0xFFFFFBFC)],
+        gradient: LinearGradient(
+          colors: colors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: const Color(0xFFFFE1E8)),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: free
+              ? const Color(0x6634D399)
+              : Colors.white.withValues(alpha: 0.22),
+        ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x120F172A),
-            blurRadius: 18,
-            offset: Offset(0, 10),
+            color: Color(0x260F172A),
+            blurRadius: 14,
+            offset: Offset(0, 8),
           ),
         ],
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: active ? kMetroCoralSoft : kMetroPrimarySoft,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(
-              active
-                  ? Icons.workspace_premium_rounded
-                  : Icons.local_activity_rounded,
-              color: active ? kMetroCoral : kMetroPrimary,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: kMetroInk,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  context.tr(
-                    active
-                        ? 'Premium shelves are unlocked for this account.'
-                        : 'Unlock more titles and keep the movie rows open.',
-                  ),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: kMetroMuted,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+          Icon(icon, color: foreground, size: compact ? 13 : 15),
+          SizedBox(width: compact ? 4 : 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: foreground,
+              fontSize: compact ? 10 : 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.1,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+String _formatMoviePrice(MovieItem movie) {
+  final amount = movie.price == movie.price.roundToDouble()
+      ? movie.price.toStringAsFixed(0)
+      : movie.price.toStringAsFixed(2);
+
+  return movie.currency == 'USD' ? '\$$amount' : '${movie.currency} $amount';
+}
+
+class _MovieLoadMoreFooter extends StatelessWidget {
+  const _MovieLoadMoreFooter({required this.controller});
+
+  final SocialHubController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    if (controller.loadingMoreMovies) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(0, 8, 0, 22),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2.4),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              context.tr('Loading more movies...'),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: kMetroMuted,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (!controller.hasMoreMovies || controller.movies.isEmpty) {
+      return const SizedBox(height: 8);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 2, 0, 18),
+      child: Text(
+        context.tr('Scroll down to load more movies.'),
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: kMetroMuted,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -1086,6 +1127,7 @@ class _MovieBrowseScreen extends StatefulWidget {
 
 class _MovieBrowseScreenState extends State<_MovieBrowseScreen> {
   late final TextEditingController _searchController;
+  final ScrollController _scrollController = ScrollController();
   late _MovieBrowseSort _sort;
   late _MovieAccessFilter _accessFilter;
   int? _categoryId;
@@ -1098,12 +1140,16 @@ class _MovieBrowseScreenState extends State<_MovieBrowseScreen> {
     _accessFilter = widget.initialAccessFilter;
     _categoryId = widget.initialCategoryId;
     _searchController.addListener(_handleSearchChanged);
+    _scrollController.addListener(_handleScroll);
   }
 
   @override
   void dispose() {
     _searchController
       ..removeListener(_handleSearchChanged)
+      ..dispose();
+    _scrollController
+      ..removeListener(_handleScroll)
       ..dispose();
     super.dispose();
   }
@@ -1114,20 +1160,28 @@ class _MovieBrowseScreenState extends State<_MovieBrowseScreen> {
     }
   }
 
+  void _handleScroll() {
+    if (!_scrollController.hasClients) return;
+    if (_scrollController.position.extentAfter > 420) return;
+    context.read<SocialHubController>().loadMoreMovies();
+  }
+
   bool _matchesAccess(MovieItem movie, bool hasActivePlan) {
     return switch (_accessFilter) {
       _MovieAccessFilter.all => true,
       _MovieAccessFilter.ready =>
-        movie.accessType == 'free' || movie.canWatch || hasActivePlan,
-      _MovieAccessFilter.free => movie.accessType == 'free',
-      _MovieAccessFilter.subscription => movie.accessType != 'free',
+        movie.isFree ||
+            movie.canWatch ||
+            (movie.accessType == 'subscription' && hasActivePlan),
+      _MovieAccessFilter.free => movie.isFree,
+      _MovieAccessFilter.subscription => !movie.isFree,
     };
   }
 
-  List<MovieItem> _visibleMovies(bool hasActivePlan) {
+  List<MovieItem> _visibleMovies(bool hasActivePlan, List<MovieItem> library) {
     final query = _searchController.text.trim().toLowerCase();
 
-    final filtered = widget.library.where((movie) {
+    final filtered = library.where((movie) {
       if (_categoryId != null && movie.category?.id != _categoryId) {
         return false;
       }
@@ -1166,7 +1220,11 @@ class _MovieBrowseScreenState extends State<_MovieBrowseScreen> {
   Widget build(BuildContext context) {
     final controller = context.watch<SocialHubController>();
     final hasActivePlan = controller.activeSubscription?.isActive == true;
-    final movies = _visibleMovies(hasActivePlan);
+    final library =
+        (controller.movies.isNotEmpty ? controller.movies : widget.library)
+            .where((movie) => movie.isPublished)
+            .toList(growable: false);
+    final movies = _visibleMovies(hasActivePlan, library);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -1174,6 +1232,7 @@ class _MovieBrowseScreenState extends State<_MovieBrowseScreen> {
         child: SafeArea(
           bottom: false,
           child: ListView(
+            controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
             children: [
               Row(
@@ -1320,6 +1379,7 @@ class _MovieBrowseScreenState extends State<_MovieBrowseScreen> {
                     );
                   },
                 ),
+              _MovieLoadMoreFooter(controller: controller),
             ],
           ),
         ),
@@ -1565,7 +1625,9 @@ List<_MovieCategorySummary> _buildMovieCategorySummaries(
       count: library
           .where(
             (movie) =>
-                movie.accessType == 'free' || movie.canWatch || hasActivePlan,
+                movie.isFree ||
+                movie.canWatch ||
+                (movie.accessType == 'subscription' && hasActivePlan),
           )
           .length,
       accessFilter: _MovieAccessFilter.ready,

@@ -21,6 +21,7 @@ class MarketplaceItem {
     required this.condition,
     required this.city,
     required this.state,
+    required this.contactName,
     required this.contactPhone,
     required this.contactEmail,
     required this.imageUrls,
@@ -29,6 +30,9 @@ class MarketplaceItem {
     required this.categoryName,
     required this.userName,
     required this.userAvatarUrl,
+    required this.sourceName,
+    required this.sourceUrl,
+    required this.externalId,
     required this.saved,
   });
 
@@ -41,6 +45,7 @@ class MarketplaceItem {
   final String condition;
   final String city;
   final String state;
+  final String contactName;
   final String contactPhone;
   final String contactEmail;
   final List<String> imageUrls;
@@ -49,7 +54,21 @@ class MarketplaceItem {
   final String categoryName;
   final String userName;
   final String userAvatarUrl;
+  final String sourceName;
+  final String sourceUrl;
+  final String externalId;
   final bool saved;
+
+  bool get isImportedSource =>
+      sourceName.trim().isNotEmpty ||
+      sourceUrl.trim().isNotEmpty ||
+      externalId.trim().isNotEmpty;
+
+  bool get hasPublicContact =>
+      contactName.trim().isNotEmpty ||
+      contactPhone.trim().isNotEmpty ||
+      contactEmail.trim().isNotEmpty ||
+      sourceUrl.trim().isNotEmpty;
 
   factory MarketplaceItem.fromJson(Map<String, dynamic> json) {
     final category = json['category'] is Map<String, dynamic>
@@ -69,6 +88,7 @@ class MarketplaceItem {
       condition: (json['condition'] ?? '').toString(),
       city: (json['city'] ?? '').toString(),
       state: (json['state'] ?? '').toString(),
+      contactName: (json['contact_name'] ?? '').toString(),
       contactPhone: (json['contact_phone'] ?? '').toString(),
       contactEmail: (json['contact_email'] ?? '').toString(),
       imageUrls: (json['image_urls'] as List<dynamic>? ?? const <dynamic>[])
@@ -82,6 +102,9 @@ class MarketplaceItem {
       userName: (user['name'] ?? json['user_name'] ?? '').toString(),
       userAvatarUrl: (user['avatar_url'] ?? json['user_avatar_url'] ?? '')
           .toString(),
+      sourceName: (json['source_name'] ?? '').toString(),
+      sourceUrl: (json['source_url'] ?? '').toString(),
+      externalId: (json['external_id'] ?? '').toString(),
       saved: json['saved'] == true || json['saved'] == 1,
     );
   }
@@ -97,6 +120,7 @@ class MarketplaceItem {
       condition: condition,
       city: city,
       state: state,
+      contactName: contactName,
       contactPhone: contactPhone,
       contactEmail: contactEmail,
       imageUrls: imageUrls,
@@ -105,6 +129,9 @@ class MarketplaceItem {
       categoryName: categoryName,
       userName: userName,
       userAvatarUrl: userAvatarUrl,
+      sourceName: sourceName,
+      sourceUrl: sourceUrl,
+      externalId: externalId,
       saved: saved ?? this.saved,
     );
   }
