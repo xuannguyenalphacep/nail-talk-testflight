@@ -9,6 +9,8 @@ Use this file as the copy/paste source for App Store Connect, TestFlight review 
 - App display name: `Nails Talk`
 - iOS bundle id: `com.kantek.nailtalk`
 - Google Play package: `com.ai.nailstalk`
+- Google Play Console app id: `4973353539970650110`
+- Google Play internal testing link: `https://play.google.com/apps/internaltest/4701153597150910194`
 - Current Flutter version: `1.0.0+1`
 - Live API: `http://54.205.74.122/api`
 - Live Socket: `http://54.205.74.122`
@@ -202,3 +204,4 @@ Use the final production privacy policy as the source of truth. Current function
 - Add final Support URL and Privacy Policy URL in App Store Connect.
 - Add reviewer credentials only inside App Store Connect / Play Console, not in this repository.
 - For Android production, use Google Play package `com.ai.nailstalk` and replace debug signing before upload.
+- Android release signing uses a local ignored keystore at `android/upload-keystore.jks` with ignored properties in `android/key.properties`.
