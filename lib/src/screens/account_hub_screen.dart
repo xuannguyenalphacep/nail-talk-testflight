@@ -370,6 +370,10 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
                     'Account safety',
                     'Do not post scams, duplicate listings, harassment, or illegal content. Admin can remove content or disable accounts that break these rules.',
                   ),
+                  (
+                    'Child safety reporting',
+                    'Report child safety concerns, exploitation, grooming, or illegal content in the app by contacting support at kietlamphim@gmail.com. Include the username, post, listing, or chat details so the team can review and escalate urgent risks.',
+                  ),
                 ],
               )
             else

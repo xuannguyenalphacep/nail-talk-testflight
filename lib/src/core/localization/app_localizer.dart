@@ -462,6 +462,9 @@ class AppLocalizer {
     'Account safety': 'An toàn tài khoản',
     'Do not post scams, duplicate listings, harassment, or illegal content. Admin can remove content or disable accounts that break these rules.':
         'Không đăng lừa đảo, tin trùng lặp, quấy rối hoặc nội dung bất hợp pháp. Admin có thể xóa nội dung hoặc khóa tài khoản vi phạm các quy định này.',
+    'Child safety reporting': 'Báo cáo an toàn trẻ em',
+    'Report child safety concerns, exploitation, grooming, or illegal content in the app by contacting support at kietlamphim@gmail.com. Include the username, post, listing, or chat details so the team can review and escalate urgent risks.':
+        'Báo cáo lo ngại về an toàn trẻ em, bóc lột, dụ dỗ hoặc nội dung bất hợp pháp trong app bằng cách liên hệ hỗ trợ tại kietlamphim@gmail.com. Vui lòng gửi tên người dùng, bài đăng, tin rao hoặc chi tiết chat để đội ngũ xem xét và xử lý rủi ro khẩn cấp.',
     'Privacy & data': 'Quyền riêng tư & dữ liệu',
     'Shared content visibility': 'Mức độ hiển thị nội dung chia sẻ',
     'If you share a phone number, address, or media in posts or chat, other members may see that content based on where you post it.':
