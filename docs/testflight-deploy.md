@@ -1,4 +1,4 @@
-# Nail Talk TestFlight Deploy
+# Nails Talk TestFlight Deploy
 
 ## Recommended path
 
@@ -19,7 +19,7 @@ It already:
 
 ## iOS app settings
 
-- App name: `Nail Talk`
+- App name: `Nails Talk`
 - Bundle ID: `com.kantek.nailtalk`
 - Marketing version: `1.0.0`
 - iOS deployment target: `15.0`

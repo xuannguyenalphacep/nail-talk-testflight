@@ -1,6 +1,6 @@
-# Nail Talk Flutter App
+# Nails Talk Flutter App
 
-Nail Talk is the Flutter mobile app for chat, movies, marketplace, jobs, and room-share flows.
+Nails Talk is the Flutter mobile app for chat, movies, marketplace, jobs, and room-share flows.
 
 ## Project docs
 

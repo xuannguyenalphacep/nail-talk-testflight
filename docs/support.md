@@ -1,6 +1,6 @@
-# Nail Talk Support
+# Nails Talk Support
 
-Nail Talk helps the Vietnamese nail and beauty community in the United States connect around jobs, housing, marketplace listings, movie previews, and chat.
+Nails Talk helps the Vietnamese nail and beauty community in the United States connect around jobs, housing, marketplace listings, movie previews, and chat.
 
 ## Need help?
 
@@ -13,13 +13,13 @@ If you need help with the app, include:
 
 ## Common questions
 
-### Does Nail Talk charge for movies?
+### Does Nails Talk charge for movies?
 
 No. The current App Store review build has no in-app purchases, subscriptions, external checkout, or paid movie unlock. Movie content shown in the app is free community preview content.
 
-### Does Nail Talk process marketplace payments?
+### Does Nails Talk process marketplace payments?
 
-No. Marketplace prices are listing information only. Members contact each other directly, and Nail Talk does not process transactions.
+No. Marketplace prices are listing information only. Members contact each other directly, and Nails Talk does not process transactions.
 
 ### Can I register a new account?
 

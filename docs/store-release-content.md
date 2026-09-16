@@ -1,4 +1,4 @@
-# Nail Talk Store Release Content
+# Nails Talk Store Release Content
 
 Last prepared: 2026-09-16, Asia/Ho_Chi_Minh.
 
@@ -6,7 +6,7 @@ Use this file as the copy/paste source for App Store Connect, TestFlight review 
 
 ## App identity
 
-- App display name: `Nail Talk`
+- App display name: `Nails Talk`
 - iOS bundle id: `com.kantek.nailtalk`
 - Current Flutter version: `1.0.0+1`
 - Live API: `http://54.205.74.122/api`
@@ -17,7 +17,7 @@ Use this file as the copy/paste source for App Store Connect, TestFlight review 
 App name:
 
 ```text
-Nail Talk
+Nails Talk
 ```
 
 Subtitle:
@@ -35,7 +35,7 @@ Tìm việc salon, chia sẻ phòng ở, mua bán đồ nghề, xem phim giải 
 Description:
 
 ```text
-Nail Talk là không gian cộng đồng dành cho người Việt trong ngành làm đẹp tại Mỹ.
+Nails Talk là không gian cộng đồng dành cho người Việt trong ngành làm đẹp tại Mỹ.
 
 Bạn có thể đăng nhập một lần để theo dõi tin việc làm salon, tìm hoặc đăng phòng ở, mua bán đồ nghề, xem phim giải trí và trò chuyện trực tiếp với cộng đồng.
 
@@ -50,7 +50,7 @@ Tính năng chính:
 • Phim & giải trí: khám phá danh sách phim xem thử miễn phí phù hợp cho giờ nghỉ sau ngày làm việc.
 • Chat cộng đồng: tham gia nhóm chat công khai, chat riêng và cập nhật thông tin theo thời gian thực.
 
-Nail Talk được thiết kế cho trải nghiệm tiếng Việt dễ dùng, tập trung vào nhu cầu thực tế của cộng đồng nail: làm việc, sinh hoạt, kết nối và giải trí trong cùng một nơi.
+Nails Talk được thiết kế cho trải nghiệm tiếng Việt dễ dùng, tập trung vào nhu cầu thực tế của cộng đồng nail: làm việc, sinh hoạt, kết nối và giải trí trong cùng một nơi.
 ```
 
 Keywords:
@@ -62,7 +62,7 @@ nail,tiệm nail,salon,người Việt,việc làm,phòng ở,chợ,phim,chat,c�
 What’s New:
 
 ```text
-Ra mắt bản Nail Talk đầu tiên với đăng ký tài khoản, bảng tin cộng đồng, phim miễn phí, chợ mua bán, việc làm, phòng ở và chat thời gian thực.
+Ra mắt bản Nails Talk đầu tiên với đăng ký tài khoản, bảng tin cộng đồng, phim miễn phí, chợ mua bán, việc làm, phòng ở và chat thời gian thực.
 ```
 
 Primary category:
@@ -94,7 +94,7 @@ https://vietnamfilmproduction.com/nail-talk/privacy
 Beta app description:
 
 ```text
-Nail Talk là bản thử nghiệm cho cộng đồng người Việt trong ngành nail tại Mỹ. Bản này tập trung kiểm tra đăng ký/đăng nhập, xem phim, chợ mua bán, việc làm, phòng ở và chat cộng đồng thời gian thực.
+Nails Talk là bản thử nghiệm cho cộng đồng người Việt trong ngành nail tại Mỹ. Bản này tập trung kiểm tra đăng ký/đăng nhập, xem phim, chợ mua bán, việc làm, phòng ở và chat cộng đồng thời gian thực.
 ```
 
 Beta review notes:
@@ -126,7 +126,7 @@ Cộng đồng nail Việt tại Mỹ: việc làm, phòng ở, chợ, phim mi�
 Full description:
 
 ```text
-Nail Talk giúp cộng đồng người Việt trong ngành làm đẹp tại Mỹ kết nối nhanh hơn mỗi ngày.
+Nails Talk giúp cộng đồng người Việt trong ngành làm đẹp tại Mỹ kết nối nhanh hơn mỗi ngày.
 
 Trong một app, bạn có thể đăng ký tài khoản, xem tin việc làm salon, tìm phòng ở hoặc người ở ghép, mua bán đồ nghề, khám phá nội dung phim giải trí miễn phí và chat với cộng đồng theo thời gian thực.
 
@@ -141,7 +141,7 @@ Tính năng nổi bật:
 • Nhóm chat công khai và chat riêng realtime.
 • Giao diện tiếng Việt, dễ dùng cho cộng đồng nail.
 
-Nail Talk tập trung vào các nhu cầu thiết thực: làm việc, sinh hoạt, trao đổi thông tin và giải trí sau giờ làm.
+Nails Talk tập trung vào các nhu cầu thiết thực: làm việc, sinh hoạt, trao đổi thông tin và giải trí sau giờ làm.
 ```
 
 ## Prepared screenshot assets
