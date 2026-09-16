@@ -1,8 +1,8 @@
-# Nails Talk Privacy Policy
+# Nail Talk Privacy Policy
 
 Last updated: September 16, 2026
 
-Nails Talk is a community app for Vietnamese nail and beauty professionals in the United States. This policy explains what information the app uses and how it is handled.
+Nail Talk is a community app for Vietnamese nail and beauty professionals in the United States. This policy explains what information the app uses and how it is handled.
 
 ## Information we collect
 
@@ -16,13 +16,13 @@ Nails Talk is a community app for Vietnamese nail and beauty professionals in th
 - To provide login, profile, chat, marketplace, job, housing, and movie preview features.
 - To show community posts and messages to other members where you choose to publish or send them.
 - To maintain app security, prevent spam or abuse, and troubleshoot technical issues.
-- To improve the reliability and usability of Nails Talk.
+- To improve the reliability and usability of Nail Talk.
 
 ## Payments and transactions
 
 The current App Store review build does not include in-app purchases, subscriptions, external checkout, or paid movie unlock. Movie content shown in the app is free community preview content.
 
-Marketplace prices, job salary ranges, and room or rental amounts are listing information provided by members. Nails Talk does not process payments or transactions for those listings.
+Marketplace prices, job salary ranges, and room or rental amounts are listing information provided by members. Nail Talk does not process payments or transactions for those listings.
 
 ## Sharing
 
@@ -36,9 +36,8 @@ Account data and user content may remain stored while your account is active or 
 
 ## Children
 
-Nails Talk is not intended for children under 13.
+Nail Talk is not intended for children under 13.
 
 ## Contact
 
-For privacy or support questions, contact the Nails Talk support team through the support channel listed in the App Store.
-
+For privacy or support questions, contact the Nail Talk support team at kietlamphim@gmail.com.
