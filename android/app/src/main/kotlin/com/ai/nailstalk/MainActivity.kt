@@ -1,4 +1,4 @@
-package com.example.erp_chat_flutter
+package com.ai.nailstalk
 
 import io.flutter.embedding.android.FlutterActivity
 

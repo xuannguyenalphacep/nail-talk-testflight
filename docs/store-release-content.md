@@ -8,6 +8,7 @@ Use this file as the copy/paste source for App Store Connect, TestFlight review 
 
 - App display name: `Nails Talk`
 - iOS bundle id: `com.kantek.nailtalk`
+- Google Play package: `com.ai.nailstalk`
 - Current Flutter version: `1.0.0+1`
 - Live API: `http://54.205.74.122/api`
 - Live Socket: `http://54.205.74.122`
@@ -200,4 +201,4 @@ Use the final production privacy policy as the source of truth. Current function
 - Confirm movie UI says free/community preview and does not show paid unlock, purchase, subscription, or external payment wording.
 - Add final Support URL and Privacy Policy URL in App Store Connect.
 - Add reviewer credentials only inside App Store Connect / Play Console, not in this repository.
-- For Android production, replace `com.example.erp_chat_flutter` and debug signing before upload.
+- For Android production, use Google Play package `com.ai.nailstalk` and replace debug signing before upload.
