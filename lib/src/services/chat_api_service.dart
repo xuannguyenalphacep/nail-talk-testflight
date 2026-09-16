@@ -933,6 +933,8 @@ class ChatApiService {
   }
 
   MovieItem _normalizeMovieItem(MovieItem movie) {
+    final paymentsEnabled = AppConstants.moviePaymentsEnabled;
+
     return MovieItem(
       id: movie.id,
       uuid: movie.uuid,
@@ -948,11 +950,11 @@ class ChatApiService {
       youtubeVideoId: movie.youtubeVideoId,
       youtubeEmbedUrl: movie.youtubeEmbedUrl,
       hostedVideoUrl: _normalizeMediaUrl(movie.hostedVideoUrl),
-      accessType: movie.accessType,
-      price: movie.price,
+      accessType: paymentsEnabled ? movie.accessType : 'free',
+      price: paymentsEnabled ? movie.price : 0,
       currency: movie.currency,
-      requiresPayment: movie.requiresPayment,
-      canWatch: movie.canWatch,
+      requiresPayment: paymentsEnabled && movie.requiresPayment,
+      canWatch: !paymentsEnabled || movie.canWatch,
       isPublished: movie.isPublished,
       category: movie.category,
     );

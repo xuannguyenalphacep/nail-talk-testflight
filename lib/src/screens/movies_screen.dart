@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../controllers/chat_controller.dart';
 import '../controllers/social_hub_controller.dart';
+import '../core/constants/app_constants.dart';
 import '../core/localization/app_localizer.dart';
 import '../core/utils/movie_showcase_utils.dart';
 import '../models/app_option.dart';
@@ -66,7 +67,8 @@ class _MoviesScreenState extends State<MoviesScreen> {
   }
 
   bool _isUnlocked(MovieItem movie, bool hasActivePlan) {
-    return movie.isFree ||
+    return !AppConstants.moviePaymentsEnabled ||
+        movie.isFree ||
         movie.canWatch ||
         (movie.accessType == 'subscription' && hasActivePlan);
   }
@@ -671,7 +673,7 @@ class _MovieHeroSlide extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                context.tr(unlocked ? 'Ready to watch' : 'Paid movie'),
+                context.tr(unlocked ? 'Ready to watch' : 'Free preview'),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.white.withValues(alpha: 0.84),
                   fontWeight: FontWeight.w700,
@@ -991,7 +993,9 @@ class _MoviePriceBadge extends StatelessWidget {
     final free = movie.isFree || (movie.price <= 0 && !movie.isPaid);
     final label = free
         ? context.tr('Free')
-        : (movie.price > 0 ? _formatMoviePrice(movie) : context.tr('Paid'));
+        : (movie.price > 0
+              ? _formatMoviePrice(movie)
+              : context.tr('Check access'));
     final icon = free
         ? Icons.play_circle_fill_rounded
         : Icons.workspace_premium_rounded;
@@ -1167,6 +1171,11 @@ class _MovieBrowseScreenState extends State<_MovieBrowseScreen> {
   }
 
   bool _matchesAccess(MovieItem movie, bool hasActivePlan) {
+    if (!AppConstants.moviePaymentsEnabled &&
+        _accessFilter == _MovieAccessFilter.subscription) {
+      return false;
+    }
+
     return switch (_accessFilter) {
       _MovieAccessFilter.all => true,
       _MovieAccessFilter.ready =>
@@ -1174,7 +1183,8 @@ class _MovieBrowseScreenState extends State<_MovieBrowseScreen> {
             movie.canWatch ||
             (movie.accessType == 'subscription' && hasActivePlan),
       _MovieAccessFilter.free => movie.isFree,
-      _MovieAccessFilter.subscription => !movie.isFree,
+      _MovieAccessFilter.subscription =>
+        AppConstants.moviePaymentsEnabled && !movie.isFree,
     };
   }
 
@@ -1625,6 +1635,7 @@ List<_MovieCategorySummary> _buildMovieCategorySummaries(
       count: library
           .where(
             (movie) =>
+                !AppConstants.moviePaymentsEnabled ||
                 movie.isFree ||
                 movie.canWatch ||
                 (movie.accessType == 'subscription' && hasActivePlan),

@@ -329,8 +329,8 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
                     'Tap the contact or chat button on any listing and Nails Talk will open a direct chat room.',
                   ),
                   (
-                    'Why can some movies require a plan?',
-                    'Some YouTube titles are free, while hosted premium movies can be activated for a paid account and device from admin.',
+                    'Does Nails Talk charge for movies?',
+                    'No. This App Store review build has no in-app purchases, subscriptions, external checkout, or paid movie unlock. Movie content is free community preview content.',
                   ),
                   (
                     'How do I join a group chat?',

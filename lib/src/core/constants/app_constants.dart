@@ -11,6 +11,12 @@ class AppConstants {
     'CHAT_CALL_BASE_URL',
     defaultValue: 'http://54.205.74.122',
   );
+  static const bool moviePaymentsEnabled = bool.fromEnvironment(
+    'MOVIE_PAYMENTS_ENABLED',
+    defaultValue: false,
+  );
+  static const String noPaymentReviewNote =
+      'Current App Store review build has no in-app purchases, subscriptions, external checkout, or paid movie unlock. All movie content shown in the app is free community preview content.';
 
   static const Duration connectTimeout = Duration(seconds: 20);
   static const Duration receiveTimeout = Duration(seconds: 30);

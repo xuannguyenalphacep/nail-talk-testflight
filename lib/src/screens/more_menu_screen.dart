@@ -136,12 +136,12 @@ class MoreMenuScreen extends StatelessWidget {
 
     final suggestions = <_SuggestionEntry>[
       _SuggestionEntry(
-        label: 'Nails Talk Premium',
-        icon: Icons.diamond_rounded,
+        label: 'Nails Talk Plus',
+        icon: Icons.auto_awesome_rounded,
         color: const Color(0xFF9B7CF7),
         onTap: () => _showMessage(
           context,
-          'Premium access can be connected after the next demo pass.',
+          'Nails Talk Plus community features will be prepared in a later update. This version does not charge in the app.',
         ),
       ),
       _SuggestionEntry(

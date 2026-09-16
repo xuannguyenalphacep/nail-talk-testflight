@@ -10,6 +10,7 @@ import '../models/property_listing_item.dart';
 import '../models/saved_item.dart';
 import '../models/user_profile_model.dart';
 import '../services/chat_api_service.dart';
+import '../core/constants/app_constants.dart';
 import 'session_controller.dart';
 
 class SocialHubController extends ChangeNotifier {
@@ -124,14 +125,18 @@ class SocialHubController extends ChangeNotifier {
     try {
       final results = await Future.wait([
         _apiService.fetchMovieCategories(),
-        _apiService.fetchMoviePlans(),
+        AppConstants.moviePaymentsEnabled
+            ? _apiService.fetchMoviePlans()
+            : Future.value(<MoviePlanModel>[]),
         _apiService.fetchMovies(
           categoryId: categoryId,
           search: search,
           page: 1,
           perPage: _moviePageSize,
         ),
-        _apiService.fetchActiveSubscription(),
+        AppConstants.moviePaymentsEnabled
+            ? _apiService.fetchActiveSubscription()
+            : Future.value(null),
       ]);
       final moviePage = results[2] as MoviePage;
 
@@ -278,6 +283,12 @@ class SocialHubController extends ChangeNotifier {
   }
 
   Future<void> subscribeToMoviePlan(int planId) async {
+    if (!AppConstants.moviePaymentsEnabled) {
+      _error = AppConstants.noPaymentReviewNote;
+      notifyListeners();
+      return;
+    }
+
     _submitting = true;
     _error = null;
     notifyListeners();

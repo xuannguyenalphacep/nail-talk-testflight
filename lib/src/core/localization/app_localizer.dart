@@ -431,12 +431,16 @@ class AppLocalizer {
         'Liên hệ người bán hoặc nhà tuyển dụng như thế nào?',
     'Tap the contact or chat button on any listing and Nails Talk will open a direct chat room.':
         'Chạm nút liên hệ hoặc chat trên bất kỳ bài đăng nào và Nails Talk sẽ mở phòng chat riêng.',
-    'Why can some movies require a plan?':
-        'Vì sao một số phim cần kích hoạt quyền xem?',
-    'Some titles are free while premium shelves unlock after an active movie plan is purchased.':
-        'Một số phim miễn phí, còn các kệ phim cao cấp sẽ mở sau khi tài khoản có gói phim đang hoạt động.',
-    'Some YouTube titles are free, while hosted premium movies can be activated for a paid account and device from admin.':
-        'Một số phim YouTube được xem miễn phí, còn phim cao cấp từ hosting có thể được admin kích hoạt trả phí theo tài khoản và thiết bị.',
+    'Why are movies free in this version?':
+        'Vì sao phim đang miễn phí trong phiên bản này?',
+    'All movie titles in this App Store review build are free community previews with no purchase flow.':
+        'Tất cả phim trong bản gửi App Store hiện tại là nội dung xem thử cộng đồng miễn phí, không có luồng mua hàng.',
+    'YouTube and hosted movie previews are available for community viewing without in-app purchase, subscription, or external checkout.':
+        'Các phim xem thử từ YouTube và hosting được mở cho cộng đồng, không có mua trong ứng dụng, thuê bao hoặc thanh toán ngoài app.',
+    'Does Nails Talk charge for movies?':
+        'Nails Talk có thu tiền xem phim không?',
+    'No. This App Store review build has no in-app purchases, subscriptions, external checkout, or paid movie unlock. Movie content is free community preview content.':
+        'Không. Bản gửi App Store hiện tại không có mua trong ứng dụng, không có thuê bao, không có thanh toán ngoài app và không mở khóa phim thu phí. Nội dung phim đang là bản xem thử cộng đồng miễn phí.',
     'How do I join a group chat?': 'Tham gia chat nhóm như thế nào?',
     'Admin-created groups appear in the Chat tab. Tap a group to join and start reading or sending messages.':
         'Các nhóm do admin tạo sẽ xuất hiện ở tab Chat. Chạm vào nhóm để tham gia và bắt đầu đọc hoặc gửi tin nhắn.',
@@ -531,16 +535,17 @@ class AppLocalizer {
     'Tìm việc nhanh': 'Tìm việc nhanh',
     'Tìm thợ nhanh': 'Tìm thợ nhanh',
     'Xem nhà cho thuê': 'Xem nhà cho thuê',
-    'Tien len card game': 'Game bài tiến lên',
-    'Game bài tiến lên': 'Game bài tiến lên',
+    'Community game preview': 'Game cộng đồng',
+    'Game cộng đồng': 'Game cộng đồng',
     'Bấm vào để xem trước tính năng giải trí sắp ra mắt.':
         'Bấm vào để xem trước tính năng giải trí sắp ra mắt.',
     'Coming soon': 'Sắp ra mắt',
-    'Tien len card game is coming soon.': 'Game bài tiến lên sẽ sớm ra mắt.',
-    'Open tables with friends and join the Nails Talk community when this game room launches.':
-        'Mở bàn chơi cùng bạn bè và cộng đồng Nails Talk khi phòng game ra mắt.',
-    'The Tien len game room is being polished. You will be able to open a table with friends in an upcoming update.':
-        'Phòng game bài tiến lên đang được hoàn thiện. Bạn sẽ sớm mở bàn chơi cùng bạn bè trong bản cập nhật tới.',
+    'Community game space is coming soon.':
+        'Không gian game cộng đồng sẽ sớm ra mắt.',
+    'Relax with friends and join light community activities when this space launches.':
+        'Thư giãn cùng bạn bè và tham gia hoạt động cộng đồng nhẹ nhàng khi khu này ra mắt.',
+    'The community game space is being polished for a future update.':
+        'Không gian game cộng đồng đang được chuẩn bị cho bản cập nhật sau.',
     'Welcome back, {name}': 'Chào mừng quay lại, {name}',
     'Find jobs, movie nights, homes, and local updates in one place.':
         'Tìm việc làm, đêm xem phim, chỗ ở và cập nhật địa phương trong cùng một nơi.',
@@ -553,14 +558,14 @@ class AppLocalizer {
     'Active: {planName}': 'Đang hoạt động: {planName}',
     'Plan active: {plan}': 'Gói đang hoạt động: {plan}',
     'Plan active: {planName}': 'Gói đang hoạt động: {planName}',
-    'Subscription ready': 'Đã sẵn sàng theo gói',
+    'Community preview ready': 'Sẵn sàng xem thử cộng đồng',
     'From {amount}': 'Từ {amount}',
     'Up to {amount}': 'Tối đa {amount}',
     'MOVIE SPOTLIGHT': 'ĐIỂM NHẤN PHIM',
     'Your next movie night starts here':
         'Đêm xem phim tiếp theo của bạn bắt đầu từ đây',
-    'Use this slot for fresh releases, community promotions, or a paid streaming highlight that deserves attention.':
-        'Hãy dùng vị trí này cho phim mới, nội dung cộng đồng nổi bật hoặc một điểm nhấn phát trực tuyến có thu phí đáng chú ý.',
+    'Use this slot for fresh releases, community promotions, or a free streaming highlight that deserves attention.':
+        'Hãy dùng vị trí này cho phim mới, nội dung cộng đồng nổi bật hoặc một điểm nhấn phát trực tuyến miễn phí đáng chú ý.',
     'Community streaming': 'Phát trực tuyến cộng đồng',
     'Browse movies': 'Xem danh sách phim',
     'Watch movie': 'Xem phim',
@@ -649,12 +654,19 @@ class AppLocalizer {
     'YouTube': 'YouTube',
     'Hosted Demo': 'Hosting demo',
     'Free access': 'Xem miễn phí',
-    'Paid access': 'Quyền xem thu phí',
-    'Paid movie': 'Phim thu phí',
-    'Paid hosted movie': 'Phim thu phí từ hosting',
+    'Monthly community preview': 'Xem thử cộng đồng',
+    'Community movie': 'Phim cộng đồng',
+    'Hosted preview movie': 'Phim xem thử từ hosting',
+    'Free preview': 'Xem thử miễn phí',
+    'Free community preview': 'Xem thử cộng đồng miễn phí',
+    'No payment in this app version': 'Không thanh toán trong phiên bản này',
+    'This App Store build does not include in-app purchases, subscriptions, or external checkout.':
+        'Bản gửi App Store này không có mua trong ứng dụng, thuê bao hoặc thanh toán bên ngoài.',
+    'Movie access is free during review and community preview. Future paid features will use Apple-approved purchase flows.':
+        'Quyền xem phim đang miễn phí trong giai đoạn review và xem thử cộng đồng. Nếu có tính năng thu phí sau này, app sẽ dùng luồng mua hàng được Apple chấp thuận.',
     'Free YouTube': 'YouTube miễn phí',
     'YouTube free': 'YouTube miễn phí',
-    'Monthly access': 'Gói theo tháng',
+    'Community access': 'Quyền xem cộng đồng',
     'Active until {date}': 'Hiệu lực đến {date}',
     'About this movie': 'Giới thiệu phim',
     'Now playing': 'Đang phát',
@@ -666,14 +678,14 @@ class AppLocalizer {
     'Loading fullscreen player...': 'Đang tải trình phát toàn màn hình...',
     'Buffering video...': 'Đang đệm video...',
     'Fullscreen': 'Toàn màn hình',
-    'Your plan is active. Refresh this page or reopen the movie to start streaming.':
-        'Gói của bạn đang hoạt động. Hãy tải lại trang này hoặc mở lại phim để bắt đầu xem.',
-    'This title is part of the monthly movie access plan.':
-        'Tựa phim này thuộc gói xem phim theo tháng.',
+    'This title is available as a free community preview. Refresh this page or reopen the movie to start streaming.':
+        'Tựa phim này đang được mở xem thử cộng đồng miễn phí. Hãy tải lại trang hoặc mở lại phim để bắt đầu xem.',
+    'This title is part of the free community preview library.':
+        'Tựa phim này thuộc thư viện xem thử cộng đồng miễn phí.',
     '{currency} {price} for {days} days':
         '{currency} {price} trong {days} ngày',
     '{currency} {price}': '{currency} {price}',
-    'Activate': 'Kích hoạt',
+    'Open preview': 'Mở xem thử',
     'Popular on Nails Talk': 'Nổi bật trên Nails Talk',
     'Top picks laid out like a real streaming browse page.':
         'Những lựa chọn nổi bật được trình bày như một trang duyệt phim thật.',
@@ -682,14 +694,14 @@ class AppLocalizer {
     'Open now for this account.': 'Mở ngay với tài khoản này.',
     'Open these instantly with the current account.':
         'Mở xem ngay bằng tài khoản hiện tại.',
-    'Subscription picks': 'Gợi ý theo gói thuê bao',
-    'Unlock these with the monthly movie pass.':
-        'Mở các phim này bằng gói xem phim theo tháng.',
+    'Community picks': 'Gợi ý cộng đồng',
+    'Open these free community previews from the movie library.':
+        'Mở các phim xem thử cộng đồng miễn phí từ thư viện phim.',
     'Free movie arrivals': 'Phim miễn phí mới cập nhật',
     'No monthly pass needed here.': 'Không cần gói tháng để xem các phim này.',
-    'Premium shelf': 'Kệ phim cao cấp',
-    'Subscription-only films in the same compact poster layout.':
-        'Các phim chỉ dành cho gói thuê bao, hiển thị cùng bố cục poster gọn gàng.',
+    'Community shelf': 'Kệ phim cộng đồng',
+    'Free preview films in the same compact poster layout.':
+        'Các phim xem thử miễn phí, hiển thị cùng bố cục poster gọn gàng.',
     'Browse {category} in poster rows.':
         'Duyệt {category} theo hàng poster ngang.',
     'Matching results': 'Kết quả phù hợp',
@@ -712,8 +724,8 @@ class AppLocalizer {
     'All': 'Tất cả',
     'Ready': 'Sẵn sàng',
     'Free': 'Miễn phí',
-    'Paid': 'Có phí',
-    'Subscription': 'Thuê bao',
+    'Check access': 'Kiểm tra quyền xem',
+    'Community preview': 'Xem thử cộng đồng',
     'Categories': 'Danh mục',
     'All genres': 'Tất cả thể loại',
     'Featured movie': 'Phim nổi bật',
@@ -727,14 +739,14 @@ class AppLocalizer {
         'Bấm Xem ngay để phát video YouTube nhúng ngay trong trang chi tiết này.',
     'Tap Watch now to open the hosted stream player right inside this detail page.':
         'Bấm Xem ngay để mở trình phát phim hosting ngay trong trang chi tiết này.',
-    'This paid movie must be activated for your account and device by admin.':
-        'Phim thu phí này cần được admin kích hoạt cho tài khoản và thiết bị của bạn.',
-    'Admin must activate this movie for your account and this device before playback.':
-        'Admin cần kích hoạt phim này cho tài khoản và thiết bị của bạn trước khi xem.',
-    'Payment and device unlock are managed from the admin panel for this demo.':
-        'Thanh toán và quyền xem theo thiết bị được quản lý trong trang admin cho bản demo này.',
-    'Your old movie plan is active, but this paid title uses device-level access.':
-        'Gói phim cũ của bạn đang hoạt động, nhưng phim thu phí này dùng quyền xem theo thiết bị.',
+    'This movie is available as a free community preview in this app version.':
+        'Phim này đang được mở xem thử cộng đồng miễn phí trong phiên bản app hiện tại.',
+    'Movie playback is available without in-app purchase, subscription, or external checkout.':
+        'Bạn có thể xem phim mà không cần mua trong ứng dụng, thuê bao hoặc thanh toán ngoài app.',
+    'Movie access is prepared from the admin panel for this community preview.':
+        'Quyền xem phim được chuẩn bị từ trang admin cho bản xem thử cộng đồng.',
+    'This app version keeps movie previews free for the current account and device.':
+        'Phiên bản app hiện tại giữ nội dung xem thử phim miễn phí cho tài khoản và thiết bị này.',
     'Watch': 'Xem',
     'Search in Nails Talk...': 'Tìm kiếm trên Nails Talk...',
     'Search suggestions': 'Gợi ý tìm kiếm',
@@ -760,14 +772,15 @@ class AppLocalizer {
     'Share app': 'Chia sẻ ứng dụng',
     'Customize menu': 'Tùy chỉnh menu',
     'Love connections': 'Kết nối yêu thương',
+    'Nails Talk Plus': 'Nails Talk Plus',
     'Join the Nails Talk community to connect and share every day.':
         'Tham gia cộng đồng Nails Talk để kết nối và sẻ chia mỗi ngày.',
     'Events will be polished in the next release.':
         'Mục sự kiện sẽ được hoàn thiện hơn ở bản phát hành tiếp theo.',
     'Nearby recommendations will be expanded in the next release.':
         'Gợi ý gần bạn sẽ được mở rộng hơn ở bản phát hành tiếp theo.',
-    'Premium access can be connected after the next demo pass.':
-        'Gói Premium sẽ được kết nối sau vòng demo tiếp theo.',
+    'Nails Talk Plus community features will be prepared in a later update. This version does not charge in the app.':
+        'Tính năng cộng đồng Nails Talk Plus sẽ được chuẩn bị ở bản sau; bản hiện tại không thu phí trong app.',
     'Ads can be managed from the admin console.':
         'Phần quảng cáo có thể được quản lý từ trang admin.',
     'App sharing will be connected in the next release.':
@@ -776,22 +789,23 @@ class AppLocalizer {
         'Tùy chỉnh menu có thể được thêm sau vòng demo tiếp theo.',
     'Find rooms, roommates': 'Tìm phòng, ở ghép',
     'Details': 'Chi tiết',
-    'Movie pass active until {date}': 'Gói xem phim hoạt động đến {date}',
-    'Paid access active until {date}':
-        'Quyền xem phim thu phí hoạt động đến {date}',
-    'Premium shelves are unlocked for this account.':
-        'Các kệ phim cao cấp đã được mở cho tài khoản này.',
-    'Unlock more titles and keep the movie rows open.':
-        'Mở khóa thêm nhiều tựa phim và giữ các hàng phim luôn sẵn sàng.',
-    '{count} hosted paid movies available':
-        '{count} phim hosting thu phí đang có',
-    'Paid hosted movies can be opened on this approved device.':
-        'Phim thu phí từ hosting có thể mở trên thiết bị đã được duyệt này.',
-    'Admin can activate each hosted paid movie for this account and device.':
-        'Admin có thể kích hoạt từng phim hosting thu phí cho tài khoản và thiết bị này.',
+    'Community preview active until {date}':
+        'Quyền xem thử cộng đồng hoạt động đến {date}',
+    'Movie preview active until {date}':
+        'Quyền xem thử phim đang hoạt động đến {date}',
+    'Community shelves are ready for this account.':
+        'Các kệ phim cộng đồng đã sẵn sàng cho tài khoản này.',
+    'Open more titles and keep the movie rows ready.':
+        'Mở thêm nhiều tựa phim và giữ các hàng phim luôn sẵn sàng.',
+    '{count} hosted preview movies available':
+        '{count} phim xem thử từ hosting đang có',
+    'Hosted preview movies can be opened on this approved device.':
+        'Phim xem thử từ hosting có thể mở trên thiết bị này.',
+    'Admin can prepare each hosted preview movie for this account and device.':
+        'Admin có thể chuẩn bị từng phim hosting xem thử cho tài khoản và thiết bị này.',
     'Active': 'Đang hoạt động',
-    'Unlock': 'Mở khóa',
-    'Plan required': 'Cần gói xem phim',
+    'Open movie preview': 'Mở xem thử phim',
+    'Preview available': 'Có bản xem thử',
     'No titles match this setup': 'Không có tựa phim nào khớp bộ lọc này',
     'Clear the category or access filters to reopen the full movie shelves.':
         'Hãy xóa bộ lọc thể loại hoặc quyền truy cập để mở lại toàn bộ kệ phim.',

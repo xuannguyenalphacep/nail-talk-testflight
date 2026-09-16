@@ -185,7 +185,7 @@ MovieShowcaseMeta movieShowcaseMeta(MovieItem movie) {
     isHd: true,
     tags: [
       if (movie.category?.name.trim().isNotEmpty == true) movie.category!.name,
-      if (movie.isFree) 'Community stream' else 'Paid hosted movie',
+      if (movie.isFree) 'Community stream' else 'Free preview',
     ],
     cast: List<MovieCastMember>.generate(
       4,

@@ -82,7 +82,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         behavior: SnackBarBehavior.floating,
         content: Text(
           context.tr(
-            'The Tien len game room is being polished. You will be able to open a table with friends in an upcoming update.',
+            'The community game space is being polished for a future update.',
           ),
         ),
       ),
@@ -1522,7 +1522,7 @@ class _TienLenComingSoonBanner extends StatelessWidget {
                   SizedBox(
                     width: 214,
                     child: Text(
-                      context.tr('Tien len card game'),
+                      context.tr('Community game preview'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.headlineSmall
@@ -1539,7 +1539,7 @@ class _TienLenComingSoonBanner extends StatelessWidget {
                     width: 224,
                     child: Text(
                       context.tr(
-                        'Open tables with friends and join the Nails Talk community when this game room launches.',
+                        'Relax with friends and join light community activities when this space launches.',
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,

@@ -1,4 +1,5 @@
 import 'app_option.dart';
+import '../core/constants/app_constants.dart';
 
 class MovieItem {
   MovieItem({
@@ -49,8 +50,10 @@ class MovieItem {
 
   bool get isYoutube => sourceType == 'youtube';
   bool get isHosted => sourceType == 'hosted';
-  bool get isFree => isYoutube || accessType == 'free';
+  bool get isFree =>
+      !AppConstants.moviePaymentsEnabled || isYoutube || accessType == 'free';
   bool get isPaid =>
+      AppConstants.moviePaymentsEnabled &&
       !isFree &&
       (price > 0 ||
           requiresPayment ||

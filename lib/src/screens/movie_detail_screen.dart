@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../controllers/social_hub_controller.dart';
+import '../core/constants/app_constants.dart';
 import '../core/localization/app_localizer.dart';
 import '../core/utils/app_date_utils.dart';
 import '../core/utils/movie_showcase_utils.dart';
@@ -54,7 +55,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
   }
 
   bool _canWatch(SocialHubController controller) {
-    return _movie.isYoutube ||
+    return !AppConstants.moviePaymentsEnabled ||
+        _movie.isYoutube ||
         _movie.accessType == 'free' ||
         _movie.canWatch ||
         (_movie.accessType == 'subscription' &&
@@ -513,7 +515,7 @@ class _MovieHero extends StatelessWidget {
                               ? (movie.isYoutube
                                     ? 'YouTube free'
                                     : 'Ready to watch')
-                              : 'Paid movie',
+                              : 'Free preview',
                         ),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.white.withValues(alpha: 0.84),
@@ -558,16 +560,21 @@ class _MovieMetaCard extends StatelessWidget {
             : context.tr(movie.thirdPartyProvider),
       ),
       _MovieInfoChip(
-        icon: movie.isYoutube || movie.accessType == 'free'
+        icon:
+            !AppConstants.moviePaymentsEnabled ||
+                movie.isYoutube ||
+                movie.accessType == 'free'
             ? Icons.lock_open_rounded
-            : Icons.workspace_premium_rounded,
+            : Icons.info_outline_rounded,
         label: context.tr(
-          movie.isYoutube || movie.accessType == 'free'
+          !AppConstants.moviePaymentsEnabled ||
+                  movie.isYoutube ||
+                  movie.accessType == 'free'
               ? 'Free access'
-              : 'Paid movie',
+              : 'Free preview',
         ),
       ),
-      if (movie.isPaid)
+      if (AppConstants.moviePaymentsEnabled && movie.isPaid)
         _MovieInfoChip(
           icon: Icons.attach_money_rounded,
           label: context.tr('{currency} {price}', {
@@ -575,7 +582,7 @@ class _MovieMetaCard extends StatelessWidget {
             'price': movie.price.toStringAsFixed(2),
           }),
         ),
-      if (activePlan?.isActive == true)
+      if (AppConstants.moviePaymentsEnabled && activePlan?.isActive == true)
         _MovieInfoChip(
           icon: Icons.schedule_rounded,
           label: context.tr('Active until {date}', {
@@ -1882,9 +1889,9 @@ class _MovieLockedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final priceLabel = movie.price > 0
+    final priceLabel = AppConstants.moviePaymentsEnabled && movie.price > 0
         ? '${movie.currency} ${movie.price.toStringAsFixed(2)}'
-        : context.tr('Paid access');
+        : context.tr('Free community preview');
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -1912,7 +1919,7 @@ class _MovieLockedCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(
-                  Icons.workspace_premium_rounded,
+                  Icons.info_outline_rounded,
                   color: Color(0xFFC78720),
                 ),
               ),
@@ -1922,7 +1929,7 @@ class _MovieLockedCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      context.tr('Paid hosted movie'),
+                      context.tr('No payment in this app version'),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: kMetroInk,
                         fontWeight: FontWeight.w900,
@@ -1931,7 +1938,7 @@ class _MovieLockedCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       context.tr(
-                        'Admin must activate this movie for your account and this device before playback.',
+                        'This App Store build does not include in-app purchases, subscriptions, or external checkout.',
                       ),
                       style: Theme.of(
                         context,
@@ -1977,9 +1984,7 @@ class _MovieLockedCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         context.tr(
-                          activePlan?.isActive == true
-                              ? 'Your old movie plan is active, but this paid title uses device-level access.'
-                              : 'Payment and device unlock are managed from the admin panel for this demo.',
+                          'Movie access is free during review and community preview. Future paid features will use Apple-approved purchase flows.',
                         ),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: kMetroMuted,
