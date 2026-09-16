@@ -80,13 +80,13 @@ Lifestyle
 Support URL:
 
 ```text
-TODO: Publish docs/support.md to a public URL, then paste that URL here before App Store submission.
+https://vietnamfilmproduction.com/nail-talk/support
 ```
 
 Privacy Policy URL:
 
 ```text
-TODO: Publish docs/privacy-policy.md to a public URL, then paste that URL here before App Store submission.
+https://vietnamfilmproduction.com/nail-talk/privacy
 ```
 
 ## TestFlight beta information
