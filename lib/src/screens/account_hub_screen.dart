@@ -9,6 +9,7 @@ import '../core/localization/app_localizer.dart';
 import '../models/session_user.dart';
 import '../widgets/metro_ui.dart';
 import '../widgets/remote_image.dart';
+import 'login_screen.dart';
 
 enum AccountHubSection { profile, faq, questions, terms, privacy }
 
@@ -178,6 +179,80 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
     }
   }
 
+  Future<void> _deleteAccount() async {
+    final passwordController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('Delete account')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.tr(
+                'This permanently disables your account and signs you out. Your profile details will be removed from Nails Talk.',
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: context.tr('Current password'),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(context.tr('Cancel')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB3261E),
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(context.tr('Delete account')),
+          ),
+        ],
+      ),
+    );
+
+    final password = passwordController.text;
+    passwordController.dispose();
+
+    if (confirmed != true || password.isEmpty || !mounted) {
+      return;
+    }
+
+    final session = context.read<SessionController>();
+    try {
+      final message = await session.deleteAccount(password: password);
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(context.tr(message))));
+      Navigator.of(context).maybePop();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            session.error ?? context.tr('Could not delete account right now.'),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _openSignIn() {
+    return Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
+  }
+
   Future<void> _pickAvatarImage() async {
     if (_uploadingAvatar) return;
 
@@ -281,7 +356,9 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
               onChanged: (section) => setState(() => _section = section),
             ),
             const SizedBox(height: 14),
-            if (_section == AccountHubSection.profile)
+            if (_section == AccountHubSection.profile && user == null)
+              _GuestAccountSection(onSignIn: _openSignIn)
+            else if (_section == AccountHubSection.profile)
               _ProfileEditorSection(
                 formKey: _formKey,
                 passwordFormKey: _passwordFormKey,
@@ -310,6 +387,7 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
                 ),
                 onSave: _saveProfile,
                 onChangePassword: _changePassword,
+                onDeleteAccount: _deleteAccount,
                 showRecoveryEmailHint:
                     user == null ||
                     _recoveryEmailForEditing(user.email).isEmpty,
@@ -484,6 +562,7 @@ class _ProfileEditorSection extends StatelessWidget {
     required this.onToggleConfirmPassword,
     required this.onSave,
     required this.onChangePassword,
+    required this.onDeleteAccount,
     required this.showRecoveryEmailHint,
     required this.visibleRecoveryEmail,
   });
@@ -510,6 +589,7 @@ class _ProfileEditorSection extends StatelessWidget {
   final VoidCallback onToggleConfirmPassword;
   final Future<void> Function() onSave;
   final Future<void> Function() onChangePassword;
+  final Future<void> Function() onDeleteAccount;
   final bool showRecoveryEmailHint;
   final String visibleRecoveryEmail;
 
@@ -761,7 +841,84 @@ class _ProfileEditorSection extends StatelessWidget {
             ),
           ),
         ),
+        const SizedBox(height: 12),
+        MetroInsetPanel(
+          borderColor: const Color(0xFFB3261E).withValues(alpha: 0.42),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                context.tr('Delete account'),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: const Color(0xFF8C1D18),
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                context.tr(
+                  'You can delete your Nails Talk account at any time. This removes your profile details and signs you out.',
+                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: kMetroMuted),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: session.submitting ? null : onDeleteAccount,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF8C1D18),
+                    side: const BorderSide(color: Color(0xFFB3261E)),
+                  ),
+                  icon: const Icon(Icons.delete_forever_rounded),
+                  label: Text(context.tr('Delete my account')),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
+    );
+  }
+}
+
+class _GuestAccountSection extends StatelessWidget {
+  const _GuestAccountSection({required this.onSignIn});
+
+  final Future<void> Function() onSignIn;
+
+  @override
+  Widget build(BuildContext context) {
+    return MetroInsetPanel(
+      borderColor: kMetroPrimary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.tr('Sign in to manage your account'),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: kMetroInk),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            context.tr(
+              'Movies, marketplace, jobs, and housing can be browsed without an account. Sign in to chat, post, save, report, block users, or delete your account.',
+            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: kMetroMuted),
+          ),
+          const SizedBox(height: 14),
+          FilledButton.icon(
+            onPressed: onSignIn,
+            icon: const Icon(Icons.login_rounded),
+            label: Text(context.tr('Sign in or create account')),
+          ),
+        ],
+      ),
     );
   }
 }

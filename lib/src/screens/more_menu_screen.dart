@@ -6,6 +6,7 @@ import '../core/constants/app_constants.dart';
 import '../core/localization/app_localizer.dart';
 import '../widgets/app_logo.dart';
 import 'account_hub_screen.dart';
+import 'login_screen.dart';
 
 const Color _menuBgTop = Color(0xFFFFFCFA);
 const Color _menuBgBottom = Color(0xFFFFF3ED);
@@ -39,6 +40,12 @@ class MoreMenuScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _openSignIn(BuildContext context) {
+    return Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
+  }
+
   void _showMessage(BuildContext context, String message) {
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
       SnackBar(
@@ -51,8 +58,11 @@ class MoreMenuScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
+    final isLoggedIn = session.isLoggedIn;
     final rawUsername = session.user?.username.trim() ?? '';
-    final userHandle = rawUsername.isEmpty || rawUsername == 'admin'
+    final userHandle = !isLoggedIn
+        ? '@guest'
+        : rawUsername.isEmpty || rawUsername == 'admin'
         ? '@nailstalk.community'
         : '@$rawUsername';
 
@@ -109,22 +119,24 @@ class MoreMenuScreen extends StatelessWidget {
 
     final personalEntries = <_MenuEntry>[
       _MenuEntry(
-        label: 'Saved',
-        icon: Icons.favorite_rounded,
+        label: isLoggedIn ? 'Saved' : 'Sign in',
+        icon: isLoggedIn ? Icons.favorite_rounded : Icons.login_rounded,
         tint: const Color(0xFFFF728D),
-        onTap: onOpenSaved,
+        onTap: isLoggedIn ? onOpenSaved : () => _openSignIn(context),
       ),
       _MenuEntry(
         label: 'Notifications',
         icon: Icons.notifications_rounded,
         tint: const Color(0xFFF5B42A),
-        onTap: () => onNavigate(3),
+        onTap: isLoggedIn ? () => onNavigate(3) : () => _openSignIn(context),
       ),
       _MenuEntry(
         label: 'Profile',
         icon: Icons.person_rounded,
         tint: const Color(0xFF76A7FF),
-        onTap: () => _openAccountSection(context, AccountHubSection.profile),
+        onTap: isLoggedIn
+            ? () => _openAccountSection(context, AccountHubSection.profile)
+            : () => _openSignIn(context),
       ),
       _MenuEntry(
         label: 'Settings',
@@ -219,8 +231,9 @@ class MoreMenuScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 18),
                 InkWell(
-                  onTap: () =>
-                      _openAccountSection(context, AccountHubSection.profile),
+                  onTap: () => isLoggedIn
+                      ? _openAccountSection(context, AccountHubSection.profile)
+                      : _openSignIn(context),
                   borderRadius: BorderRadius.circular(22),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -248,7 +261,9 @@ class MoreMenuScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                AppConstants.appName,
+                                isLoggedIn
+                                    ? AppConstants.appName
+                                    : context.tr('Browsing as guest'),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.titleLarge

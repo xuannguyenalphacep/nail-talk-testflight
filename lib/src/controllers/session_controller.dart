@@ -111,6 +111,7 @@ class SessionController extends ChangeNotifier {
         } catch (_) {
           _token = null;
           _user = storedUser;
+          _apiService.setContext(app: _selectedApp!);
           await _storageService.clearSession();
         }
       } else {
@@ -390,6 +391,35 @@ class SessionController extends ChangeNotifier {
         currentPassword: currentPassword,
         password: newPassword,
       );
+      return message;
+    } catch (error) {
+      _error = error.toString().replaceFirst('Exception: ', '').trim();
+      rethrow;
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<String> deleteAccount({required String password}) async {
+    if (_selectedApp == null || _token == null || _user == null) {
+      _error = AppLocalizer.current.tr('Please sign in to continue.');
+      notifyListeners();
+      throw Exception(_error);
+    }
+
+    _submitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final selectedApp = _selectedApp!;
+      final message = await _apiService.deleteAccount(password: password);
+      _user = null;
+      _token = null;
+      _apiService.setDeviceUuid(_deviceIdentity?.uuid);
+      _apiService.setContext(app: selectedApp);
+      await _storageService.clearSession();
       return message;
     } catch (error) {
       _error = error.toString().replaceFirst('Exception: ', '').trim();

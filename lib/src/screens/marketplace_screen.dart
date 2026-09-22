@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../controllers/chat_controller.dart';
+import '../controllers/session_controller.dart';
 import '../controllers/social_hub_controller.dart';
 import '../core/localization/app_localizer.dart';
 import '../models/app_option.dart';
@@ -55,6 +56,11 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   Future<void> _contactSeller(MarketplaceItem item) async {
     if (item.isImportedSource && _hasVisiblePublicContact(item)) {
       await _showPublicContactSheet(item);
+      return;
+    }
+
+    if (!context.read<SessionController>().isLoggedIn) {
+      _showSignInRequired();
       return;
     }
 
@@ -112,11 +118,37 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 
   Future<void> _openComposer() async {
+    if (!context.read<SessionController>().isLoggedIn) {
+      _showSignInRequired();
+      return;
+    }
+
     final created = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => const MarketplaceFormScreen()),
     );
     if (created == true && mounted) {
       await _refresh();
+    }
+  }
+
+  void _showSignInRequired() {
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(context.tr('Please sign in to continue.')),
+      ),
+    );
+  }
+
+  Future<void> _toggleSave(MarketplaceItem item) async {
+    try {
+      await context.read<SocialHubController>().toggleBookmark(
+        type: 'marketplace_listing',
+        id: item.id,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      _showSignInRequired();
     }
   }
 
@@ -278,6 +310,10 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         label: 'My posts',
                         selected: _mineOnly,
                         onTap: () {
+                          if (!context.read<SessionController>().isLoggedIn) {
+                            _showSignInRequired();
+                            return;
+                          }
                           setState(() => _mineOnly = !_mineOnly);
                           _refresh();
                         },
@@ -310,10 +346,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                       child: _MarketplaceEditorialTile(
                         item: item,
                         borderColor: _tileColor(index),
-                        onSave: () => controller.toggleBookmark(
-                          type: 'marketplace_listing',
-                          id: item.id,
-                        ),
+                        onSave: () => _toggleSave(item),
                         onContact: () => _contactSeller(item),
                         onOpen: () => _openDetail(item),
                       ),

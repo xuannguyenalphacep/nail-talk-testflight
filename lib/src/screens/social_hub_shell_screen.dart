@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../controllers/session_controller.dart';
 import '../controllers/social_hub_controller.dart';
 import '../core/localization/app_localizer.dart';
 import 'chat_home_screen.dart';
@@ -47,6 +48,17 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
   }
 
   void _openSavedLanding() {
+    if (!context.read<SessionController>().isLoggedIn) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(context.tr('Please sign in to continue.')),
+        ),
+      );
+      _goToTab(4);
+      return;
+    }
+
     final bookmarks = context.read<SocialHubController>().bookmarks;
     if (bookmarks.isEmpty) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(

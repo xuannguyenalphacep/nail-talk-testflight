@@ -182,6 +182,17 @@ class ChatApiService {
     await _dio.post('/mobile-chat/logout');
   }
 
+  Future<String> deleteAccount({required String password}) async {
+    try {
+      final response = await _dio.delete('/me', data: {'password': password});
+      final payload = response.data as Map<String, dynamic>;
+      return (payload['message'] ?? 'Your account has been deleted.')
+          .toString();
+    } on DioException catch (error) {
+      throw Exception(_extractErrorMessage(error));
+    }
+  }
+
   Future<UserProfileModel> fetchProfile() async {
     final response = await _dio.get('/me');
     return UserProfileModel.fromJson(response.data as Map<String, dynamic>);
@@ -288,6 +299,54 @@ class ChatApiService {
     );
     final payload = response.data as Map<String, dynamic>;
     return payload['saved'] == true;
+  }
+
+  Future<void> reportContent({
+    required String type,
+    required int id,
+    required String reason,
+    String? description,
+  }) async {
+    try {
+      await _dio.post(
+        '/reports',
+        data: {
+          'reportable_type': type,
+          'reportable_id': id,
+          'reason': reason,
+          if (description != null && description.trim().isNotEmpty)
+            'description': description.trim(),
+        },
+      );
+    } on DioException catch (error) {
+      throw Exception(_extractErrorMessage(error));
+    }
+  }
+
+  Future<void> blockUser({
+    required int userId,
+    required String reason,
+    String? reportableType,
+    int? reportableId,
+    String? description,
+  }) async {
+    try {
+      await _dio.post(
+        '/blocks',
+        data: {
+          'blocked_user_id': userId,
+          'reason': reason,
+          if (reportableType != null && reportableType.trim().isNotEmpty)
+            'reportable_type': reportableType,
+          if (reportableId != null && reportableId > 0)
+            'reportable_id': reportableId,
+          if (description != null && description.trim().isNotEmpty)
+            'description': description.trim(),
+        },
+      );
+    } on DioException catch (error) {
+      throw Exception(_extractErrorMessage(error));
+    }
   }
 
   Future<List<AppOption>> fetchMovieCategories() async {

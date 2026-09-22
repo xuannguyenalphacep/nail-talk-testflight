@@ -129,7 +129,7 @@ class _ChatMobileAppState extends State<ChatMobileApp>
               if (session.bootstrapping) {
                 return const _SplashScreen();
               }
-              if (!session.isLoggedIn) {
+              if (session.selectedApp == null) {
                 return const LoginScreen();
               }
               return const SocialHubShellScreen();

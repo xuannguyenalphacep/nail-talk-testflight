@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/app_option.dart';
@@ -9,6 +11,8 @@ import '../models/movie_plan_model.dart';
 import '../models/property_listing_item.dart';
 import '../models/saved_item.dart';
 import '../models/user_profile_model.dart';
+import '../core/localization/app_localizer.dart';
+import '../core/utils/content_moderation_utils.dart';
 import '../services/chat_api_service.dart';
 import '../core/constants/app_constants.dart';
 import 'session_controller.dart';
@@ -79,9 +83,11 @@ class SocialHubController extends ChangeNotifier {
   List<JobListingItem> get jobItems => List.unmodifiable(_jobItems);
   List<PropertyListingItem> get propertyItems =>
       List.unmodifiable(_propertyItems);
+  bool get _hasSelectedService => _sessionController.selectedApp != null;
+  bool get _isLoggedIn => _sessionController.isLoggedIn;
 
   Future<void> initializeIfNeeded() async {
-    if (!_sessionController.isLoggedIn || _initializedForSession) return;
+    if (!_hasSelectedService || _initializedForSession) return;
     _initializedForSession = true;
     await Future.wait([
       ensureUsStatesLoaded(),
@@ -94,15 +100,20 @@ class SocialHubController extends ChangeNotifier {
   }
 
   Future<void> refreshHome() async {
-    if (!_sessionController.isLoggedIn) return;
+    if (!_hasSelectedService) return;
 
     _loadingHome = true;
     _error = null;
     notifyListeners();
 
     try {
-      _profile = await _apiService.fetchProfile();
-      _bookmarks = await _apiService.fetchBookmarks();
+      if (_isLoggedIn) {
+        _profile = await _apiService.fetchProfile();
+        _bookmarks = await _apiService.fetchBookmarks();
+      } else {
+        _profile = null;
+        _bookmarks = const [];
+      }
     } catch (error) {
       _error = error.toString();
     } finally {
@@ -112,7 +123,7 @@ class SocialHubController extends ChangeNotifier {
   }
 
   Future<void> refreshMovies({int? categoryId, String? search}) async {
-    if (!_sessionController.isLoggedIn) return;
+    if (!_hasSelectedService) return;
     if (_loadingMovies) return;
 
     _loadingMovies = true;
@@ -125,7 +136,7 @@ class SocialHubController extends ChangeNotifier {
     try {
       final results = await Future.wait([
         _apiService.fetchMovieCategories(),
-        AppConstants.moviePaymentsEnabled
+        AppConstants.moviePaymentsEnabled && _isLoggedIn
             ? _apiService.fetchMoviePlans()
             : Future.value(<MoviePlanModel>[]),
         _apiService.fetchMovies(
@@ -134,7 +145,7 @@ class SocialHubController extends ChangeNotifier {
           page: 1,
           perPage: _moviePageSize,
         ),
-        AppConstants.moviePaymentsEnabled
+        AppConstants.moviePaymentsEnabled && _isLoggedIn
             ? _apiService.fetchActiveSubscription()
             : Future.value(null),
       ]);
@@ -155,7 +166,7 @@ class SocialHubController extends ChangeNotifier {
   }
 
   Future<void> loadMoreMovies() async {
-    if (!_sessionController.isLoggedIn ||
+    if (!_hasSelectedService ||
         _loadingMovies ||
         _loadingMoreMovies ||
         !hasMoreMovies) {
@@ -206,7 +217,7 @@ class SocialHubController extends ChangeNotifier {
     String? state,
     String? search,
   }) async {
-    if (!_sessionController.isLoggedIn) return;
+    if (!_hasSelectedService) return;
 
     _loadingMarketplace = true;
     _error = null;
@@ -215,7 +226,7 @@ class SocialHubController extends ChangeNotifier {
     try {
       _marketplaceCategories = await _apiService.fetchMarketplaceCategories();
       _marketplaceItems = await _apiService.fetchMarketplace(
-        mine: mine,
+        mine: _isLoggedIn && mine,
         categoryId: categoryId,
         state: state,
         search: search,
@@ -234,7 +245,7 @@ class SocialHubController extends ChangeNotifier {
     String? state,
     String? search,
   }) async {
-    if (!_sessionController.isLoggedIn) return;
+    if (!_hasSelectedService) return;
 
     _loadingJobs = true;
     _error = null;
@@ -242,7 +253,7 @@ class SocialHubController extends ChangeNotifier {
 
     try {
       _jobItems = await _apiService.fetchJobs(
-        mine: mine,
+        mine: _isLoggedIn && mine,
         mode: mode,
         state: state,
         search: search,
@@ -261,7 +272,7 @@ class SocialHubController extends ChangeNotifier {
     String? state,
     String? search,
   }) async {
-    if (!_sessionController.isLoggedIn) return;
+    if (!_hasSelectedService) return;
 
     _loadingProperties = true;
     _error = null;
@@ -269,7 +280,7 @@ class SocialHubController extends ChangeNotifier {
 
     try {
       _propertyItems = await _apiService.fetchProperties(
-        mine: mine,
+        mine: _isLoggedIn && mine,
         mode: mode,
         state: state,
         search: search,
@@ -283,6 +294,8 @@ class SocialHubController extends ChangeNotifier {
   }
 
   Future<void> subscribeToMoviePlan(int planId) async {
+    _requireLogin();
+
     if (!AppConstants.moviePaymentsEnabled) {
       _error = AppConstants.noPaymentReviewNote;
       notifyListeners();
@@ -307,7 +320,7 @@ class SocialHubController extends ChangeNotifier {
   }
 
   Future<void> ensureUsStatesLoaded({bool force = false}) async {
-    if (!_sessionController.isLoggedIn) return;
+    if (!_hasSelectedService) return;
     if (_loadingUsStates) return;
     if (_usStates.isNotEmpty && !force) return;
 
@@ -326,6 +339,8 @@ class SocialHubController extends ChangeNotifier {
   }
 
   Future<void> toggleBookmark({required String type, required int id}) async {
+    _requireLogin();
+
     try {
       final saved = await _apiService.toggleBookmark(type: type, id: id);
       _bookmarks = await _apiService.fetchBookmarks();
@@ -369,6 +384,7 @@ class SocialHubController extends ChangeNotifier {
     int? categoryId,
     List<String> imageUrls = const [],
   }) async {
+    ContentModerationUtils.validateOrThrow([title, description]);
     await _guardedSubmit(() async {
       await _apiService.createMarketplaceListing(
         title: title,
@@ -399,6 +415,12 @@ class SocialHubController extends ChangeNotifier {
     String mode = 'hiring',
     List<String> imageUrls = const [],
   }) async {
+    ContentModerationUtils.validateOrThrow([
+      title,
+      salonName,
+      description,
+      requirements,
+    ]);
     await _guardedSubmit(() async {
       await _apiService.createJobListing(
         title: title,
@@ -432,6 +454,7 @@ class SocialHubController extends ChangeNotifier {
     String mode = 'rent_out',
     List<String> imageUrls = const [],
   }) async {
+    ContentModerationUtils.validateOrThrow([title, description, addressLine]);
     await _guardedSubmit(() async {
       await _apiService.createPropertyListing(
         title: title,
@@ -451,12 +474,42 @@ class SocialHubController extends ChangeNotifier {
     });
   }
 
+  Future<void> reportContent({
+    required String type,
+    required int id,
+    required String reason,
+    String? description,
+  }) async {
+    _requireLogin();
+
+    _submitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _apiService.reportContent(
+        type: type,
+        id: id,
+        reason: reason,
+        description: description,
+      );
+    } catch (error) {
+      _error = error.toString();
+      rethrow;
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
   void clearError() {
     _error = null;
     notifyListeners();
   }
 
   Future<void> _guardedSubmit(Future<void> Function() action) async {
+    _requireLogin();
+
     _submitting = true;
     _error = null;
     notifyListeners();
@@ -472,26 +525,41 @@ class SocialHubController extends ChangeNotifier {
     }
   }
 
-  void _handleSessionChange() {
-    if (_sessionController.isLoggedIn) return;
+  void _requireLogin() {
+    if (_isLoggedIn) return;
+    _error = AppLocalizer.current.tr('Please sign in to continue.');
+    notifyListeners();
+    throw StateError(_error!);
+  }
 
+  void _handleSessionChange() {
     _initializedForSession = false;
+
+    if (_sessionController.isLoggedIn) {
+      unawaited(initializeIfNeeded());
+      return;
+    }
+
     _profile = null;
     _bookmarks = const [];
-    _movieCategories = const [];
-    _movies = const [];
-    _loadingMoreMovies = false;
-    _moviePage = 0;
-    _movieLastPage = 1;
-    _movieCategoryId = null;
-    _movieSearch = null;
     _moviePlans = const [];
     _activeSubscription = null;
-    _marketplaceCategories = const [];
-    _usStates = const [];
-    _marketplaceItems = const [];
-    _jobItems = const [];
-    _propertyItems = const [];
+    if (!_hasSelectedService) {
+      _movieCategories = const [];
+      _movies = const [];
+      _loadingMoreMovies = false;
+      _moviePage = 0;
+      _movieLastPage = 1;
+      _movieCategoryId = null;
+      _movieSearch = null;
+      _marketplaceCategories = const [];
+      _usStates = const [];
+      _marketplaceItems = const [];
+      _jobItems = const [];
+      _propertyItems = const [];
+    } else {
+      unawaited(initializeIfNeeded());
+    }
     notifyListeners();
   }
 

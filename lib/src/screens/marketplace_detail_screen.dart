@@ -47,6 +47,75 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
     return widget.item;
   }
 
+  Future<void> _toggleSave(
+    SocialHubController controller,
+    MarketplaceItem item,
+  ) async {
+    try {
+      await controller.toggleBookmark(type: 'marketplace_listing', id: item.id);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            context.tr(controller.error ?? 'Please sign in to continue.'),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _reportListing(
+    SocialHubController controller,
+    MarketplaceItem item,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('Report listing?')),
+        content: Text(
+          context.tr(
+            'Send this marketplace listing to the moderation team for review.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(context.tr('Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(context.tr('Report')),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+
+    try {
+      await controller.reportContent(
+        type: 'marketplace_listing',
+        id: item.id,
+        reason: 'Objectionable marketplace listing',
+        description: item.title,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text(context.tr('Report sent for review.'))),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            context.tr(controller.error ?? 'Please sign in to continue.'),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<SocialHubController>();
@@ -79,15 +148,17 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
           overflow: TextOverflow.ellipsis,
         ),
         actions: [
+          IconButton(
+            tooltip: context.tr('Report listing'),
+            onPressed: () => _reportListing(controller, item),
+            icon: const Icon(Icons.flag_outlined),
+          ),
           MetroActionButton(
             icon: item.saved
                 ? Icons.bookmark_rounded
                 : Icons.bookmark_add_outlined,
             label: item.saved ? 'Saved' : 'Save item',
-            onPressed: () => controller.toggleBookmark(
-              type: 'marketplace_listing',
-              id: item.id,
-            ),
+            onPressed: () => _toggleSave(controller, item),
           ),
           const SizedBox(width: 16),
         ],
@@ -131,10 +202,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
                 SizedBox(
                   height: 52,
                   child: OutlinedButton.icon(
-                    onPressed: () => controller.toggleBookmark(
-                      type: 'marketplace_listing',
-                      id: item.id,
-                    ),
+                    onPressed: () => _toggleSave(controller, item),
                     style: metroSoftOutlinedButtonStyle(context),
                     icon: Icon(
                       item.saved

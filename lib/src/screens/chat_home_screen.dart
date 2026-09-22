@@ -18,6 +18,7 @@ import '../models/chat_room.dart';
 import '../models/chat_user_option.dart';
 import '../services/attachment_open_service.dart';
 import 'attachment_preview_screen.dart';
+import 'login_screen.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/language_switch_button.dart';
 import '../widgets/metro_ui.dart';
@@ -314,6 +315,12 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
 
   GlobalKey _messageKeyFor(int messageId) =>
       _messageItemKeys.putIfAbsent(messageId, GlobalKey.new);
+
+  Future<void> _openSignIn() {
+    return Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
+  }
 
   Future<void> _pickAndSendFile() async {
     final result = await FilePicker.platform.pickFiles(
@@ -916,6 +923,78 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                       }
                     },
                   ),
+                if (!isMine && !message.isRecalled) ...[
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.flag_outlined,
+                      color: Color(0xFFB3261E),
+                    ),
+                    title: Text(context.tr('Report message')),
+                    subtitle: Text(
+                      context.tr('Send this message to the moderation team.'),
+                    ),
+                    onTap: () async {
+                      Navigator.of(context).pop();
+                      await chat.reportMessage(message);
+                      if (!mounted) return;
+                      ScaffoldMessenger.maybeOf(this.context)?.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            AppLocalizer.current.tr('Report sent for review.'),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.block_rounded,
+                      color: Color(0xFF8C1D18),
+                    ),
+                    title: Text(context.tr('Block user')),
+                    subtitle: Text(
+                      context.tr(
+                        'Hide this user from your chat feed immediately.',
+                      ),
+                    ),
+                    onTap: () async {
+                      Navigator.of(context).pop();
+                      final ok = await showDialog<bool>(
+                        context: this.context,
+                        builder: (context) => AlertDialog(
+                          title: Text(context.tr('Block user?')),
+                          content: Text(
+                            context.tr(
+                              'This removes their messages from your view and notifies the moderation team.',
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: Text(context.tr('Cancel')),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: Text(context.tr('Block')),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (ok == true) {
+                        await chat.blockUserFromMessage(message);
+                        if (!mounted) return;
+                        ScaffoldMessenger.maybeOf(this.context)?.showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              AppLocalizer.current.tr('User blocked.'),
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ],
                 if (currentFilter == RoomCollectionFilter.hidden)
                   const SizedBox(height: 6)
                 else
@@ -933,6 +1012,15 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final theme = Theme.of(context);
+
+    if (!session.isLoggedIn) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: MetroPageBackground(
+          child: SafeArea(child: _GuestChatGate(onSignIn: _openSignIn)),
+        ),
+      );
+    }
 
     return Consumer<ChatController>(
       builder: (context, chat, _) {
@@ -1064,6 +1152,55 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _GuestChatGate extends StatelessWidget {
+  const _GuestChatGate({required this.onSignIn});
+
+  final Future<void> Function() onSignIn;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: MetroInsetPanel(
+          borderColor: kMetroPrimary,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const AppLogo(size: 74, showWordmark: false),
+              const SizedBox(height: 18),
+              Text(
+                context.tr('Sign in for community chat'),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: kMetroInk,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                context.tr(
+                  'You can browse movies, marketplace listings, jobs, and housing without an account. Chat, reporting, blocking, posting, and saved items require sign-in.',
+                ),
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: kMetroMuted),
+              ),
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                onPressed: onSignIn,
+                icon: const Icon(Icons.login_rounded),
+                label: Text(context.tr('Sign in or create account')),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -90,6 +90,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _contactSeller(MarketplaceItem item) async {
+    if (!context.read<SessionController>().isLoggedIn) {
+      _showSignInRequired();
+      return;
+    }
+
     if (item.userId <= 0) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(
@@ -122,6 +127,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _openPrivateChat(int? userId, String unavailableMessage) async {
+    if (!context.read<SessionController>().isLoggedIn) {
+      _showSignInRequired();
+      return;
+    }
+
     if (userId == null || userId <= 0) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(
@@ -151,6 +161,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const ChatHomeScreen()));
+  }
+
+  void _showSignInRequired() {
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(context.tr('Please sign in to continue.')),
+      ),
+    );
   }
 
   Future<void> _openMarketplaceDetail(MarketplaceItem item) async {

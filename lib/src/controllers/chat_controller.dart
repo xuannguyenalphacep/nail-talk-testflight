@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../core/localization/app_localizer.dart';
 import '../core/utils/chat_content_utils.dart';
+import '../core/utils/content_moderation_utils.dart';
 import '../models/chat_message.dart';
 import '../models/chat_message_page.dart';
 import '../models/chat_room.dart';
@@ -412,6 +413,15 @@ class ChatController extends ChangeNotifier {
 
     final text = rawText.trim();
     if (text.isEmpty) return;
+    try {
+      ContentModerationUtils.validateOrThrow([
+        ChatContentUtils.renderPlainText(text),
+      ]);
+    } on ContentModerationException catch (error) {
+      _error = AppLocalizer.current.tr(error.message);
+      notifyListeners();
+      return;
+    }
 
     _sending = true;
     notifyListeners();
@@ -569,6 +579,14 @@ class ChatController extends ChangeNotifier {
     required List<int> memberIds,
   }) async {
     try {
+      ContentModerationUtils.validateOrThrow([name]);
+    } on ContentModerationException catch (error) {
+      _error = AppLocalizer.current.tr(error.message);
+      notifyListeners();
+      return;
+    }
+
+    try {
       final roomId = await _apiService.createGroup(
         name: name,
         memberIds: memberIds,
@@ -585,6 +603,14 @@ class ChatController extends ChangeNotifier {
   Future<void> renameActiveGroup(String name) async {
     final room = _activeRoom;
     if (room == null || !room.isGroup) return;
+
+    try {
+      ContentModerationUtils.validateOrThrow([name]);
+    } on ContentModerationException catch (error) {
+      _error = AppLocalizer.current.tr(error.message);
+      notifyListeners();
+      return;
+    }
 
     try {
       await _apiService.renameGroup(roomId: room.id, name: name);
@@ -804,6 +830,57 @@ class ChatController extends ChangeNotifier {
     }
   }
 
+  Future<void> reportMessage(
+    ChatMessage message, {
+    String reason = 'Objectionable content',
+    String? description,
+  }) async {
+    if (message.id <= 0) return;
+
+    try {
+      await _apiService.reportContent(
+        type: 'chat_message',
+        id: message.id,
+        reason: reason,
+        description: description,
+      );
+      _error = null;
+    } catch (_) {
+      _error = AppLocalizer.current.tr('Failed to send the report.');
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<void> blockUserFromMessage(
+    ChatMessage message, {
+    String reason = 'Abusive or objectionable content',
+  }) async {
+    final currentUserId = _sessionController.user?.id;
+    if (message.senderId <= 0 ||
+        currentUserId == null ||
+        message.senderId == currentUserId) {
+      return;
+    }
+
+    try {
+      await _apiService.blockUser(
+        userId: message.senderId,
+        reason: reason,
+        reportableType: 'chat_message',
+        reportableId: message.id,
+        description:
+            'Blocked from message ${message.id} in room ${message.roomId}.',
+      );
+      _removeBlockedUserFromFeed(message.senderId);
+      _error = null;
+    } catch (_) {
+      _error = AppLocalizer.current.tr('Failed to block this user.');
+    } finally {
+      notifyListeners();
+    }
+  }
+
   void setRoomFilter(RoomCollectionFilter filter) {
     _roomFilter = filter;
     notifyListeners();
@@ -906,6 +983,28 @@ class ChatController extends ChangeNotifier {
 
     _rooms.sort(_roomComparator);
     notifyListeners();
+  }
+
+  void _removeBlockedUserFromFeed(int blockedUserId) {
+    _messages.removeWhere((message) => message.senderId == blockedUserId);
+
+    final activeRoom = _activeRoom;
+    if (activeRoom != null) {
+      if (activeRoom.isPrivate && activeRoom.peerId == blockedUserId) {
+        _activeRoom = null;
+        _messages.clear();
+        _pinnedMessages.clear();
+      } else {
+        _cacheMessagesForRoom(activeRoom.id);
+      }
+    }
+
+    _rooms.removeWhere(
+      (room) => room.isPrivate && room.peerId == blockedUserId,
+    );
+    _hiddenRooms.removeWhere(
+      (room) => room.isPrivate && room.peerId == blockedUserId,
+    );
   }
 
   void _replaceOnlineUsers(Set<int> userIds) {

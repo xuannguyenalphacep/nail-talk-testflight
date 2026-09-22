@@ -40,6 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscureLogin = true;
   bool _obscureRegister = true;
   bool _obscureConfirm = true;
+  bool _acceptedTerms = false;
 
   @override
   void dispose() {
@@ -54,6 +55,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submitLogin() async {
     if (!_loginFormKey.currentState!.validate()) return;
+    if (!_acceptedTerms) {
+      _showTermsRequired();
+      return;
+    }
 
     final session = context.read<SessionController>();
     try {
@@ -61,6 +66,9 @@ class _LoginScreenState extends State<LoginScreen> {
         username: _loginUsernameController.text.trim(),
         password: _loginPasswordController.text,
       );
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -71,6 +79,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submitRegister() async {
     if (!_registerFormKey.currentState!.validate()) return;
+    if (!_acceptedTerms) {
+      _showTermsRequired();
+      return;
+    }
 
     final session = context.read<SessionController>();
     try {
@@ -80,12 +92,27 @@ class _LoginScreenState extends State<LoginScreen> {
         email: email.isEmpty ? null : email,
         password: _registerPasswordController.text,
       );
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(session.error ?? context.tr('Sign-up failed.'))),
       );
     }
+  }
+
+  void _showTermsRequired() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          context.tr(
+            'Please accept the EULA and community safety rules before continuing.',
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _openForgotPassword() async {
@@ -153,6 +180,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                       serviceReady: serviceReady,
                                       submitting: session.submitting,
                                       error: session.error,
+                                      acceptedTerms: _acceptedTerms,
+                                      onAcceptedTermsChanged: (value) =>
+                                          setState(
+                                            () => _acceptedTerms = value,
+                                          ),
                                       onRetry: session.bootstrap,
                                       onModeChanged: (mode) =>
                                           setState(() => _mode = mode),
@@ -177,7 +209,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                                     _loginPasswordController,
                                                 obscure: _obscureLogin,
                                                 submitting: session.submitting,
-                                                ready: serviceReady,
+                                                ready:
+                                                    serviceReady &&
+                                                    _acceptedTerms,
                                                 onTogglePassword: () =>
                                                     setState(
                                                       () => _obscureLogin =
@@ -204,7 +238,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                                     _obscureRegister,
                                                 obscureConfirm: _obscureConfirm,
                                                 submitting: session.submitting,
-                                                ready: serviceReady,
+                                                ready:
+                                                    serviceReady &&
+                                                    _acceptedTerms,
                                                 onTogglePassword: () =>
                                                     setState(
                                                       () => _obscureRegister =
@@ -229,6 +265,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     serviceReady: serviceReady,
                                     submitting: session.submitting,
                                     error: session.error,
+                                    acceptedTerms: _acceptedTerms,
+                                    onAcceptedTermsChanged: (value) =>
+                                        setState(() => _acceptedTerms = value),
                                     onRetry: session.bootstrap,
                                     onModeChanged: (mode) =>
                                         setState(() => _mode = mode),
@@ -251,7 +290,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                                   _loginPasswordController,
                                               obscure: _obscureLogin,
                                               submitting: session.submitting,
-                                              ready: serviceReady,
+                                              ready:
+                                                  serviceReady &&
+                                                  _acceptedTerms,
                                               onTogglePassword: () => setState(
                                                 () => _obscureLogin =
                                                     !_obscureLogin,
@@ -275,7 +316,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                               obscurePassword: _obscureRegister,
                                               obscureConfirm: _obscureConfirm,
                                               submitting: session.submitting,
-                                              ready: serviceReady,
+                                              ready:
+                                                  serviceReady &&
+                                                  _acceptedTerms,
                                               onTogglePassword: () => setState(
                                                 () => _obscureRegister =
                                                     !_obscureRegister,
@@ -438,6 +481,8 @@ class _AuthFormPanel extends StatelessWidget {
     required this.serviceReady,
     required this.submitting,
     required this.error,
+    required this.acceptedTerms,
+    required this.onAcceptedTermsChanged,
     required this.onRetry,
     required this.onModeChanged,
     required this.onFlipMode,
@@ -449,6 +494,8 @@ class _AuthFormPanel extends StatelessWidget {
   final bool serviceReady;
   final bool submitting;
   final String? error;
+  final bool acceptedTerms;
+  final ValueChanged<bool> onAcceptedTermsChanged;
   final Future<void> Function() onRetry;
   final ValueChanged<_AuthMode> onModeChanged;
   final VoidCallback onFlipMode;
@@ -509,6 +556,11 @@ class _AuthFormPanel extends StatelessWidget {
             onRetry: onRetry,
           ),
           const SizedBox(height: 18),
+          _EulaAcceptanceCard(
+            accepted: acceptedTerms,
+            onChanged: submitting ? null : onAcceptedTermsChanged,
+          ),
+          const SizedBox(height: 18),
           SegmentedButton<_AuthMode>(
             segments: [
               ButtonSegment<_AuthMode>(
@@ -556,6 +608,42 @@ class _AuthFormPanel extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EulaAcceptanceCard extends StatelessWidget {
+  const _EulaAcceptanceCard({required this.accepted, required this.onChanged});
+
+  final bool accepted;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7F2),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFF3D8CE)),
+      ),
+      child: CheckboxListTile(
+        value: accepted,
+        onChanged: onChanged == null
+            ? null
+            : (value) => onChanged!(value ?? false),
+        controlAffinity: ListTileControlAffinity.leading,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        title: Text(
+          context.tr('I agree to the EULA and community safety rules.'),
+          style: const TextStyle(color: _authInk, fontWeight: FontWeight.w900),
+        ),
+        subtitle: Text(
+          context.tr(
+            'Nails Talk does not allow abusive, illegal, scam, hateful, sexual, or harassing content. Members can report content, block abusive users, and delete their account from Profile.',
+          ),
+          style: const TextStyle(color: _authMuted, height: 1.45),
+        ),
       ),
     );
   }

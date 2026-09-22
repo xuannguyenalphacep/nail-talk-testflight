@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../controllers/chat_controller.dart';
+import '../controllers/session_controller.dart';
 import '../controllers/social_hub_controller.dart';
 import '../core/localization/app_localizer.dart';
 import '../models/job_listing_item.dart';
@@ -125,6 +126,11 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
   }
 
   Future<void> _openPrivateChat(int? userId, String unavailableMessage) async {
+    if (!context.read<SessionController>().isLoggedIn) {
+      _showSignInRequired();
+      return;
+    }
+
     if (userId == null || userId <= 0) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(
@@ -154,6 +160,15 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
     await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const ChatHomeScreen()));
+  }
+
+  void _showSignInRequired() {
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(context.tr('Please sign in to continue.')),
+      ),
+    );
   }
 
   Future<void> _openJobDetail(JobListingItem item) async {
@@ -212,6 +227,11 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
+          if (!context.read<SessionController>().isLoggedIn) {
+            _showSignInRequired();
+            return;
+          }
+
           final created = await Navigator.of(context).push<bool>(
             MaterialPageRoute(
               builder: (_) => _isJobsBoard
@@ -344,6 +364,10 @@ class _WorkStayScreenState extends State<WorkStayScreen> {
                           label: 'My posts',
                           selected: _mineOnly,
                           onTap: () {
+                            if (!context.read<SessionController>().isLoggedIn) {
+                              _showSignInRequired();
+                              return;
+                            }
                             setState(() => _mineOnly = !_mineOnly);
                             _refresh();
                           },
