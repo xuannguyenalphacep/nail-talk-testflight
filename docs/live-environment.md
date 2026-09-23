@@ -1,6 +1,6 @@
 # Live Environment Notes
 
-Last checked: 2026-09-16, Asia/Ho_Chi_Minh.
+Last checked: 2026-09-23, Asia/Ho_Chi_Minh.
 
 This note is the quick source of truth before changing Flutter API URLs or building for Store/TestFlight.
 
@@ -94,6 +94,27 @@ Deploy notes:
 - Imported the latest local `social_hub_local` dump into the live MySQL database.
 - Replaced movie image URLs in the live DB from local asset host `127.0.0.1:8010` to `http://54.205.74.122`.
 - Restarted `php8.4-fpm`, `nginx`, and `nail-talk-socket`.
+
+## 2026-09-23 App Review fix deploy
+
+Deployed the App Store review fixes to the same live EC2 server with AWS Console EC2 Instance Connect as user `ubuntu`.
+
+What changed on live:
+
+- Synced `admin-api/` code from local tarball, keeping server `.env`, `vendor/`, `public/demo`, storage/runtime files, and uploads.
+- Synced `chat-socket/` code from local tarball, keeping server `.env`, `node_modules`, `chat_uploads`, and `recordings`.
+- Ran `php artisan migrate --force` and `php artisan optimize:clear`.
+- Restarted `php8.4-fpm`, `nginx`, and `nail-talk-socket.service`.
+- Updated the live `em_chat_apps` display name from `Nail Talk` to `Nails Talk`.
+
+App Review route checks confirmed after deploy:
+
+- `POST /api/blocks` exists and returns `401` when unauthenticated.
+- `DELETE /api/me` exists and returns `401` when unauthenticated.
+- Authenticated smoke test passed for register, profile load, report user, block user, and delete the same smoke-test account.
+- Socket.IO handshake passed at `http://54.205.74.122/socket.io/?EIO=4&transport=polling`.
+
+Important note: GitHub clone from the live server failed because the backend repos require credentials and the old token was rejected by GitHub. For this deploy, code was transferred by a lightweight tar/base64 paste through EC2 Instance Connect.
 
 ## Socket note
 
