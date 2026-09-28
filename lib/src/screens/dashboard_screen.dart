@@ -34,6 +34,7 @@ class DashboardScreen extends StatefulWidget {
     required this.onNavigate,
     required this.onOpenJobs,
     required this.onOpenHousing,
+    required this.onOpenServices,
     required this.onOpenSaved,
     super.key,
   });
@@ -41,6 +42,7 @@ class DashboardScreen extends StatefulWidget {
   final ValueChanged<int> onNavigate;
   final Future<void> Function(String mode) onOpenJobs;
   final Future<void> Function(String mode) onOpenHousing;
+  final Future<void> Function() onOpenServices;
   final VoidCallback onOpenSaved;
 
   @override
@@ -64,6 +66,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       social.refreshMarketplace(),
       social.refreshJobs(),
       social.refreshProperties(),
+      social.refreshServices(),
     ]);
   }
 
@@ -390,7 +393,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         social.loadingMovies ||
         social.loadingMarketplace ||
         social.loadingJobs ||
-        social.loadingProperties;
+        social.loadingProperties ||
+        social.loadingServices;
 
     final movieImage = _movieImage(featuredMovie, social);
     final jobImage = _jobImage(jobs, social);
@@ -565,6 +569,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 10),
                 _TienLenComingSoonBanner(onTap: _showGameComingSoon),
+                const SizedBox(height: 14),
+                _ServicesHomeBanner(onTap: widget.onOpenServices),
                 const SizedBox(height: 14),
                 GridView.builder(
                   shrinkWrap: true,
@@ -1583,6 +1589,174 @@ class _TienLenComingSoonBanner extends StatelessWidget {
                           boxShadow: [
                             BoxShadow(
                               color: Color(0x44F35F86),
+                              blurRadius: 18,
+                              offset: Offset(0, 7),
+                            ),
+                          ],
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.all(11),
+                          child: Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ServicesHomeBanner extends StatelessWidget {
+  const _ServicesHomeBanner({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(_homeRadius),
+      child: Ink(
+        height: 244,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(_homeRadius),
+          border: Border.all(color: const Color(0xFFD9F4F1)),
+          boxShadow: const [
+            BoxShadow(
+              color: _homeShadow,
+              blurRadius: 28,
+              offset: Offset(0, 14),
+            ),
+          ],
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(_homeRadius),
+              child: Image.asset(
+                'assets/branding/vietnam_clinic_banner_bg.png',
+                fit: BoxFit.cover,
+                alignment: Alignment.centerRight,
+              ),
+            ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(_homeRadius),
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xEE00858A),
+                      Color(0x991D9CA2),
+                      Color(0x001D9CA2),
+                    ],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    stops: [0, 0.58, 1],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _CardChip(
+                        label: 'Services',
+                        backgroundColor: Colors.white,
+                        foregroundColor: _homeText,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 13,
+                          vertical: 8,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F9D96),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x330F9D96),
+                              blurRadius: 16,
+                              offset: Offset(0, 7),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          context.tr('Book ahead'),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    width: 240,
+                    child: Text(
+                      context.tr('Services'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: Colors.white,
+                            fontSize: 23,
+                            height: 1.04,
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  SizedBox(
+                    width: 250,
+                    child: Text(
+                      context.tr(
+                        'Choose clinics, spas, and linked partners before traveling.',
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.96),
+                        height: 1.28,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _MiniInfoPill(label: 'Book clinics'),
+                      const SizedBox(width: 8),
+                      _MiniInfoPill(label: 'Book spa'),
+                      const Spacer(),
+                      DecoratedBox(
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFF6F7F),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x44FF6F7F),
                               blurRadius: 18,
                               offset: Offset(0, 7),
                             ),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../models/app_option.dart';
+import '../models/clinic_item.dart';
 import '../models/job_listing_item.dart';
 import '../models/marketplace_item.dart';
 import '../models/movie_item.dart';
@@ -10,6 +11,7 @@ import '../models/movie_page.dart';
 import '../models/movie_plan_model.dart';
 import '../models/property_listing_item.dart';
 import '../models/saved_item.dart';
+import '../models/service_category.dart';
 import '../models/user_profile_model.dart';
 import '../core/localization/app_localizer.dart';
 import '../core/utils/content_moderation_utils.dart';
@@ -38,6 +40,8 @@ class SocialHubController extends ChangeNotifier {
   bool _loadingMarketplace = false;
   bool _loadingJobs = false;
   bool _loadingProperties = false;
+  bool _loadingServices = false;
+  bool _loadingClinics = false;
   bool _loadingUsStates = false;
   bool _submitting = false;
   String? _error;
@@ -57,6 +61,9 @@ class SocialHubController extends ChangeNotifier {
   List<MarketplaceItem> _marketplaceItems = const [];
   List<JobListingItem> _jobItems = const [];
   List<PropertyListingItem> _propertyItems = const [];
+  List<ServiceCategory> _serviceCategories = const [];
+  List<AppOption> _clinicSpecialties = const [];
+  List<ClinicItem> _clinicItems = const [];
 
   bool get loadingHome => _loadingHome;
   bool get loadingMovies => _loadingMovies;
@@ -64,6 +71,8 @@ class SocialHubController extends ChangeNotifier {
   bool get loadingMarketplace => _loadingMarketplace;
   bool get loadingJobs => _loadingJobs;
   bool get loadingProperties => _loadingProperties;
+  bool get loadingServices => _loadingServices;
+  bool get loadingClinics => _loadingClinics;
   bool get loadingUsStates => _loadingUsStates;
   bool get submitting => _submitting;
   String? get error => _error;
@@ -83,6 +92,11 @@ class SocialHubController extends ChangeNotifier {
   List<JobListingItem> get jobItems => List.unmodifiable(_jobItems);
   List<PropertyListingItem> get propertyItems =>
       List.unmodifiable(_propertyItems);
+  List<ServiceCategory> get serviceCategories =>
+      List.unmodifiable(_serviceCategories);
+  List<AppOption> get clinicSpecialties =>
+      List.unmodifiable(_clinicSpecialties);
+  List<ClinicItem> get clinicItems => List.unmodifiable(_clinicItems);
   bool get _hasSelectedService => _sessionController.selectedApp != null;
   bool get _isLoggedIn => _sessionController.isLoggedIn;
 
@@ -96,6 +110,7 @@ class SocialHubController extends ChangeNotifier {
       refreshMarketplace(),
       refreshJobs(),
       refreshProperties(),
+      refreshServices(),
     ]);
   }
 
@@ -293,6 +308,69 @@ class SocialHubController extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshClinics({
+    String? serviceSlug,
+    String? province,
+    String? specialty,
+    String? search,
+  }) async {
+    if (!_hasSelectedService) return;
+
+    _loadingClinics = true;
+    _clinicSpecialties = const [];
+    _clinicItems = const [];
+    _error = null;
+    notifyListeners();
+
+    try {
+      final results = await Future.wait([
+        _apiService.fetchClinicSpecialties(serviceSlug: serviceSlug),
+        _apiService.fetchClinics(
+          serviceSlug: serviceSlug,
+          province: province,
+          specialty: specialty,
+          search: search,
+        ),
+      ]);
+      _clinicSpecialties = results[0] as List<AppOption>;
+      _clinicItems = results[1] as List<ClinicItem>;
+    } catch (error) {
+      _error = error.toString();
+    } finally {
+      _loadingClinics = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> refreshServices() async {
+    if (!_hasSelectedService) return;
+
+    _loadingServices = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _serviceCategories = await _apiService.fetchServiceCategories();
+    } catch (error) {
+      _error = error.toString();
+    } finally {
+      _loadingServices = false;
+      notifyListeners();
+    }
+  }
+
+  Future<ClinicItem> fetchClinicDetail(int clinicId) async {
+    final clinic = await _apiService.fetchClinicDetail(clinicId);
+    final index = _clinicItems.indexWhere((item) => item.id == clinicId);
+    if (index >= 0) {
+      final nextClinics = List<ClinicItem>.from(_clinicItems);
+      nextClinics[index] = clinic;
+      _clinicItems = nextClinics;
+      notifyListeners();
+    }
+    return clinic;
+  }
+
   Future<void> subscribeToMoviePlan(int planId) async {
     _requireLogin();
 
@@ -474,6 +552,51 @@ class SocialHubController extends ChangeNotifier {
     });
   }
 
+  Future<ClinicBookingResult> submitClinicBooking({
+    required int clinicId,
+    required String customerName,
+    required String customerEmail,
+    required String customerPhone,
+    required String currentLocation,
+    required String plannedTravelDate,
+    required String appointmentDate,
+    required String preferredTime,
+    required String specialty,
+    required String message,
+  }) async {
+    ContentModerationUtils.validateOrThrow([
+      customerName,
+      currentLocation,
+      specialty,
+      message,
+    ]);
+
+    _submitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      return await _apiService.submitClinicBooking(
+        clinicId: clinicId,
+        customerName: customerName,
+        customerEmail: customerEmail,
+        customerPhone: customerPhone,
+        currentLocation: currentLocation,
+        plannedTravelDate: plannedTravelDate,
+        appointmentDate: appointmentDate,
+        preferredTime: preferredTime,
+        specialty: specialty,
+        message: message,
+      );
+    } catch (error) {
+      _error = error.toString();
+      rethrow;
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> reportContent({
     required String type,
     required int id,
@@ -557,6 +680,9 @@ class SocialHubController extends ChangeNotifier {
       _marketplaceItems = const [];
       _jobItems = const [];
       _propertyItems = const [];
+      _serviceCategories = const [];
+      _clinicSpecialties = const [];
+      _clinicItems = const [];
     } else {
       unawaited(initializeIfNeeded());
     }

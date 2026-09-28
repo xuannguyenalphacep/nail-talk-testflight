@@ -1077,6 +1077,82 @@ class AppLocalizer {
         'Câu lạc bộ đêm phim đã ghim một nội dung phát trực tuyến cộng đồng mới.',
     'A new Orlando housing lead matches your search.':
         'Có một đầu mối nhà ở mới tại Orlando phù hợp với tìm kiếm của bạn.',
+    'Services': 'Dịch vụ',
+    'Book trusted services in Vietnam': 'Đặt dịch vụ uy tín tại Việt Nam',
+    'Choose clinics, spas, and linked partners before traveling.':
+        'Chọn phòng khám, spa và đối tác liên kết trước khi về Việt Nam.',
+    'Book clinics': 'Đặt phòng khám',
+    'Book spa': 'Đặt spa',
+    'No services found yet': 'Chưa có dịch vụ',
+    'Services will appear here after admin publishes them.':
+        'Dịch vụ sẽ hiển thị tại đây sau khi admin đăng.',
+    '{count} linked partners': '{count} đối tác liên kết',
+    'Vietnam healthcare': 'Y tế Việt Nam',
+    'Book ahead': 'Đặt lịch trước',
+    'Clinic list': 'Danh sách phòng khám',
+    'Email booking': 'Đặt lịch qua email',
+    'Find clinics': 'Tìm phòng khám',
+    'Find clinics in Vietnam': 'Tìm phòng khám tại Việt Nam',
+    'Book linked clinics before your trip home.':
+        'Đặt lịch phòng khám liên kết trước khi về Việt Nam.',
+    'Choose linked clinics and send a booking request before traveling.':
+        'Chọn phòng khám liên kết và gửi yêu cầu đặt lịch trước khi bay.',
+    'Linked clinics in Vietnam': 'Phòng khám liên kết tại Việt Nam',
+    'Linked spas in Vietnam': 'Spa liên kết tại Việt Nam',
+    'Linked providers in Vietnam': 'Đơn vị liên kết tại Việt Nam',
+    'Search clinics, specialties, or cities':
+        'Tìm phòng khám, chuyên khoa hoặc thành phố',
+    'Search spas, treatments, or cities': 'Tìm spa, liệu trình hoặc thành phố',
+    'Vietnam': 'Việt Nam',
+    'Request appointment': 'Gửi yêu cầu đặt lịch',
+    'Clinic details': 'Thông tin phòng khám',
+    'Provider details': 'Thông tin đơn vị',
+    'About this clinic': 'Giới thiệu phòng khám',
+    'About this provider': 'Giới thiệu đơn vị',
+    'Opening hours': 'Giờ làm việc',
+    'Open map': 'Mở bản đồ',
+    'Website': 'Website',
+    'Linked partner': 'Đối tác liên kết',
+    'Hospital': 'Bệnh viện',
+    'Dental': 'Nha khoa',
+    'Beauty / Aesthetic': 'Thẩm mỹ',
+    'Lab / Checkup': 'Xét nghiệm / Tầm soát',
+    'Clinic': 'Phòng khám',
+    'Spa': 'Spa',
+    'Please enter your name.': 'Vui lòng nhập họ và tên.',
+    'Email address': 'Địa chỉ email',
+    'Current location': 'Bạn đang ở đâu',
+    'Example: California, Tokyo, Osaka': 'Ví dụ: California, Tokyo, Osaka',
+    'Vietnam arrival date': 'Ngày dự kiến về Việt Nam',
+    'Preferred appointment date': 'Ngày muốn khám',
+    'Choose date': 'Chọn ngày',
+    'Specialty / service': 'Chuyên khoa / dịch vụ',
+    'Choose a service': 'Chọn dịch vụ',
+    'What do you need to book?': 'Bạn muốn đặt dịch vụ gì?',
+    'Preferred time': 'Khung giờ mong muốn',
+    'Morning, afternoon, or a specific time':
+        'Buổi sáng, buổi chiều hoặc giờ cụ thể',
+    'Notes for clinic': 'Ghi chú gửi phòng khám',
+    'Tell the clinic what you need help with':
+        'Cho phòng khám biết bạn cần hỗ trợ gì',
+    'Notes for provider': 'Ghi chú gửi đơn vị',
+    'Tell the provider what you need help with':
+        'Cho đơn vị biết bạn cần hỗ trợ gì',
+    'Sending request...': 'Đang gửi yêu cầu...',
+    'Send booking request': 'Gửi yêu cầu đặt lịch',
+    'Please enter phone or email.': 'Vui lòng nhập số điện thoại hoặc email.',
+    'Your request has been sent to the clinic.':
+        'Yêu cầu của bạn đã được gửi tới phòng khám.',
+    'Your request has been sent to the provider.':
+        'Yêu cầu của bạn đã được gửi tới đơn vị liên kết.',
+    'Your request has been saved for follow-up.':
+        'Yêu cầu của bạn đã được lưu để theo dõi.',
+    'No clinics found yet': 'Chưa tìm thấy phòng khám',
+    'Linked clinics will appear here after admin publishes them.':
+        'Phòng khám liên kết sẽ hiển thị tại đây sau khi admin đăng.',
+    'No providers found yet': 'Chưa tìm thấy đơn vị liên kết',
+    'Linked providers will appear here after admin publishes them.':
+        'Đơn vị liên kết sẽ hiển thị tại đây sau khi admin đăng.',
     'U': 'N',
   };
 

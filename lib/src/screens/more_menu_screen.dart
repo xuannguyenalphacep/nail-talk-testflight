@@ -20,6 +20,7 @@ class MoreMenuScreen extends StatelessWidget {
     required this.onNavigate,
     required this.onOpenJobs,
     required this.onOpenHousing,
+    required this.onOpenServices,
     required this.onOpenSaved,
     super.key,
   });
@@ -27,6 +28,7 @@ class MoreMenuScreen extends StatelessWidget {
   final ValueChanged<int> onNavigate;
   final Future<void> Function(String mode) onOpenJobs;
   final Future<void> Function(String mode) onOpenHousing;
+  final Future<void> Function() onOpenServices;
   final VoidCallback onOpenSaved;
 
   Future<void> _openAccountSection(
@@ -102,6 +104,12 @@ class MoreMenuScreen extends StatelessWidget {
         icon: Icons.movie_creation_rounded,
         tint: const Color(0xFFF66BA6),
         onTap: () => onNavigate(1),
+      ),
+      _MenuEntry(
+        label: 'Services',
+        icon: Icons.room_service_rounded,
+        tint: const Color(0xFF15A9A1),
+        onTap: onOpenServices,
       ),
       _MenuEntry(
         label: 'Chat rooms',

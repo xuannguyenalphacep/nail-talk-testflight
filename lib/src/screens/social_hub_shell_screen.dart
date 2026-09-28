@@ -9,6 +9,7 @@ import 'dashboard_screen.dart';
 import 'marketplace_screen.dart';
 import 'more_menu_screen.dart';
 import 'movies_screen.dart';
+import 'service_directory_screen.dart';
 import 'work_stay_screen.dart';
 
 class SocialHubShellScreen extends StatefulWidget {
@@ -45,6 +46,12 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
             WorkStayScreen.housing(initialPropertyMode: initialMode),
       ),
     );
+  }
+
+  Future<void> _openServices() {
+    return Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ServiceDirectoryScreen()));
   }
 
   void _openSavedLanding() {
@@ -105,6 +112,7 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
         onNavigate: _goToTab,
         onOpenJobs: _openJobs,
         onOpenHousing: _openHousing,
+        onOpenServices: _openServices,
         onOpenSaved: _openSavedLanding,
       ),
       const MoviesScreen(),
@@ -114,6 +122,7 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
         onNavigate: _goToTab,
         onOpenJobs: _openJobs,
         onOpenHousing: _openHousing,
+        onOpenServices: _openServices,
         onOpenSaved: _openSavedLanding,
       ),
     ];

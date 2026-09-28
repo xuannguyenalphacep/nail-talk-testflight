@@ -11,6 +11,7 @@ import '../models/chat_notification_item.dart';
 import '../models/chat_room.dart';
 import '../models/chat_search_result.dart';
 import '../models/chat_user_option.dart';
+import '../models/clinic_item.dart';
 import '../models/job_listing_item.dart';
 import '../models/marketplace_item.dart';
 import '../models/movie_item.dart';
@@ -18,6 +19,7 @@ import '../models/movie_page.dart';
 import '../models/movie_plan_model.dart';
 import '../models/property_listing_item.dart';
 import '../models/saved_item.dart';
+import '../models/service_category.dart';
 import '../models/session_user.dart';
 import '../models/user_profile_model.dart';
 
@@ -631,6 +633,96 @@ class ChatApiService {
     );
   }
 
+  Future<List<ServiceCategory>> fetchServiceCategories() async {
+    final response = await _dio.get('/services');
+    final payload = response.data as Map<String, dynamic>;
+    return _mapSimpleList(
+      payload,
+      (json) => _normalizeServiceCategory(ServiceCategory.fromJson(json)),
+    );
+  }
+
+  Future<List<AppOption>> fetchClinicSpecialties({String? serviceSlug}) async {
+    final response = await _dio.get(
+      '/clinics/specialties',
+      queryParameters: {
+        if (serviceSlug != null && serviceSlug.trim().isNotEmpty)
+          'service_slug': serviceSlug.trim(),
+      },
+    );
+    final payload = response.data as Map<String, dynamic>;
+    return _mapSimpleList(payload, AppOption.fromJson);
+  }
+
+  Future<List<ClinicItem>> fetchClinics({
+    String? serviceSlug,
+    String? province,
+    String? specialty,
+    String? search,
+  }) async {
+    final response = await _dio.get(
+      '/clinics',
+      queryParameters: {
+        if (serviceSlug != null && serviceSlug.trim().isNotEmpty)
+          'service_slug': serviceSlug.trim(),
+        if (province != null && province.trim().isNotEmpty)
+          'province': province.trim(),
+        if (specialty != null && specialty.trim().isNotEmpty)
+          'specialty': specialty.trim(),
+        if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+      },
+    );
+    final payload = response.data as Map<String, dynamic>;
+    return _mapPaginatedList(
+      payload,
+      (json) => _normalizeClinicItem(ClinicItem.fromJson(json)),
+    );
+  }
+
+  Future<ClinicItem> fetchClinicDetail(int clinicId) async {
+    final response = await _dio.get('/clinics/$clinicId');
+    final payload = response.data as Map<String, dynamic>;
+    return _normalizeClinicItem(
+      ClinicItem.fromJson(payload['data'] as Map<String, dynamic>),
+    );
+  }
+
+  Future<ClinicBookingResult> submitClinicBooking({
+    required int clinicId,
+    required String customerName,
+    required String customerEmail,
+    required String customerPhone,
+    required String currentLocation,
+    required String plannedTravelDate,
+    required String appointmentDate,
+    required String preferredTime,
+    required String specialty,
+    required String message,
+  }) async {
+    final response = await _dio.post(
+      '/clinics/$clinicId/bookings',
+      data: {
+        'customer_name': customerName,
+        'customer_email': customerEmail,
+        'customer_phone': customerPhone,
+        'current_location': currentLocation,
+        'planned_travel_date': plannedTravelDate,
+        'appointment_date': appointmentDate,
+        'preferred_time': preferredTime,
+        'specialty': specialty,
+        'message': message,
+      },
+    );
+    final payload = response.data as Map<String, dynamic>;
+    final data = Map<String, dynamic>.from(
+      payload['data'] as Map<dynamic, dynamic>? ?? const <dynamic, dynamic>{},
+    );
+    return ClinicBookingResult.fromJson({
+      ...data,
+      'message': (payload['message'] ?? '').toString(),
+    });
+  }
+
   Future<void> registerDevice({
     required String appCode,
     required String deviceUuid,
@@ -1094,6 +1186,18 @@ class ChatApiService {
       userName: item.userName,
       userAvatarUrl: _normalizeMediaUrl(item.userAvatarUrl),
       saved: item.saved,
+    );
+  }
+
+  ClinicItem _normalizeClinicItem(ClinicItem item) {
+    return item.copyWith(
+      imageUrls: item.imageUrls.map(_normalizeMediaUrl).toList(growable: false),
+    );
+  }
+
+  ServiceCategory _normalizeServiceCategory(ServiceCategory item) {
+    return item.copyWith(
+      bannerImageUrl: _normalizeMediaUrl(item.bannerImageUrl),
     );
   }
 

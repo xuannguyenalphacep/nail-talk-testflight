@@ -42,6 +42,7 @@ flutter:
     - assets/branding/app_icon.png
     - assets/branding/brand_logo.png
     - assets/branding/tien_len_banner_bg.png
+    - assets/branding/vietnam_clinic_banner_bg.png
 
 flutter_launcher_icons:
   android: true
