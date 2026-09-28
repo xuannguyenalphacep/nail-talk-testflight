@@ -169,3 +169,13 @@ Checked from local machine on 2026-09-16:
 - `http://54.205.74.122/api/marketplace/categories`: HTTP 200
 - `http://54.205.74.122/api/properties`: HTTP 200
 - `http://54.205.74.122/socket.io/?EIO=4&transport=polling`: HTTP 200 with Socket.IO handshake
+
+Checked again from local machine on 2026-09-28 after syncing the new local database to live:
+
+- Imported the current local Laravel database dump into the live server database.
+- Rewrote local URL values in the live database to the live base URL `http://54.205.74.122`.
+- Confirmed `em_chat_apps` returns `Nails Talk` with live API and socket URLs.
+- `http://54.205.74.122/api/mobile-chat/apps`: HTTP 200
+- `http://54.205.74.122/api/clinics`: HTTP 200 with the new service directory data.
+- `http://54.205.74.122/api/clinics/specialties`: HTTP 200
+- `http://54.205.74.122/socket.io/?EIO=4&transport=polling`: HTTP 200 with Socket.IO handshake
