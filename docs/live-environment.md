@@ -1,6 +1,6 @@
 # Live Environment Notes
 
-Last checked: 2026-09-23, Asia/Ho_Chi_Minh.
+Last checked: 2026-10-07, Asia/Ho_Chi_Minh.
 
 This note is the quick source of truth before changing Flutter API URLs or building for Store/TestFlight.
 
@@ -158,6 +158,14 @@ curl "http://54.205.74.122/socket.io/?EIO=4&transport=polling"
 
 4. For local API/socket testing, override the defaults with `--dart-define=BOOTSTRAP_API_BASE=http://127.0.0.1:8010/api` and `--dart-define=CHAT_CALL_BASE_URL=http://127.0.0.1:3000`.
 
+## iOS App Review temporary video hide
+
+As of 2026-10-07, the Flutter app hides the movie/video section on iOS only for Apple review. Android keeps the feature visible.
+
+- Flag location: `flutter-app/lib/src/core/constants/app_constants.dart`
+- Default behavior: `TargetPlatform.iOS` hides video/movie UI and skips movie API calls.
+- To temporarily re-enable video on an iOS build, pass `--dart-define=FORCE_SHOW_APPLE_VIDEO_FEATURE=true`.
+
 ## Smoke test result
 
 Checked from local machine on 2026-09-16:
@@ -179,3 +187,23 @@ Checked again from local machine on 2026-09-28 after syncing the new local datab
 - `http://54.205.74.122/api/clinics`: HTTP 200 with the new service directory data.
 - `http://54.205.74.122/api/clinics/specialties`: HTTP 200
 - `http://54.205.74.122/socket.io/?EIO=4&transport=polling`: HTTP 200 with Socket.IO handshake
+
+Checked again from local machine on 2026-10-07 for App Review cleanup:
+
+- Removed live medical service booking data from the admin dashboard/API.
+- Deleted the live `clinic` service category and the medical provider `Phòng khám Đa khoa Sài Gòn Care`.
+- Updated the remaining live service category to `Đặt spa & beauty`.
+- Confirmed `http://54.205.74.122/api/services` only returns the `spa` service.
+- Confirmed `http://54.205.74.122/api/clinics` only returns `Spa Thảo Mộc Sài Gòn`.
+- Confirmed `http://54.205.74.122/api/clinics/specialties` only returns non-medical spa/beauty specialties: chăm sóc da, gội đầu dưỡng sinh, massage thư giãn.
+
+Checked again on 2026-10-07 after AWS login and local data sync:
+
+- EC2 Console region: `us-east-1`.
+- Running instance: `nail-talk-demo`, public IP `54.205.74.122`.
+- Synced current local `admin-api/` and `chat-socket/` source to `/var/www/nail-talk`, keeping server `.env`, dependencies, uploads, recordings, and runtime storage.
+- Imported the current local `social_hub_local` MySQL dump into the live database.
+- Rewrote local API/socket URLs in the live database to `http://54.205.74.122`.
+- Restarted `php8.4-fpm`, `nginx`, and `nail-talk-socket.service`.
+- Confirmed live API app bootstrap, services, spa/beauty provider list, specialties, and Socket.IO handshake all return successfully.
+- Flutter iOS App Review hardening added after the live sync: movie/video is hidden on iOS, service UI is rewritten as spa/beauty instead of medical/clinic, Account has a visible Sign out button, and listing detail screens expose Report + Block actions.

@@ -84,6 +84,8 @@ class AppLocalizer {
     'Mobile ready': 'Tối ưu cho di động',
     'Pick your local Nails Talk space, then jump into jobs, movies, marketplace posts, housing leads, and live community chat.':
         'Chọn không gian Nails Talk của bạn rồi vào ngay việc làm, phim, bài đăng mua bán, tin nhà ở và chat cộng đồng trực tiếp.',
+    'Pick your local Nails Talk space, then jump into jobs, marketplace posts, beauty services, housing leads, and live community chat.':
+        'Chọn không gian Nails Talk của bạn rồi vào ngay việc làm, bài đăng mua bán, dịch vụ làm đẹp, tin nhà ở và chat cộng đồng trực tiếp.',
     'Real-time sync': 'Đồng bộ thời gian thực',
     'Protected access': 'Truy cập được bảo vệ',
     'Phone-first design': 'Thiết kế ưu tiên điện thoại',
@@ -179,6 +181,8 @@ class AppLocalizer {
         'Một nơi cho công việc salon, chia sẻ phòng ở và cập nhật cộng đồng địa phương.',
     'Nails Talk is built for Vietnamese beauty professionals in the U.S. Sign in once, then move between job leads, housing posts, movie access, marketplace finds, and live chat without extra setup.':
         'Nails Talk được xây cho cộng đồng làm đẹp người Việt tại Mỹ. Chỉ cần đăng nhập một lần là bạn có thể chuyển qua lại giữa việc làm, nhà ở, phim, chợ cộng đồng và chat trực tiếp mà không cần thiết lập thêm.',
+    'Nails Talk is built for Vietnamese beauty professionals in the U.S. Sign in once, then move between job leads, housing posts, marketplace finds, beauty services, and live chat without extra setup.':
+        'Nails Talk được xây cho cộng đồng làm đẹp người Việt tại Mỹ. Chỉ cần đăng nhập một lần là bạn có thể chuyển qua lại giữa việc làm, nhà ở, chợ cộng đồng, dịch vụ làm đẹp và chat trực tiếp mà không cần thiết lập thêm.',
     'Salon-ready profiles': 'Hồ sơ sẵn sàng cho salon',
     'Room share and housing': 'Chia sẻ phòng và nhà ở',
     'Real-time community chat': 'Chat cộng đồng thời gian thực',
@@ -188,6 +192,8 @@ class AppLocalizer {
     'Core spaces': 'Khu vực chính',
     'Feed, movies, market, work & stay, and chat.':
         'Bảng tin, phim, chợ, việc làm & nhà ở, và chat.',
+    'Feed, market, work & stay, services, and chat.':
+        'Bảng tin, chợ, việc làm & nhà ở, dịch vụ và chat.',
     'Community-first': 'Ưu tiên cộng đồng',
     'Made for Vietnamese beauty workers across America.':
         'Thiết kế dành cho người Việt làm ngành làm đẹp trên khắp nước Mỹ.',
@@ -212,6 +218,8 @@ class AppLocalizer {
     'Enter your password': 'Nhập mật khẩu',
     'Your account opens feed, movies, room share, marketplace, and chat in one sign-in.':
         'Chỉ với một lần đăng nhập, tài khoản của bạn sẽ mở bảng tin, phim, chia sẻ phòng, chợ và chat.',
+    'Your account opens feed, room share, marketplace, beauty services, and chat in one sign-in.':
+        'Chỉ với một lần đăng nhập, tài khoản của bạn sẽ mở bảng tin, chia sẻ phòng, chợ, dịch vụ làm đẹp và chat.',
     'Signing in...': 'Đang đăng nhập...',
     'Enter Nails Talk': 'Vào Nails Talk',
     'Full name': 'Họ và tên',
@@ -236,6 +244,8 @@ class AppLocalizer {
     'Create account': 'Tạo tài khoản',
     'Your Nails Talk community is ready. Sign in to chat, watch, play, and connect in one place.':
         'Cộng đồng Nails Talk đã sẵn sàng. Đăng nhập để trò chuyện, xem phim, giải trí và kết nối trong cùng một nơi.',
+    'Your Nails Talk community is ready. Sign in to chat, browse, post, and connect in one place.':
+        'Cộng đồng Nails Talk đã sẵn sàng. Đăng nhập để trò chuyện, xem tin, đăng bài và kết nối trong cùng một nơi.',
     'Nails Talk is preparing your space. Tap retry and we will bring everything in shortly.':
         'Nails Talk đang chuẩn bị không gian của bạn. Chạm thử lại, mọi thứ sẽ sẵn sàng ngay sau đó.',
     'Retry': 'Thử lại',
@@ -361,6 +371,14 @@ class AppLocalizer {
         'Các câu trả lời cho những tình huống thường gặp khi đăng bài, dùng tài khoản và chat.',
     'Please use respectful language, truthful listings, and only post services, housing, movies, and items that fit the community.':
         'Hãy dùng ngôn ngữ tôn trọng, đăng tin trung thực và chỉ chia sẻ dịch vụ, nhà ở, phim và món hàng phù hợp với cộng đồng.',
+    'Marketplace, jobs, beauty services, and housing can be browsed without an account. Sign in to chat, post, save, report, block users, or delete your account.':
+        'Bạn có thể xem mua bán, việc làm, dịch vụ làm đẹp và nhà ở mà không cần tài khoản. Hãy đăng nhập để chat, đăng bài, lưu, báo cáo, chặn người dùng hoặc xóa tài khoản.',
+    'Movies, marketplace, jobs, and housing can be browsed without an account. Sign in to chat, post, save, report, block users, or delete your account.':
+        'Bạn có thể xem phim, mua bán, việc làm và nhà ở mà không cần tài khoản. Hãy đăng nhập để chat, đăng bài, lưu, báo cáo, chặn người dùng hoặc xóa tài khoản.',
+    'You can browse marketplace listings, jobs, beauty services, and housing without an account. Chat, reporting, blocking, posting, and saved items require sign-in.':
+        'Bạn có thể xem bài mua bán, việc làm, dịch vụ làm đẹp và nhà ở mà không cần tài khoản. Chat, báo cáo, chặn người dùng, đăng bài và lưu mục yêu thích cần đăng nhập.',
+    'You can browse movies, marketplace listings, jobs, and housing without an account. Chat, reporting, blocking, posting, and saved items require sign-in.':
+        'Bạn có thể xem phim, bài mua bán, việc làm và nhà ở mà không cần tài khoản. Chat, báo cáo, chặn người dùng, đăng bài và lưu mục yêu thích cần đăng nhập.',
     'Your account details are used to sign in, display your profile, and keep chat and listing activity tied to your account.':
         'Thông tin tài khoản được dùng để đăng nhập, hiển thị hồ sơ và gắn hoạt động chat, bài đăng với đúng tài khoản của bạn.',
     'Profile updated.': 'Đã cập nhật hồ sơ.',
@@ -459,9 +477,46 @@ class AppLocalizer {
     'Make sure the listing has a valid owner account. If the room already exists but is hidden, Nails Talk will restore it automatically.':
         'Hãy chắc rằng bài đăng có tài khoản chủ bài hợp lệ. Nếu phòng chat đã tồn tại nhưng đang bị ẩn, Nails Talk sẽ tự khôi phục lại.',
     'Community Terms': 'Điều khoản cộng đồng',
+    'Please use respectful language, truthful listings, and only post beauty services, housing, and items that fit the community.':
+        'Vui lòng dùng ngôn ngữ tôn trọng, đăng tin trung thực và chỉ đăng dịch vụ làm đẹp, nhà ở, hoặc món đồ phù hợp với cộng đồng.',
+    'Please use respectful language, truthful listings, and only post beauty services, housing, and items that fit the community. Objectionable content and abusive users are not tolerated.':
+        'Vui lòng dùng ngôn ngữ tôn trọng, đăng tin trung thực và chỉ đăng dịch vụ làm đẹp, nhà ở, hoặc món đồ phù hợp với cộng đồng. Không chấp nhận nội dung phản cảm hoặc người dùng lạm dụng.',
     'Account safety': 'An toàn tài khoản',
     'Do not post scams, duplicate listings, harassment, or illegal content. Admin can remove content or disable accounts that break these rules.':
         'Không đăng lừa đảo, tin trùng lặp, quấy rối hoặc nội dung bất hợp pháp. Admin có thể xóa nội dung hoặc khóa tài khoản vi phạm các quy định này.',
+    'Do not post scams, duplicate listings, harassment, or illegal content. Posts and chat text are filtered before posting. Members can report content, block abusive users, and the team reviews safety reports within 24 hours.':
+        'Không đăng lừa đảo, tin trùng lặp, quấy rối hoặc nội dung bất hợp pháp. Bài đăng và nội dung chat được lọc trước khi đăng. Thành viên có thể báo cáo nội dung, chặn người dùng lạm dụng và đội ngũ sẽ xem xét báo cáo an toàn trong vòng 24 giờ.',
+    'Report and block': 'Báo cáo và chặn',
+    'Use the Report or Block actions on chat messages, marketplace listings, jobs, housing posts, and member conversations. Blocking removes that user’s content from your current feed and notifies the moderation team.':
+        'Dùng nút Báo cáo hoặc Chặn ở tin nhắn chat, tin chợ cộng đồng, việc làm, nhà ở và cuộc trò chuyện. Khi chặn, nội dung của người đó sẽ bị gỡ khỏi bảng tin hiện tại của bạn và đội kiểm duyệt sẽ được thông báo.',
+    'Nails Talk has zero tolerance for abusive, illegal, scam, hateful, sexual, or harassing content. Posts and chat text are filtered before posting, members can report content and block abusive users, and the team reviews safety reports within 24 hours.':
+        'Nails Talk không chấp nhận nội dung lạm dụng, bất hợp pháp, lừa đảo, thù ghét, tình dục hoặc quấy rối. Bài đăng và tin nhắn được lọc trước khi đăng, thành viên có thể báo cáo nội dung và chặn người dùng lạm dụng, đội ngũ sẽ xem xét báo cáo an toàn trong vòng 24 giờ.',
+    'Report listing?': 'Báo cáo tin này?',
+    'Report listing': 'Báo cáo tin',
+    'Send this marketplace listing to the moderation team for review.':
+        'Gửi tin chợ cộng đồng này cho đội kiểm duyệt xem xét.',
+    'Send this job listing to the moderation team for review.':
+        'Gửi tin việc làm này cho đội kiểm duyệt xem xét.',
+    'Send this housing listing to the moderation team for review.':
+        'Gửi tin nhà ở này cho đội kiểm duyệt xem xét.',
+    'Report': 'Báo cáo',
+    'Report sent for review.': 'Đã gửi báo cáo để xem xét.',
+    'Block this user?': 'Chặn người dùng này?',
+    'Block user?': 'Chặn người dùng?',
+    'Block user': 'Chặn người dùng',
+    'This removes this user’s marketplace listings from your feed and notifies the moderation team.':
+        'Việc này sẽ gỡ tin chợ cộng đồng của người này khỏi bảng tin của bạn và thông báo cho đội kiểm duyệt.',
+    'This removes this user’s job listings from your feed and notifies the moderation team.':
+        'Việc này sẽ gỡ tin việc làm của người này khỏi bảng tin của bạn và thông báo cho đội kiểm duyệt.',
+    'This removes this user’s housing listings from your feed and notifies the moderation team.':
+        'Việc này sẽ gỡ tin nhà ở của người này khỏi bảng tin của bạn và thông báo cho đội kiểm duyệt.',
+    'This removes their messages from your view and notifies the moderation team.':
+        'Việc này sẽ ẩn tin nhắn của họ khỏi phía bạn và thông báo cho đội kiểm duyệt.',
+    'User blocked.': 'Đã chặn người dùng.',
+    'This user cannot be blocked.': 'Không thể chặn người dùng này.',
+    'Signed out.': 'Đã đăng xuất.',
+    'Use this button to log out of Nails Talk on this device. You can sign back in later with your username and password.':
+        'Dùng nút này để đăng xuất Nails Talk khỏi thiết bị này. Bạn có thể đăng nhập lại sau bằng username và mật khẩu.',
     'Child safety reporting': 'Báo cáo an toàn trẻ em',
     'Report child safety concerns, exploitation, grooming, or illegal content in the app by contacting support at kietlamphim@gmail.com. Include the username, post, listing, or chat details so the team can review and escalate urgent risks.':
         'Báo cáo lo ngại về an toàn trẻ em, bóc lột, dụ dỗ hoặc nội dung bất hợp pháp trong app bằng cách liên hệ hỗ trợ tại kietlamphim@gmail.com. Vui lòng gửi tên người dùng, bài đăng, tin rao hoặc chi tiết chat để đội ngũ xem xét và xử lý rủi ro khẩn cấp.',
@@ -753,6 +808,8 @@ class AppLocalizer {
     'Watch': 'Xem',
     'Search in Nails Talk...': 'Tìm kiếm trên Nails Talk...',
     'Search suggestions': 'Gợi ý tìm kiếm',
+    'Quick matches from market, jobs, services, and housing.':
+        'Kết quả nhanh từ mua bán, việc làm, dịch vụ và nhà ở.',
     'Quick matches from movies, market, jobs, and housing.':
         'Kết quả nhanh từ phim, mua bán, việc làm và nhà ở.',
     'No matching posts found yet. Try another keyword.':
@@ -1080,53 +1137,65 @@ class AppLocalizer {
     'Services': 'Dịch vụ',
     'Book trusted services in Vietnam': 'Đặt dịch vụ uy tín tại Việt Nam',
     'Choose clinics, spas, and linked partners before traveling.':
-        'Chọn phòng khám, spa và đối tác liên kết trước khi về Việt Nam.',
-    'Book clinics': 'Đặt phòng khám',
+        'Chọn spa, làm đẹp và đối tác dịch vụ trước khi về Việt Nam.',
+    'Choose spa, beauty, and linked service partners before traveling.':
+        'Chọn spa, làm đẹp và đối tác dịch vụ trước khi về Việt Nam.',
+    'Book clinics': 'Đặt làm đẹp',
+    'Book beauty': 'Đặt làm đẹp',
     'Book spa': 'Đặt spa',
     'No services found yet': 'Chưa có dịch vụ',
     'Services will appear here after admin publishes them.':
         'Dịch vụ sẽ hiển thị tại đây sau khi admin đăng.',
     '{count} linked partners': '{count} đối tác liên kết',
-    'Vietnam healthcare': 'Y tế Việt Nam',
+    'Vietnam healthcare': 'Dịch vụ làm đẹp Việt Nam',
     'Book ahead': 'Đặt lịch trước',
-    'Clinic list': 'Danh sách phòng khám',
+    'Clinic list': 'Danh sách đối tác',
     'Email booking': 'Đặt lịch qua email',
-    'Find clinics': 'Tìm phòng khám',
-    'Find clinics in Vietnam': 'Tìm phòng khám tại Việt Nam',
+    'Find clinics': 'Tìm đối tác dịch vụ',
+    'Find clinics in Vietnam': 'Tìm đối tác dịch vụ tại Việt Nam',
     'Book linked clinics before your trip home.':
-        'Đặt lịch phòng khám liên kết trước khi về Việt Nam.',
+        'Đặt lịch dịch vụ làm đẹp liên kết trước khi về Việt Nam.',
     'Choose linked clinics and send a booking request before traveling.':
-        'Chọn phòng khám liên kết và gửi yêu cầu đặt lịch trước khi bay.',
-    'Linked clinics in Vietnam': 'Phòng khám liên kết tại Việt Nam',
+        'Chọn đối tác dịch vụ liên kết và gửi yêu cầu đặt lịch trước khi bay.',
+    'Linked clinics in Vietnam': 'Đối tác dịch vụ liên kết tại Việt Nam',
+    'Linked service partners in Vietnam':
+        'Đối tác dịch vụ liên kết tại Việt Nam',
     'Linked spas in Vietnam': 'Spa liên kết tại Việt Nam',
     'Linked providers in Vietnam': 'Đơn vị liên kết tại Việt Nam',
     'Search clinics, specialties, or cities':
-        'Tìm phòng khám, chuyên khoa hoặc thành phố',
+        'Tìm dịch vụ, đối tác hoặc thành phố',
+    'Search services, partners, or cities':
+        'Tìm dịch vụ, đối tác hoặc thành phố',
     'Search spas, treatments, or cities': 'Tìm spa, liệu trình hoặc thành phố',
     'Vietnam': 'Việt Nam',
     'Request appointment': 'Gửi yêu cầu đặt lịch',
-    'Clinic details': 'Thông tin phòng khám',
+    'Request booking': 'Gửi yêu cầu đặt lịch',
+    'Clinic details': 'Thông tin đối tác',
     'Provider details': 'Thông tin đơn vị',
-    'About this clinic': 'Giới thiệu phòng khám',
+    'About this clinic': 'Giới thiệu đối tác',
     'About this provider': 'Giới thiệu đơn vị',
     'Opening hours': 'Giờ làm việc',
     'Open map': 'Mở bản đồ',
     'Website': 'Website',
     'Linked partner': 'Đối tác liên kết',
-    'Hospital': 'Bệnh viện',
-    'Dental': 'Nha khoa',
+    'Hospital': 'Đối tác làm đẹp',
+    'Dental': 'Đối tác làm đẹp',
+    'Beauty partner': 'Đối tác làm đẹp',
     'Beauty / Aesthetic': 'Thẩm mỹ',
-    'Lab / Checkup': 'Xét nghiệm / Tầm soát',
-    'Clinic': 'Phòng khám',
+    'Lab / Checkup': 'Đối tác làm đẹp',
+    'Clinic': 'Đối tác dịch vụ',
+    'Service partner': 'Đối tác dịch vụ',
     'Spa': 'Spa',
     'Please enter your name.': 'Vui lòng nhập họ và tên.',
     'Email address': 'Địa chỉ email',
     'Current location': 'Bạn đang ở đâu',
     'Example: California, Tokyo, Osaka': 'Ví dụ: California, Tokyo, Osaka',
     'Vietnam arrival date': 'Ngày dự kiến về Việt Nam',
-    'Preferred appointment date': 'Ngày muốn khám',
+    'Preferred appointment date': 'Ngày muốn đặt lịch',
+    'Preferred booking date': 'Ngày muốn đặt lịch',
     'Choose date': 'Chọn ngày',
-    'Specialty / service': 'Chuyên khoa / dịch vụ',
+    'Specialty / service': 'Dịch vụ / liệu trình',
+    'Service / treatment': 'Dịch vụ / liệu trình',
     'Choose a service': 'Chọn dịch vụ',
     'What do you need to book?': 'Bạn muốn đặt dịch vụ gì?',
     'Preferred time': 'Khung giờ mong muốn',
@@ -1138,18 +1207,20 @@ class AppLocalizer {
     'Notes for provider': 'Ghi chú gửi đơn vị',
     'Tell the provider what you need help with':
         'Cho đơn vị biết bạn cần hỗ trợ gì',
+    'Tell the provider which service you want and timing notes':
+        'Cho đơn vị biết dịch vụ bạn muốn đặt và ghi chú thời gian',
     'Sending request...': 'Đang gửi yêu cầu...',
     'Send booking request': 'Gửi yêu cầu đặt lịch',
     'Please enter phone or email.': 'Vui lòng nhập số điện thoại hoặc email.',
     'Your request has been sent to the clinic.':
-        'Yêu cầu của bạn đã được gửi tới phòng khám.',
+        'Yêu cầu của bạn đã được gửi tới đối tác dịch vụ.',
     'Your request has been sent to the provider.':
         'Yêu cầu của bạn đã được gửi tới đơn vị liên kết.',
     'Your request has been saved for follow-up.':
         'Yêu cầu của bạn đã được lưu để theo dõi.',
-    'No clinics found yet': 'Chưa tìm thấy phòng khám',
+    'No clinics found yet': 'Chưa tìm thấy đối tác dịch vụ',
     'Linked clinics will appear here after admin publishes them.':
-        'Phòng khám liên kết sẽ hiển thị tại đây sau khi admin đăng.',
+        'Đối tác dịch vụ liên kết sẽ hiển thị tại đây sau khi admin đăng.',
     'No providers found yet': 'Chưa tìm thấy đơn vị liên kết',
     'Linked providers will appear here after admin publishes them.':
         'Đơn vị liên kết sẽ hiển thị tại đây sau khi admin đăng.',

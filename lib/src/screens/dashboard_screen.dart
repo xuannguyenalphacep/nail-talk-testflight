@@ -62,7 +62,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _refreshFeed(SocialHubController social) {
     return Future.wait([
       social.refreshHome(),
-      social.refreshMovies(),
+      if (!AppConstants.hideVideoForAppleReview) social.refreshMovies(),
       social.refreshMarketplace(),
       social.refreshJobs(),
       social.refreshProperties(),
@@ -313,28 +313,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    for (final item in social.movies) {
-      final score = _matchScore(query, [
-        item.title,
-        item.summary,
-        item.category?.name ?? '',
-        item.thirdPartyProvider,
-      ]);
-      if (score == null) continue;
-      suggestions.add(
-        _DashboardSearchSuggestion(
-          type: _DashboardSearchType.movie,
-          score: score,
-          title: item.title,
-          subtitle: item.summary,
-          meta: item.category?.name ?? item.thirdPartyProvider,
-          tag: 'Movie picks',
-          imageUrl: item.posterUrl.isNotEmpty ? item.posterUrl : item.bannerUrl,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: item)),
+    if (!AppConstants.hideVideoForAppleReview) {
+      for (final item in social.movies) {
+        final score = _matchScore(query, [
+          item.title,
+          item.summary,
+          item.category?.name ?? '',
+          item.thirdPartyProvider,
+        ]);
+        if (score == null) continue;
+        suggestions.add(
+          _DashboardSearchSuggestion(
+            type: _DashboardSearchType.movie,
+            score: score,
+            title: item.title,
+            subtitle: item.summary,
+            meta: item.category?.name ?? item.thirdPartyProvider,
+            tag: 'Movie picks',
+            imageUrl: item.posterUrl.isNotEmpty
+                ? item.posterUrl
+                : item.bannerUrl,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: item)),
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
 
     suggestions.sort((left, right) {
@@ -375,8 +379,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final session = context.watch<SessionController>();
     final social = context.watch<SocialHubController>();
     final chat = context.watch<ChatController>();
+    final hideVideo = AppConstants.hideVideoForAppleReview;
     final summary = social.profile?.summary;
-    final featuredMovie = social.movies.isNotEmpty ? social.movies.first : null;
+    final featuredMovie = !hideVideo && social.movies.isNotEmpty
+        ? social.movies.first
+        : null;
     final jobs = social.jobItems.take(2).toList(growable: false);
     final marketItems = social.marketplaceItems.take(2).toList(growable: false);
     final properties = social.propertyItems.take(2).toList(growable: false);
@@ -385,29 +392,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
       0,
       (total, room) => total + room.unreadCount,
     );
-    final movieCount = summary?.movieCount ?? social.movies.length;
+    final movieCount = hideVideo
+        ? 0
+        : summary?.movieCount ?? social.movies.length;
     final jobCount = summary?.jobCount ?? social.jobItems.length;
     final propertyCount = summary?.propertyCount ?? social.propertyItems.length;
     final feedBusy =
         social.loadingHome ||
-        social.loadingMovies ||
+        (!hideVideo && social.loadingMovies) ||
         social.loadingMarketplace ||
         social.loadingJobs ||
         social.loadingProperties ||
         social.loadingServices;
 
-    final movieImage = _movieImage(featuredMovie, social);
+    final movieImage = hideVideo ? '' : _movieImage(featuredMovie, social);
     final jobImage = _jobImage(jobs, social);
     final marketImage = _marketImage(marketItems, social);
     final housingImage = _housingImage(properties, social);
     final movieShowcaseImage = _pickFirstNonEmptyImage([
-      movieImage,
+      if (!hideVideo) movieImage,
       marketImage,
       housingImage,
       jobImage,
     ]);
     final communityChatImage = _pickFirstNonEmptyImage([
-      movieImage,
+      if (!hideVideo) movieImage,
       housingImage,
       marketImage,
       jobImage,
@@ -492,7 +501,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onTap: () => widget.onOpenHousing('rent_out'),
     );
     final exploreCards = <_HomeCardData>[
-      movieCard,
+      if (!hideVideo) movieCard,
       marketCard,
       jobCard,
       techCard,
@@ -782,6 +791,7 @@ class _DashboardSearchSuggestionPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hideVideo = AppConstants.hideVideoForAppleReview;
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 180),
       child: suggestions.isEmpty
@@ -852,7 +862,9 @@ class _DashboardSearchSuggestionPanel extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       context.tr(
-                        'Quick matches from movies, market, jobs, and housing.',
+                        hideVideo
+                            ? 'Quick matches from market, jobs, services, and housing.'
+                            : 'Quick matches from movies, market, jobs, and housing.',
                       ),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: _homeMuted,
@@ -1732,7 +1744,7 @@ class _ServicesHomeBanner extends StatelessWidget {
                     width: 250,
                     child: Text(
                       context.tr(
-                        'Choose clinics, spas, and linked partners before traveling.',
+                        'Choose spa, beauty, and linked service partners before traveling.',
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -1746,7 +1758,7 @@ class _ServicesHomeBanner extends StatelessWidget {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      _MiniInfoPill(label: 'Book clinics'),
+                      _MiniInfoPill(label: 'Book beauty'),
                       const SizedBox(width: 8),
                       _MiniInfoPill(label: 'Book spa'),
                       const Spacer(),

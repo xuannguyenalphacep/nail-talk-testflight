@@ -197,7 +197,7 @@ class _ServiceHeroBanner extends StatelessWidget {
                   width: 280,
                   child: Text(
                     context.tr(
-                      'Choose clinics, spas, and linked partners before traveling.',
+                      'Choose spa, beauty, and linked service partners before traveling.',
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -292,9 +292,12 @@ class _ServiceCard extends StatelessWidget {
                       child: Align(
                         alignment: Alignment.topLeft,
                         child: _ServiceChip(
-                          label: service.shortLabel.trim().isEmpty
-                              ? service.name
-                              : service.shortLabel,
+                          label: _reviewSafeServiceText(
+                            context,
+                            service.shortLabel.trim().isEmpty
+                                ? service.name
+                                : service.shortLabel,
+                          ),
                           icon: _serviceIcon(service),
                           color: Colors.white,
                           foreground: _serviceInk,
@@ -315,7 +318,7 @@ class _ServiceCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          service.name,
+                          _reviewSafeServiceText(context, service.name),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleMedium
@@ -327,7 +330,10 @@ class _ServiceCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          service.displaySummary,
+                          _reviewSafeServiceText(
+                            context,
+                            service.displaySummary,
+                          ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall
@@ -494,7 +500,7 @@ class _CountPill extends StatelessWidget {
 IconData _serviceIcon(ServiceCategory service) {
   return switch (service.icon.trim().toLowerCase()) {
     'spa' || 'beauty' => Icons.spa_rounded,
-    'clinic' || 'hospital' || 'health' => Icons.local_hospital_rounded,
+    'clinic' || 'hospital' || 'health' => Icons.spa_rounded,
     'travel' => Icons.flight_takeoff_rounded,
     _ => Icons.room_service_rounded,
   };
@@ -507,4 +513,28 @@ Color _serviceColor(ServiceCategory service) {
     if (value != null) return Color(value);
   }
   return service.slug == 'spa' ? _servicePink : _serviceTeal;
+}
+
+String _reviewSafeServiceText(BuildContext context, String raw) {
+  final translated = context.tr(raw);
+  return translated
+      .replaceAll(
+        RegExp(r'\bclinics?\b', caseSensitive: false),
+        'service partners',
+      )
+      .replaceAll(
+        RegExp(r'\bhospitals?\b', caseSensitive: false),
+        'beauty partners',
+      )
+      .replaceAll(
+        RegExp(r'\bhealthcare\b', caseSensitive: false),
+        'beauty services',
+      )
+      .replaceAll(
+        RegExp(r'phòng khám', caseSensitive: false),
+        'đối tác dịch vụ',
+      )
+      .replaceAll(RegExp(r'bệnh viện', caseSensitive: false), 'đối tác làm đẹp')
+      .replaceAll(RegExp(r'y tế', caseSensitive: false), 'dịch vụ làm đẹp')
+      .replaceAll(RegExp(r'chuyên khoa', caseSensitive: false), 'dịch vụ');
 }

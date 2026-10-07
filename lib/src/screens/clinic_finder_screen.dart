@@ -203,7 +203,7 @@ class _ClinicDetailScreenState extends State<ClinicDetailScreen> {
             style: metroSoftFilledButtonStyle(context, _clinicTeal),
             onPressed: _openBooking,
             icon: const Icon(Icons.event_available_rounded),
-            label: Text(context.tr('Request appointment')),
+            label: Text(context.tr('Request booking')),
           ),
         ),
       ),
@@ -415,7 +415,7 @@ class _ClinicBookingScreenState extends State<ClinicBookingScreen> {
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  context.tr('Request appointment'),
+                  context.tr('Request booking'),
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: _clinicInk,
                     fontSize: 26,
@@ -424,7 +424,7 @@ class _ClinicBookingScreenState extends State<ClinicBookingScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  widget.clinic.name,
+                  _reviewSafeServiceText(context, widget.clinic.name),
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: kMetroMuted,
                     fontWeight: FontWeight.w800,
@@ -498,7 +498,7 @@ class _ClinicBookingScreenState extends State<ClinicBookingScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _DateField(
-                        label: 'Preferred appointment date',
+                        label: 'Preferred booking date',
                         value: _appointmentDate,
                         onTap: () => _pickDate(appointment: true),
                       ),
@@ -511,9 +511,9 @@ class _ClinicBookingScreenState extends State<ClinicBookingScreen> {
                     initialValue: _specialty.isEmpty ? null : _specialty,
                     decoration: metroSoftInputDecoration(
                       context,
-                      labelText: 'Specialty / service',
+                      labelText: 'Service / treatment',
                       hintText: 'Choose a service',
-                      prefixIcon: const Icon(Icons.medical_services_rounded),
+                      prefixIcon: const Icon(Icons.spa_rounded),
                     ),
                     items: specialties
                         .map(
@@ -528,9 +528,9 @@ class _ClinicBookingScreenState extends State<ClinicBookingScreen> {
                   TextFormField(
                     decoration: metroSoftInputDecoration(
                       context,
-                      labelText: 'Specialty / service',
+                      labelText: 'Service / treatment',
                       hintText: 'What do you need to book?',
-                      prefixIcon: const Icon(Icons.medical_services_rounded),
+                      prefixIcon: const Icon(Icons.spa_rounded),
                     ),
                     onChanged: (value) => _specialty = value.trim(),
                   ),
@@ -552,7 +552,8 @@ class _ClinicBookingScreenState extends State<ClinicBookingScreen> {
                   decoration: metroSoftInputDecoration(
                     context,
                     labelText: 'Notes for provider',
-                    hintText: 'Tell the provider what you need help with',
+                    hintText:
+                        'Tell the provider which service you want and timing notes',
                     prefixIcon: const Icon(Icons.notes_rounded),
                   ),
                 ),
@@ -610,7 +611,7 @@ class _ClinicHeader extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: Text(
-            context.tr(title),
+            _reviewSafeServiceText(context, title),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: _clinicInk,
               fontWeight: FontWeight.w900,
@@ -682,8 +683,8 @@ class _ClinicHeroBanner extends StatelessWidget {
               children: [
                 _SoftChip(
                   label: service.shortLabel.trim().isEmpty
-                      ? service.name
-                      : service.shortLabel,
+                      ? _reviewSafeServiceText(context, service.name)
+                      : _reviewSafeServiceText(context, service.shortLabel),
                   icon: _serviceIcon(service),
                   color: Colors.white,
                   foreground: _clinicInk,
@@ -692,7 +693,7 @@ class _ClinicHeroBanner extends StatelessWidget {
                 SizedBox(
                   width: 245,
                   child: Text(
-                    context.tr(service.displayTitle),
+                    _reviewSafeServiceText(context, service.displayTitle),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -707,7 +708,7 @@ class _ClinicHeroBanner extends StatelessWidget {
                 SizedBox(
                   width: 250,
                   child: Text(
-                    context.tr(service.displaySummary),
+                    _reviewSafeServiceText(context, service.displaySummary),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -846,7 +847,7 @@ class _ClinicCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          clinic.name,
+                          _reviewSafeServiceText(context, clinic.name),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleMedium
@@ -875,7 +876,7 @@ class _ClinicCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 7),
                   Text(
-                    clinic.summary,
+                    _reviewSafeServiceText(context, clinic.summary),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -893,7 +894,7 @@ class _ClinicCard extends StatelessWidget {
                           .take(3)
                           .map(
                             (item) => _TinyPill(
-                              label: item,
+                              label: _reviewSafeServiceText(context, item),
                               background: _clinicSoft,
                               foreground: _clinicInk,
                             ),
@@ -972,7 +973,7 @@ class _ClinicDetailHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  clinic.name,
+                  _reviewSafeServiceText(context, clinic.name),
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: _clinicInk,
                     fontSize: 25,
@@ -982,7 +983,7 @@ class _ClinicDetailHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  clinic.summary,
+                  _reviewSafeServiceText(context, clinic.summary),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: kMetroMuted,
                     height: 1.35,
@@ -997,7 +998,7 @@ class _ClinicDetailHero extends StatelessWidget {
                     children: clinic.specialtyNames
                         .map(
                           (item) => _TinyPill(
-                            label: item,
+                            label: _reviewSafeServiceText(context, item),
                             background: _clinicSoft,
                             foreground: _clinicInk,
                           ),
@@ -1053,7 +1054,7 @@ class _ClinicImageFallback extends StatelessWidget {
         ),
       ),
       child: Center(
-        child: Icon(Icons.local_hospital_rounded, color: _clinicTeal, size: 32),
+        child: Icon(Icons.spa_rounded, color: _clinicTeal, size: 32),
       ),
     );
   }
@@ -1324,11 +1325,7 @@ class _ClinicEmptyState extends StatelessWidget {
     return _PanelShell(
       child: Column(
         children: [
-          const Icon(
-            Icons.local_hospital_outlined,
-            color: _clinicTeal,
-            size: 42,
-          ),
+          const Icon(Icons.spa_outlined, color: _clinicTeal, size: 42),
           const SizedBox(height: 10),
           Text(
             context.tr('No providers found yet'),
@@ -1363,19 +1360,19 @@ class _ClinicEmptyState extends StatelessWidget {
 
 String _clinicTypeLabel(BuildContext context, String value) {
   return switch (value) {
-    'hospital' => context.tr('Hospital'),
-    'dental' => context.tr('Dental'),
+    'hospital' => context.tr('Beauty partner'),
+    'dental' => context.tr('Beauty partner'),
     'spa' => context.tr('Spa'),
     'beauty' => context.tr('Beauty / Aesthetic'),
-    'lab' => context.tr('Lab / Checkup'),
-    _ => context.tr('Clinic'),
+    'lab' => context.tr('Beauty partner'),
+    _ => context.tr('Service partner'),
   };
 }
 
 String _providerSearchHint(ServiceCategory service) {
   return service.slug == 'spa'
       ? 'Search spas, treatments, or cities'
-      : 'Search clinics, specialties, or cities';
+      : 'Search services, partners, or cities';
 }
 
 String _providerListTitle(BuildContext context, ServiceCategory service) {
@@ -1383,7 +1380,7 @@ String _providerListTitle(BuildContext context, ServiceCategory service) {
     return context.tr('Linked spas in Vietnam');
   }
   if (service.slug == 'clinic') {
-    return context.tr('Linked clinics in Vietnam');
+    return context.tr('Linked service partners in Vietnam');
   }
   return context.tr('Linked providers in Vietnam');
 }
@@ -1391,7 +1388,7 @@ String _providerListTitle(BuildContext context, ServiceCategory service) {
 IconData _serviceIcon(ServiceCategory service) {
   return switch (service.icon.trim().toLowerCase()) {
     'spa' || 'beauty' => Icons.spa_rounded,
-    'clinic' || 'hospital' || 'health' => Icons.local_hospital_rounded,
+    'clinic' || 'hospital' || 'health' => Icons.spa_rounded,
     _ => Icons.room_service_rounded,
   };
 }
@@ -1401,4 +1398,31 @@ String _dateForApi(DateTime? date) {
   final month = date.month.toString().padLeft(2, '0');
   final day = date.day.toString().padLeft(2, '0');
   return '${date.year}-$month-$day';
+}
+
+String _reviewSafeServiceText(BuildContext context, String raw) {
+  final translated = context.tr(raw);
+  return translated
+      .replaceAll(
+        RegExp(r'\bclinics?\b', caseSensitive: false),
+        'service partners',
+      )
+      .replaceAll(
+        RegExp(r'\bhospitals?\b', caseSensitive: false),
+        'beauty partners',
+      )
+      .replaceAll(
+        RegExp(r'\bhealthcare\b', caseSensitive: false),
+        'beauty services',
+      )
+      .replaceAll(RegExp(r'\bmedical\b', caseSensitive: false), 'beauty')
+      .replaceAll(
+        RegExp(r'phòng khám', caseSensitive: false),
+        'đối tác dịch vụ',
+      )
+      .replaceAll(RegExp(r'bệnh viện', caseSensitive: false), 'đối tác làm đẹp')
+      .replaceAll(RegExp(r'y tế', caseSensitive: false), 'dịch vụ làm đẹp')
+      .replaceAll(RegExp(r'chuyên khoa', caseSensitive: false), 'dịch vụ')
+      .replaceAll(RegExp(r'xét nghiệm', caseSensitive: false), 'dịch vụ')
+      .replaceAll(RegExp(r'khám', caseSensitive: false), 'đặt lịch');
 }

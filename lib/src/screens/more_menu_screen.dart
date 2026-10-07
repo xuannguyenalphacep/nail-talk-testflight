@@ -99,12 +99,13 @@ class MoreMenuScreen extends StatelessWidget {
         tint: const Color(0xFF6B9DFF),
         onTap: () => onNavigate(2),
       ),
-      _MenuEntry(
-        label: 'Movie picks',
-        icon: Icons.movie_creation_rounded,
-        tint: const Color(0xFFF66BA6),
-        onTap: () => onNavigate(1),
-      ),
+      if (!AppConstants.hideVideoForAppleReview)
+        _MenuEntry(
+          label: 'Movie picks',
+          icon: Icons.movie_creation_rounded,
+          tint: const Color(0xFFF66BA6),
+          onTap: () => onNavigate(1),
+        ),
       _MenuEntry(
         label: 'Services',
         icon: Icons.room_service_rounded,

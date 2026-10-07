@@ -1,7 +1,7 @@
 name: social_hub_flutter
-description: Flutter super app for chat, movies, marketplace, jobs, and room share.
+description: Flutter super app for chat, marketplace, jobs, room share, and spa/beauty services.
 publish_to: 'none'
-version: 1.0.1+2
+version: 1.0.2+3
 
 environment:
   sdk: ^3.11.1

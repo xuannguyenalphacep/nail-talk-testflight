@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class AppConstants {
   const AppConstants._();
 
@@ -15,6 +17,14 @@ class AppConstants {
     'MOVIE_PAYMENTS_ENABLED',
     defaultValue: false,
   );
+  static const bool forceShowAppleVideoFeature = bool.fromEnvironment(
+    'FORCE_SHOW_APPLE_VIDEO_FEATURE',
+    defaultValue: false,
+  );
+  static bool get hideVideoForAppleReview =>
+      !forceShowAppleVideoFeature &&
+      !kIsWeb &&
+      defaultTargetPlatform == TargetPlatform.iOS;
   static const String noPaymentReviewNote =
       'Current App Store review build has no in-app purchases, subscriptions, external checkout, or paid movie unlock. All movie content shown in the app is free community preview content.';
 

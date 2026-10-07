@@ -36,6 +36,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (AppConstants.hideVideoForAppleReview) return;
       context.read<SocialHubController>().refreshMovies();
     });
     _searchController.addListener(_handleSearchChanged);
@@ -167,6 +168,9 @@ class _MoviesScreenState extends State<MoviesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (AppConstants.hideVideoForAppleReview) {
+      return const SizedBox.shrink();
+    }
     final controller = context.watch<SocialHubController>();
     final unreadCount = context.watch<ChatController>().visibleRooms.fold<int>(
       0,

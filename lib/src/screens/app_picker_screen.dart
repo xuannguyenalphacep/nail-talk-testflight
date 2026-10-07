@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../controllers/session_controller.dart';
+import '../core/constants/app_constants.dart';
 import '../core/localization/app_localizer.dart';
 import '../models/chat_app_model.dart';
 import '../widgets/app_logo.dart';
@@ -103,6 +104,7 @@ class _BrandPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hideVideo = AppConstants.hideVideoForAppleReview;
     if (compact) {
       return Container(
         width: double.infinity,
@@ -224,7 +226,9 @@ class _BrandPanel extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             context.tr(
-              'Pick your local Nails Talk space, then jump into jobs, movies, marketplace posts, housing leads, and live community chat.',
+              hideVideo
+                  ? 'Pick your local Nails Talk space, then jump into jobs, marketplace posts, beauty services, housing leads, and live community chat.'
+                  : 'Pick your local Nails Talk space, then jump into jobs, movies, marketplace posts, housing leads, and live community chat.',
             ),
             style: theme.textTheme.bodyLarge?.copyWith(
               color: Colors.white.withValues(alpha: 0.9),

@@ -50,6 +50,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
     _movie = widget.movie;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (AppConstants.hideVideoForAppleReview) return;
       _refreshMovieDetail();
     });
   }
@@ -253,6 +254,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (AppConstants.hideVideoForAppleReview) {
+      return const SizedBox.shrink();
+    }
     final social = context.watch<SocialHubController>();
     final unlocked = _canWatch(social);
     final activePlan = social.activeSubscription;

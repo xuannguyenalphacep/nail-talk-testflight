@@ -106,7 +106,7 @@ class SocialHubController extends ChangeNotifier {
     await Future.wait([
       ensureUsStatesLoaded(),
       refreshHome(),
-      refreshMovies(),
+      if (!AppConstants.hideVideoForAppleReview) refreshMovies(),
       refreshMarketplace(),
       refreshJobs(),
       refreshProperties(),
@@ -139,6 +139,20 @@ class SocialHubController extends ChangeNotifier {
 
   Future<void> refreshMovies({int? categoryId, String? search}) async {
     if (!_hasSelectedService) return;
+    if (AppConstants.hideVideoForAppleReview) {
+      _loadingMovies = false;
+      _loadingMoreMovies = false;
+      _movieCategories = const [];
+      _movies = const [];
+      _moviePlans = const [];
+      _activeSubscription = null;
+      _moviePage = 0;
+      _movieLastPage = 1;
+      _movieCategoryId = null;
+      _movieSearch = null;
+      notifyListeners();
+      return;
+    }
     if (_loadingMovies) return;
 
     _loadingMovies = true;
@@ -182,6 +196,7 @@ class SocialHubController extends ChangeNotifier {
 
   Future<void> loadMoreMovies() async {
     if (!_hasSelectedService ||
+        AppConstants.hideVideoForAppleReview ||
         _loadingMovies ||
         _loadingMoreMovies ||
         !hasMoreMovies) {
@@ -215,6 +230,9 @@ class SocialHubController extends ChangeNotifier {
   }
 
   Future<MovieItem> fetchMovieDetail(int movieId) async {
+    if (AppConstants.hideVideoForAppleReview) {
+      throw UnsupportedError('Movie content is unavailable in this build.');
+    }
     final movie = await _apiService.fetchMovieDetail(movieId);
     final index = _movies.indexWhere((item) => item.id == movieId);
     if (index >= 0) {
@@ -373,6 +391,12 @@ class SocialHubController extends ChangeNotifier {
 
   Future<void> subscribeToMoviePlan(int planId) async {
     _requireLogin();
+
+    if (AppConstants.hideVideoForAppleReview) {
+      _error = 'Movie content is unavailable in this build.';
+      notifyListeners();
+      return;
+    }
 
     if (!AppConstants.moviePaymentsEnabled) {
       _error = AppConstants.noPaymentReviewNote;
@@ -616,6 +640,46 @@ class SocialHubController extends ChangeNotifier {
         reason: reason,
         description: description,
       );
+    } catch (error) {
+      _error = error.toString();
+      rethrow;
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> blockUser({
+    required int userId,
+    required String reason,
+    String? reportableType,
+    int? reportableId,
+    String? description,
+  }) async {
+    _requireLogin();
+    if (userId <= 0 || _sessionController.user?.id == userId) {
+      throw Exception(AppLocalizer.current.tr('This user cannot be blocked.'));
+    }
+
+    _submitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _apiService.blockUser(
+        userId: userId,
+        reason: reason,
+        reportableType: reportableType,
+        reportableId: reportableId,
+        description: description,
+      );
+      _marketplaceItems = _marketplaceItems
+          .where((item) => item.userId != userId)
+          .toList();
+      _jobItems = _jobItems.where((item) => item.userId != userId).toList();
+      _propertyItems = _propertyItems
+          .where((item) => item.userId != userId)
+          .toList();
     } catch (error) {
       _error = error.toString();
       rethrow;

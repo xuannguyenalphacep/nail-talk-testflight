@@ -116,6 +116,59 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
     }
   }
 
+  Future<void> _blockSeller(
+    SocialHubController controller,
+    MarketplaceItem item,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('Block this user?')),
+        content: Text(
+          context.tr(
+            'This removes this user’s marketplace listings from your feed and notifies the moderation team.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(context.tr('Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(context.tr('Block user')),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+
+    try {
+      await controller.blockUser(
+        userId: item.userId,
+        reason: 'Abusive or objectionable marketplace content',
+        reportableType: 'marketplace_listing',
+        reportableId: item.id,
+        description: item.title,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(context.tr('User blocked.'))));
+      Navigator.of(context).maybePop();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            context.tr(controller.error ?? 'Please sign in to continue.'),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<SocialHubController>();
@@ -148,6 +201,12 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
           overflow: TextOverflow.ellipsis,
         ),
         actions: [
+          if (item.userId > 0)
+            IconButton(
+              tooltip: context.tr('Block user'),
+              onPressed: () => _blockSeller(controller, item),
+              icon: const Icon(Icons.block_rounded),
+            ),
           IconButton(
             tooltip: context.tr('Report listing'),
             onPressed: () => _reportListing(controller, item),

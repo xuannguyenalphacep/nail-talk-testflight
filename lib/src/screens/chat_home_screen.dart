@@ -1163,6 +1163,7 @@ class _GuestChatGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hideVideo = AppConstants.hideVideoForAppleReview;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -1184,7 +1185,9 @@ class _GuestChatGate extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 context.tr(
-                  'You can browse movies, marketplace listings, jobs, and housing without an account. Chat, reporting, blocking, posting, and saved items require sign-in.',
+                  hideVideo
+                      ? 'You can browse marketplace listings, jobs, beauty services, and housing without an account. Chat, reporting, blocking, posting, and saved items require sign-in.'
+                      : 'You can browse movies, marketplace listings, jobs, and housing without an account. Chat, reporting, blocking, posting, and saved items require sign-in.',
                 ),
                 textAlign: TextAlign.center,
                 style: Theme.of(

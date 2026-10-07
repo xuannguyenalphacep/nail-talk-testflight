@@ -1,6 +1,6 @@
 # Nails Talk Store Release Content
 
-Last prepared: 2026-09-16, Asia/Ho_Chi_Minh.
+Last prepared: 2026-10-07, Asia/Ho_Chi_Minh.
 
 Use this file as the copy/paste source for App Store Connect, TestFlight review notes, and Google Play Console. Do not commit real reviewer passwords, Apple keys, Google keys, or signing credentials into the repo.
 
@@ -11,7 +11,7 @@ Use this file as the copy/paste source for App Store Connect, TestFlight review 
 - Google Play package: `com.ai.nailstalk`
 - Google Play Console app id: `4973353539970650110`
 - Google Play internal testing link: `https://play.google.com/apps/internaltest/4701153597150910194`
-- Current Flutter version: `1.0.0+1`
+- Current Flutter version: `1.0.2`; iOS build number is assigned by the GitHub Actions run number.
 - Live API: `http://54.205.74.122/api`
 - Live Socket: `http://54.205.74.122`
 
@@ -32,7 +32,7 @@ Cộng đồng nail Việt Mỹ
 Promotional text:
 
 ```text
-Tìm việc salon, chia sẻ phòng ở, mua bán đồ nghề, xem phim giải trí miễn phí và chat cộng đồng trong một app dành cho người Việt làm đẹp tại Mỹ.
+Tìm việc salon, chia sẻ phòng ở, mua bán đồ nghề, đặt lịch spa/beauty tại Việt Nam và chat cộng đồng trong một app dành cho người Việt làm đẹp tại Mỹ.
 ```
 
 Description:
@@ -40,9 +40,9 @@ Description:
 ```text
 Nails Talk là không gian cộng đồng dành cho người Việt trong ngành làm đẹp tại Mỹ.
 
-Bạn có thể đăng nhập một lần để theo dõi tin việc làm salon, tìm hoặc đăng phòng ở, mua bán đồ nghề, xem phim giải trí và trò chuyện trực tiếp với cộng đồng.
+Bạn có thể đăng nhập một lần để theo dõi tin việc làm salon, tìm hoặc đăng phòng ở, mua bán đồ nghề, đặt lịch spa/beauty với đối tác tại Việt Nam và trò chuyện trực tiếp với cộng đồng.
 
-Bản hiện tại không thu tiền trong ứng dụng: không có in-app purchases, không có thuê bao, không có mở khóa phim trả phí và không có thanh toán ngoài app. Các nội dung phim đang hiển thị là nội dung xem thử cộng đồng miễn phí.
+Bản hiện tại không thu tiền trong ứng dụng: không có in-app purchases, không có thuê bao, không có thanh toán ngoài app và không xử lý giao dịch mua bán. Bản iOS gửi App Review đã tạm ẩn toàn bộ phần phim/video và chỉ giữ dịch vụ spa/beauty, không cung cấp dịch vụ y tế.
 
 Tính năng chính:
 
@@ -50,22 +50,22 @@ Tính năng chính:
 • Việc làm salon: xem tin tuyển thợ, vị trí lễ tân, quản lý và các cơ hội mới.
 • Phòng ở & nhà ở: tìm phòng trống, người ở ghép hoặc đăng nhu cầu tìm phòng.
 • Chợ mua bán: đăng và xem các món đồ nghề salon, nội thất, thiết bị và vật dụng cần thiết.
-• Phim & giải trí: khám phá danh sách phim xem thử miễn phí phù hợp cho giờ nghỉ sau ngày làm việc.
+• Spa & beauty tại Việt Nam: xem đối tác dịch vụ làm đẹp và gửi yêu cầu đặt lịch.
 • Chat cộng đồng: tham gia nhóm chat công khai, chat riêng và cập nhật thông tin theo thời gian thực.
 
-Nails Talk được thiết kế cho trải nghiệm tiếng Việt dễ dùng, tập trung vào nhu cầu thực tế của cộng đồng nail: làm việc, sinh hoạt, kết nối và giải trí trong cùng một nơi.
+Nails Talk được thiết kế cho trải nghiệm tiếng Việt dễ dùng, tập trung vào nhu cầu thực tế của cộng đồng nail: làm việc, sinh hoạt, mua bán, đặt dịch vụ làm đẹp và kết nối trong cùng một nơi.
 ```
 
 Keywords:
 
 ```text
-nail,tiệm nail,salon,người Việt,việc làm,phòng ở,chợ,phim,chat,cộng đồng
+nail,tiệm nail,salon,người Việt,việc làm,phòng ở,chợ,spa,beauty,chat,cộng đồng
 ```
 
 What’s New:
 
 ```text
-Ra mắt bản Nails Talk đầu tiên với đăng ký tài khoản, bảng tin cộng đồng, phim miễn phí, chợ mua bán, việc làm, phòng ở và chat thời gian thực.
+Cập nhật bản App Review: ẩn phim/video trên iOS, đổi booking sang spa/beauty, thêm logout rõ trong Account, bổ sung report/block cho nội dung cộng đồng.
 ```
 
 Primary category:
@@ -97,15 +97,19 @@ https://vietnamfilmproduction.com/nail-talk/privacy
 Beta app description:
 
 ```text
-Nails Talk là bản thử nghiệm cho cộng đồng người Việt trong ngành nail tại Mỹ. Bản này tập trung kiểm tra đăng ký/đăng nhập, xem phim, chợ mua bán, việc làm, phòng ở và chat cộng đồng thời gian thực.
+Nails Talk là bản thử nghiệm cho cộng đồng người Việt trong ngành nail tại Mỹ. Bản này tập trung kiểm tra đăng ký/đăng nhập, chợ mua bán, việc làm, phòng ở, spa/beauty booking và chat cộng đồng thời gian thực.
 ```
 
 Beta review notes:
 
 ```text
-The app requires a test account or a new registration. Testers can create a new member account from the Register tab, then open Chat, join a public group such as Movie Night Club, and send a message. The app uses the live API and Socket.IO server at http://54.205.74.122.
+The app requires a test account or a new registration. Testers can create a new member account from the Register tab after accepting the EULA/community safety rules, then open Chat, join a public group, and send a message. The app uses the live API and Socket.IO server at http://54.205.74.122.
 
-Important payment clarification for App Review: this build does not sell digital content. There are no in-app purchases, no subscriptions, no external checkout, and no paid movie unlock in the submitted app version. Movie content shown in the app is free community preview content. Marketplace prices, job salary ranges, and room rent amounts are user listing information only; the app does not process those transactions.
+Important App Review clarification: the submitted iOS build hides the movie/video feature entirely. The app does not sell digital content, has no in-app purchases, no subscriptions, and no external checkout. Marketplace prices, job salary ranges, and room rent amounts are user listing information only; the app does not process those transactions. The former medical booking data has been removed; the service directory is limited to spa/beauty providers and is not a healthcare service.
+
+UGC moderation for review: the EULA/community safety card appears before sign-in/registration. Posts and chat text are filtered before posting. Users can report chat messages, marketplace listings, job listings, and housing listings. Users can also block abusive users from chat and listing detail screens; blocking removes that user’s content from the current feed and notifies the moderation team. Safety reports are reviewed within 24 hours.
+
+Logout answer for App Review: a signed-in user logs out from Account > Edit profile > Sign out. Chat also has a sign-out action in the overflow menu.
 
 Reviewer test account:
 Username: alice
@@ -113,9 +117,10 @@ Password: enter the reviewer password directly in App Store Connect; do not comm
 
 Main flows to review:
 1. Register or sign in.
-2. Open the feed tabs: Movies, Marketplace, Chat, and More.
+2. Open the feed tabs: Marketplace, Work & Stay, Chat, Services, and More.
 3. Join a public chat room and send a text message.
-4. Browse movie cards and marketplace listings.
+4. Browse marketplace/job/housing listings, report a listing, and block the listing owner if needed.
+5. Open Account > Edit profile > Sign out to confirm logout.
 ```
 
 ## Google Play listing draft
@@ -123,7 +128,7 @@ Main flows to review:
 Short description:
 
 ```text
-Cộng đồng nail Việt tại Mỹ: việc làm, phòng ở, chợ, phim miễn phí và chat.
+Cộng đồng nail Việt tại Mỹ: việc làm, phòng ở, chợ, spa/beauty và chat.
 ```
 
 Full description:
@@ -131,20 +136,20 @@ Full description:
 ```text
 Nails Talk giúp cộng đồng người Việt trong ngành làm đẹp tại Mỹ kết nối nhanh hơn mỗi ngày.
 
-Trong một app, bạn có thể đăng ký tài khoản, xem tin việc làm salon, tìm phòng ở hoặc người ở ghép, mua bán đồ nghề, khám phá nội dung phim giải trí miễn phí và chat với cộng đồng theo thời gian thực.
+Trong một app, bạn có thể đăng ký tài khoản, xem tin việc làm salon, tìm phòng ở hoặc người ở ghép, mua bán đồ nghề, đặt lịch spa/beauty và chat với cộng đồng theo thời gian thực.
 
-Bản hiện tại không có thanh toán trong ứng dụng, không có thuê bao, không có mở khóa phim trả phí và không xử lý giao dịch mua bán. Giá trong chợ, việc làm hoặc phòng ở chỉ là thông tin do người đăng cung cấp.
+Bản hiện tại không có thanh toán trong ứng dụng, không có thuê bao và không xử lý giao dịch mua bán. Giá trong chợ, việc làm hoặc phòng ở chỉ là thông tin do người đăng cung cấp.
 
 Tính năng nổi bật:
 
 • Việc làm salon và tin tuyển thợ.
 • Tin phòng ở, nhà ở và nhu cầu tìm phòng.
 • Chợ mua bán thiết bị, đồ nghề và vật dụng salon.
-• Phim giải trí miễn phí và nội dung cộng đồng.
+• Đối tác spa/beauty tại Việt Nam.
 • Nhóm chat công khai và chat riêng realtime.
 • Giao diện tiếng Việt, dễ dùng cho cộng đồng nail.
 
-Nails Talk tập trung vào các nhu cầu thiết thực: làm việc, sinh hoạt, trao đổi thông tin và giải trí sau giờ làm.
+Nails Talk tập trung vào các nhu cầu thiết thực: làm việc, sinh hoạt, mua bán, đặt dịch vụ làm đẹp và trao đổi thông tin.
 ```
 
 ## Prepared screenshot assets
@@ -158,11 +163,11 @@ docs/store-screenshots/iphone67/app-store/
 Prepared PNGs:
 
 1. `01-community-hub.png` — all-in-one community feed.
-2. `02-free-movies.png` — free movie preview, no payment wording.
-3. `03-watch-preview.png` — movie detail and free preview experience.
+2. `02-jobs-housing.png` — work and housing listings.
+3. `03-spa-beauty.png` — Vietnam spa/beauty service booking.
 4. `04-community-market.png` — marketplace listings only, no transaction processing.
-5. `05-live-chat.png` — group chat and private chat entry points.
-6. `06-more-tools.png` — More menu with community feature shortcuts.
+5. `05-live-chat.png` — group chat, reporting, and blocking entry points.
+6. `06-account-safety.png` — account, EULA, logout, and safety policies.
 
 Raw full-device captures are kept at:
 
@@ -177,7 +182,7 @@ docs/store-screenshots/iphone67/raw/
 3. `Tìm phòng ở, nhà ở và người ở ghép`
 4. `Mua bán đồ nghề, thiết bị và vật dụng salon`
 5. `Tham gia nhóm chat cộng đồng thời gian thực`
-6. `Khám phá phim miễn phí và nội dung giải trí trong app`
+6. `Điều khoản cộng đồng, báo cáo, chặn và đăng xuất rõ ràng`
 
 ## Privacy answers draft
 
@@ -185,12 +190,12 @@ Use the final production privacy policy as the source of truth. Current function
 
 - Account data: username, optional email, optional phone, profile name, avatar.
 - User content: chat messages, marketplace posts, job posts, room/property posts, saved/bookmarked items.
-- Device data: device identifier may be used for login/session, chat presence, and movie access control.
+- Device data: device identifier may be used for login/session and chat presence.
 - Diagnostics: server logs may contain request metadata needed for security and debugging.
 - Tracking: no advertising tracking was implemented in the current app code.
 - Third-party login: not implemented in the current app code.
 - Payments: online payment is not implemented in the current app code.
-- Digital content purchases: not implemented. Movie content is free in the current App Store review build.
+- Digital content purchases: not implemented. The iOS App Review build hides the movie/video feature.
 - External checkout: not implemented. No buttons or links send users outside the app to buy digital content.
 
 ## Pre-submission checklist
@@ -199,8 +204,10 @@ Use the final production privacy policy as the source of truth. Current function
 - Confirm Socket.IO handshake: `http://54.205.74.122/socket.io/?EIO=4&transport=polling`.
 - Confirm new member registration works.
 - Confirm new member can see public chat rooms, join one, and send a message.
-- Confirm movie poster/banner URLs use the live host, not `127.0.0.1`.
-- Confirm movie UI says free/community preview and does not show paid unlock, purchase, subscription, or external payment wording.
+- Confirm the iOS build hides the movie/video feature.
+- Confirm services data only shows spa/beauty providers, not clinic/medical/healthcare providers.
+- Remove old movie/video screenshots and metadata from App Store Connect before resubmitting.
+- Put the UGC moderation/logout explanation above in App Review Notes.
 - Add final Support URL and Privacy Policy URL in App Store Connect.
 - Add reviewer credentials only inside App Store Connect / Play Console, not in this repository.
 - For Android production, use Google Play package `com.ai.nailstalk` and replace debug signing before upload.

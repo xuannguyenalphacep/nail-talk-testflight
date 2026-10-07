@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../controllers/session_controller.dart';
 import '../controllers/social_hub_controller.dart';
+import '../core/constants/app_constants.dart';
 import '../core/localization/app_localizer.dart';
 import 'chat_home_screen.dart';
 import 'dashboard_screen.dart';
@@ -28,7 +29,10 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
   static const Color _navShadow = Color(0x140F172A);
 
   void _goToTab(int value) {
-    setState(() => _index = value.clamp(0, 4));
+    final nextIndex = AppConstants.hideVideoForAppleReview && value == 1
+        ? 2
+        : value;
+    setState(() => _index = nextIndex.clamp(0, 4));
   }
 
   Future<void> _openJobs([String initialMode = 'looking_for_job']) {
@@ -80,7 +84,7 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
 
     final type = bookmarks.first.savableType.toLowerCase();
     if (type.contains('movie')) {
-      _goToTab(1);
+      _goToTab(AppConstants.hideVideoForAppleReview ? 2 : 1);
       return;
     }
     if (type.contains('job')) {
@@ -107,6 +111,7 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hideVideo = AppConstants.hideVideoForAppleReview;
     final screens = <Widget>[
       DashboardScreen(
         onNavigate: _goToTab,
@@ -115,7 +120,7 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
         onOpenServices: _openServices,
         onOpenSaved: _openSavedLanding,
       ),
-      const MoviesScreen(),
+      hideVideo ? const MarketplaceScreen() : const MoviesScreen(),
       const MarketplaceScreen(),
       const ChatHomeScreen(),
       MoreMenuScreen(
@@ -159,13 +164,14 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
                       selected: _index == 0,
                       onTap: () => _goToTab(0),
                     ),
-                    _ShellNavItem(
-                      icon: Icons.smart_display_outlined,
-                      activeIcon: Icons.smart_display_rounded,
-                      label: 'Movie picks',
-                      selected: _index == 1,
-                      onTap: () => _goToTab(1),
-                    ),
+                    if (!hideVideo)
+                      _ShellNavItem(
+                        icon: Icons.smart_display_outlined,
+                        activeIcon: Icons.smart_display_rounded,
+                        label: 'Movie picks',
+                        selected: _index == 1,
+                        onTap: () => _goToTab(1),
+                      ),
                     _ShellNavItem(
                       icon: Icons.storefront_outlined,
                       activeIcon: Icons.storefront_rounded,

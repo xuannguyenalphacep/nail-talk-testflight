@@ -48,6 +48,110 @@ class _JobListingDetailScreenState extends State<JobListingDetailScreen> {
     return widget.item;
   }
 
+  Future<void> _reportJob(
+    SocialHubController controller,
+    JobListingItem item,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('Report listing?')),
+        content: Text(
+          context.tr(
+            'Send this job listing to the moderation team for review.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(context.tr('Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(context.tr('Report')),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+
+    try {
+      await controller.reportContent(
+        type: 'job_listing',
+        id: item.id,
+        reason: 'Objectionable job listing',
+        description: item.title,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text(context.tr('Report sent for review.'))),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            context.tr(controller.error ?? 'Please sign in to continue.'),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _blockJobPoster(
+    SocialHubController controller,
+    JobListingItem item,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('Block this user?')),
+        content: Text(
+          context.tr(
+            'This removes this user’s job listings from your feed and notifies the moderation team.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(context.tr('Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(context.tr('Block user')),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+
+    try {
+      await controller.blockUser(
+        userId: item.userId,
+        reason: 'Abusive or objectionable job listing',
+        reportableType: 'job_listing',
+        reportableId: item.id,
+        description: item.title,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(context.tr('User blocked.'))));
+      Navigator.of(context).maybePop();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            context.tr(controller.error ?? 'Please sign in to continue.'),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<SocialHubController>();
@@ -64,6 +168,20 @@ class _JobListingDetailScreenState extends State<JobListingDetailScreen> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
+        actions: [
+          if (item.userId > 0)
+            IconButton(
+              tooltip: context.tr('Block user'),
+              onPressed: () => _blockJobPoster(controller, item),
+              icon: const Icon(Icons.block_rounded),
+            ),
+          IconButton(
+            tooltip: context.tr('Report listing'),
+            onPressed: () => _reportJob(controller, item),
+            icon: const Icon(Icons.flag_outlined),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: MetroPageBackground(
         child: ListView(
@@ -285,6 +403,110 @@ class _PropertyListingDetailScreenState
     return widget.item;
   }
 
+  Future<void> _reportProperty(
+    SocialHubController controller,
+    PropertyListingItem item,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('Report listing?')),
+        content: Text(
+          context.tr(
+            'Send this housing listing to the moderation team for review.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(context.tr('Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(context.tr('Report')),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+
+    try {
+      await controller.reportContent(
+        type: 'property_listing',
+        id: item.id,
+        reason: 'Objectionable housing listing',
+        description: item.title,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text(context.tr('Report sent for review.'))),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            context.tr(controller.error ?? 'Please sign in to continue.'),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _blockPropertyPoster(
+    SocialHubController controller,
+    PropertyListingItem item,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('Block this user?')),
+        content: Text(
+          context.tr(
+            'This removes this user’s housing listings from your feed and notifies the moderation team.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(context.tr('Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(context.tr('Block user')),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+
+    try {
+      await controller.blockUser(
+        userId: item.userId,
+        reason: 'Abusive or objectionable housing listing',
+        reportableType: 'property_listing',
+        reportableId: item.id,
+        description: item.title,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(context.tr('User blocked.'))));
+      Navigator.of(context).maybePop();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            context.tr(controller.error ?? 'Please sign in to continue.'),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<SocialHubController>();
@@ -301,6 +523,20 @@ class _PropertyListingDetailScreenState
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
+        actions: [
+          if (item.userId > 0)
+            IconButton(
+              tooltip: context.tr('Block user'),
+              onPressed: () => _blockPropertyPoster(controller, item),
+              icon: const Icon(Icons.block_rounded),
+            ),
+          IconButton(
+            tooltip: context.tr('Report listing'),
+            onPressed: () => _reportProperty(controller, item),
+            icon: const Icon(Icons.flag_outlined),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: MetroPageBackground(
         child: ListView(

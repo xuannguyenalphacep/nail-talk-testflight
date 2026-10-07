@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../controllers/session_controller.dart';
 import '../controllers/social_hub_controller.dart';
+import '../core/constants/app_constants.dart';
 import '../core/localization/app_localizer.dart';
 import '../models/session_user.dart';
 import '../widgets/metro_ui.dart';
@@ -253,6 +254,16 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
     ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
   }
 
+  Future<void> _signOut() async {
+    final session = context.read<SessionController>();
+    await session.logout();
+    if (!mounted) return;
+    ScaffoldMessenger.maybeOf(
+      context,
+    )?.showSnackBar(SnackBar(content: Text(context.tr('Signed out.'))));
+    Navigator.of(context).maybePop();
+  }
+
   Future<void> _pickAvatarImage() async {
     if (_uploadingAvatar) return;
 
@@ -324,7 +335,9 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
         );
       case AccountHubSection.terms:
         return context.tr(
-          'Please use respectful language, truthful listings, and only post services, housing, movies, and items that fit the community.',
+          AppConstants.hideVideoForAppleReview
+              ? 'Please use respectful language, truthful listings, and only post beauty services, housing, and items that fit the community. Objectionable content and abusive users are not tolerated.'
+              : 'Please use respectful language, truthful listings, and only post services, housing, movies, and items that fit the community.',
         );
       case AccountHubSection.privacy:
         return context.tr(
@@ -337,6 +350,7 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final user = session.user;
+    final hideVideo = AppConstants.hideVideoForAppleReview;
     final bottomSpacing = MediaQuery.viewPaddingOf(context).bottom + 24;
 
     return Scaffold(
@@ -387,6 +401,7 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
                 ),
                 onSave: _saveProfile,
                 onChangePassword: _changePassword,
+                onSignOut: _signOut,
                 onDeleteAccount: _deleteAccount,
                 showRecoveryEmailHint:
                     user == null ||
@@ -396,7 +411,7 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
                     : _recoveryEmailForEditing(user.email),
               )
             else if (_section == AccountHubSection.faq)
-              const _InfoSection(
+              _InfoSection(
                 items: [
                   (
                     'How do I post a job quickly?',
@@ -406,10 +421,11 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
                     'How do I contact a seller or recruiter?',
                     'Tap the contact or chat button on any listing and Nails Talk will open a direct chat room.',
                   ),
-                  (
-                    'Does Nails Talk charge for movies?',
-                    'No. This App Store review build has no in-app purchases, subscriptions, external checkout, or paid movie unlock. Movie content is free community preview content.',
-                  ),
+                  if (!hideVideo)
+                    (
+                      'Does Nails Talk charge for movies?',
+                      'No. This App Store review build has no in-app purchases, subscriptions, external checkout, or paid movie unlock. Movie content is free community preview content.',
+                    ),
                   (
                     'How do I join a group chat?',
                     'Admin-created groups appear in the Chat tab. Tap a group to join and start reading or sending messages.',
@@ -438,15 +454,21 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
                 ],
               )
             else if (_section == AccountHubSection.terms)
-              const _InfoSection(
+              _InfoSection(
                 items: [
                   (
                     'Community Terms',
-                    'Please use respectful language, truthful listings, and only post services, housing, movies, and items that fit the community.',
+                    hideVideo
+                        ? 'Please use respectful language, truthful listings, and only post beauty services, housing, and items that fit the community. Objectionable content and abusive users are not tolerated.'
+                        : 'Please use respectful language, truthful listings, and only post services, housing, movies, and items that fit the community.',
                   ),
                   (
                     'Account safety',
-                    'Do not post scams, duplicate listings, harassment, or illegal content. Admin can remove content or disable accounts that break these rules.',
+                    'Do not post scams, duplicate listings, harassment, or illegal content. Posts and chat text are filtered before posting. Members can report content, block abusive users, and the team reviews safety reports within 24 hours.',
+                  ),
+                  (
+                    'Report and block',
+                    'Use the Report or Block actions on chat messages, marketplace listings, jobs, housing posts, and member conversations. Blocking removes that user’s content from your current feed and notifies the moderation team.',
                   ),
                   (
                     'Child safety reporting',
@@ -562,6 +584,7 @@ class _ProfileEditorSection extends StatelessWidget {
     required this.onToggleConfirmPassword,
     required this.onSave,
     required this.onChangePassword,
+    required this.onSignOut,
     required this.onDeleteAccount,
     required this.showRecoveryEmailHint,
     required this.visibleRecoveryEmail,
@@ -589,6 +612,7 @@ class _ProfileEditorSection extends StatelessWidget {
   final VoidCallback onToggleConfirmPassword;
   final Future<void> Function() onSave;
   final Future<void> Function() onChangePassword;
+  final Future<void> Function() onSignOut;
   final Future<void> Function() onDeleteAccount;
   final bool showRecoveryEmailHint;
   final String visibleRecoveryEmail;
@@ -843,6 +867,40 @@ class _ProfileEditorSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         MetroInsetPanel(
+          borderColor: kMetroPrimary.withValues(alpha: 0.26),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                context.tr('Sign out'),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: kMetroInk),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                context.tr(
+                  'Use this button to log out of Nails Talk on this device. You can sign back in later with your username and password.',
+                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: kMetroMuted),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: session.submitting ? null : onSignOut,
+                  style: metroSoftOutlinedButtonStyle(context),
+                  icon: const Icon(Icons.logout_rounded),
+                  label: Text(context.tr('Sign out')),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        MetroInsetPanel(
           borderColor: const Color(0xFFB3261E).withValues(alpha: 0.42),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -891,6 +949,7 @@ class _GuestAccountSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hideVideo = AppConstants.hideVideoForAppleReview;
     return MetroInsetPanel(
       borderColor: kMetroPrimary,
       child: Column(
@@ -905,7 +964,9 @@ class _GuestAccountSection extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             context.tr(
-              'Movies, marketplace, jobs, and housing can be browsed without an account. Sign in to chat, post, save, report, block users, or delete your account.',
+              hideVideo
+                  ? 'Marketplace, jobs, beauty services, and housing can be browsed without an account. Sign in to chat, post, save, report, block users, or delete your account.'
+                  : 'Movies, marketplace, jobs, and housing can be browsed without an account. Sign in to chat, post, save, report, block users, or delete your account.',
             ),
             style: Theme.of(
               context,

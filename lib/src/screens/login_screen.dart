@@ -355,6 +355,7 @@ class _AuthHeroPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hideVideo = AppConstants.hideVideoForAppleReview;
     return Container(
       padding: const EdgeInsets.all(30),
       decoration: BoxDecoration(
@@ -398,7 +399,9 @@ class _AuthHeroPanel extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             context.tr(
-              'Nails Talk is built for Vietnamese beauty professionals in the U.S. Sign in once, then move between job leads, housing posts, movie access, marketplace finds, and live chat without extra setup.',
+              hideVideo
+                  ? 'Nails Talk is built for Vietnamese beauty professionals in the U.S. Sign in once, then move between job leads, housing posts, marketplace finds, beauty services, and live chat without extra setup.'
+                  : 'Nails Talk is built for Vietnamese beauty professionals in the U.S. Sign in once, then move between job leads, housing posts, movie access, marketplace finds, and live chat without extra setup.',
             ),
             style: theme.textTheme.bodyLarge?.copyWith(
               color: Colors.white.withValues(alpha: 0.9),
@@ -454,7 +457,9 @@ class _AuthHeroPanel extends StatelessWidget {
                     number: '5',
                     title: context.tr('Core spaces'),
                     subtitle: context.tr(
-                      'Feed, movies, market, work & stay, and chat.',
+                      hideVideo
+                          ? 'Feed, market, work & stay, services, and chat.'
+                          : 'Feed, movies, market, work & stay, and chat.',
                     ),
                   ),
                   _SignalCard(
@@ -640,7 +645,7 @@ class _EulaAcceptanceCard extends StatelessWidget {
         ),
         subtitle: Text(
           context.tr(
-            'Nails Talk does not allow abusive, illegal, scam, hateful, sexual, or harassing content. Members can report content, block abusive users, and delete their account from Profile.',
+            'Nails Talk has zero tolerance for abusive, illegal, scam, hateful, sexual, or harassing content. Posts and chat text are filtered before posting, members can report content and block abusive users, and the team reviews safety reports within 24 hours.',
           ),
           style: const TextStyle(color: _authMuted, height: 1.45),
         ),
@@ -675,6 +680,7 @@ class _LoginForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hideVideo = AppConstants.hideVideoForAppleReview;
     return Form(
       key: formKey,
       child: Column(
@@ -727,7 +733,9 @@ class _LoginForm extends StatelessWidget {
               ),
               child: Text(
                 context.tr(
-                  'Your account opens feed, movies, room share, marketplace, and chat in one sign-in.',
+                  hideVideo
+                      ? 'Your account opens feed, room share, marketplace, beauty services, and chat in one sign-in.'
+                      : 'Your account opens feed, movies, room share, marketplace, and chat in one sign-in.',
                 ),
                 style: const TextStyle(
                   color: _authInk,
@@ -1401,6 +1409,7 @@ class _ServiceBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hideVideo = AppConstants.hideVideoForAppleReview;
     if (ready) {
       return Container(
         width: double.infinity,
@@ -1417,7 +1426,9 @@ class _ServiceBanner extends StatelessWidget {
             Expanded(
               child: Text(
                 context.tr(
-                  'Your Nails Talk community is ready. Sign in to chat, watch, play, and connect in one place.',
+                  hideVideo
+                      ? 'Your Nails Talk community is ready. Sign in to chat, browse, post, and connect in one place.'
+                      : 'Your Nails Talk community is ready. Sign in to chat, watch, play, and connect in one place.',
                 ),
                 style: const TextStyle(
                   color: _authInk,
