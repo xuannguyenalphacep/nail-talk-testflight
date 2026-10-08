@@ -168,7 +168,7 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
                       _ShellNavItem(
                         icon: Icons.smart_display_outlined,
                         activeIcon: Icons.smart_display_rounded,
-                        label: 'Movie picks',
+                        label: 'Videos',
                         selected: _index == 1,
                         onTap: () => _goToTab(1),
                       ),

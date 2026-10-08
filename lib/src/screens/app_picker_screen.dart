@@ -228,7 +228,7 @@ class _BrandPanel extends StatelessWidget {
             context.tr(
               hideVideo
                   ? 'Pick your local Nails Talk space, then jump into jobs, marketplace posts, beauty services, housing leads, and live community chat.'
-                  : 'Pick your local Nails Talk space, then jump into jobs, movies, marketplace posts, housing leads, and live community chat.',
+                  : 'Pick your local Nails Talk space, then jump into jobs, YouTube videos, marketplace posts, housing leads, and live community chat.',
             ),
             style: theme.textTheme.bodyLarge?.copyWith(
               color: Colors.white.withValues(alpha: 0.9),

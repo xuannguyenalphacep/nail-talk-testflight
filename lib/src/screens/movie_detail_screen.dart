@@ -14,7 +14,6 @@ import '../core/utils/movie_showcase_utils.dart';
 import '../models/movie_item.dart';
 import '../models/movie_plan_model.dart';
 import '../widgets/metro_ui.dart';
-import '../widgets/remote_image.dart';
 
 class MovieDetailScreen extends StatefulWidget {
   const MovieDetailScreen({required this.movie, super.key});
@@ -56,8 +55,10 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
   }
 
   bool _canWatch(SocialHubController controller) {
+    if (_movie.isYoutubeEmbedReady) return true;
+    if (!AppConstants.hostedMoviePlaybackEnabled) return false;
+
     return !AppConstants.moviePaymentsEnabled ||
-        _movie.isYoutube ||
         _movie.accessType == 'free' ||
         _movie.canWatch ||
         (_movie.accessType == 'subscription' &&
@@ -124,6 +125,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
   void _maybeInitializeVideo(SocialHubController controller) {
     if (!_canWatch(controller)) return;
     if (_movie.isYoutube) return;
+    if (!AppConstants.hostedMoviePlaybackEnabled) {
+      setState(
+        () => _videoError = AppLocalizer.current.tr(
+          'Hosted video playback is disabled in this app version.',
+        ),
+      );
+      return;
+    }
     if (_videoController != null || _initializingVideo) return;
 
     final videoUrl = _movie.playableUrl;
@@ -160,7 +169,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
             setState(() {
               _videoController = null;
               _videoError = AppLocalizer.current.tr(
-                'Unable to load the movie stream right now.',
+                'Unable to load the video stream right now.',
               );
             });
           })
@@ -231,7 +240,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
 
     await Clipboard.setData(ClipboardData(text: link));
     if (!mounted) return;
-    _showMessage('Movie link copied.');
+    _showMessage('Video link copied.');
   }
 
   @override
@@ -258,6 +267,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
       return const SizedBox.shrink();
     }
     final social = context.watch<SocialHubController>();
+    final youtubeOnlyBlocked =
+        !_movie.isYoutubeEmbedReady && !AppConstants.hostedMoviePlaybackEnabled;
     final unlocked = _canWatch(social);
     final activePlan = social.activeSubscription;
 
@@ -318,7 +329,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
                           ),
                   ),
                 ],
-                if (!unlocked) ...[
+                if (youtubeOnlyBlocked || !unlocked) ...[
                   const SizedBox(height: 16),
                   Container(
                     key: _lockedSectionKey,
@@ -328,8 +339,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
                     ),
                   ),
                 ],
-                const SizedBox(height: 16),
-                _MovieCastCard(movie: _movie),
               ],
             ),
           ),
@@ -616,7 +625,7 @@ class _MovieMetaCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  context.tr('About this movie'),
+                  context.tr('About this video'),
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontSize: 20),
@@ -648,7 +657,7 @@ class _MovieMetaCard extends StatelessWidget {
                   icon: Icons.playlist_add_rounded,
                   label: 'My list',
                   onTap: () => onShowMessage(
-                    'Your movie list will sync in the next demo update.',
+                    'Your video list will sync in the next update.',
                   ),
                 ),
               ),
@@ -661,11 +670,9 @@ class _MovieMetaCard extends StatelessWidget {
               ),
               Expanded(
                 child: _MovieQuickAction(
-                  icon: Icons.download_rounded,
-                  label: 'Download',
-                  onTap: () => onShowMessage(
-                    'Offline movie download will be connected in the next release.',
-                  ),
+                  icon: Icons.ondemand_video_rounded,
+                  label: 'YouTube',
+                  onTap: onPlay,
                 ),
               ),
               Expanded(
@@ -809,99 +816,6 @@ class _MovieQuickAction extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _MovieCastCard extends StatelessWidget {
-  const _MovieCastCard({required this.movie});
-
-  final MovieItem movie;
-
-  @override
-  Widget build(BuildContext context) {
-    final meta = movieShowcaseMeta(movie);
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x120F172A),
-            blurRadius: 26,
-            offset: Offset(0, 14),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.tr('Cast'),
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontSize: 20),
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 116,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: meta.cast.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 14),
-              itemBuilder: (context, index) {
-                final member = meta.cast[index];
-                return SizedBox(
-                  width: 78,
-                  child: Column(
-                    children: [
-                      ClipOval(
-                        child: SizedBox(
-                          width: 60,
-                          height: 60,
-                          child: RemoteImage(
-                            url: member.avatarUrl,
-                            fit: BoxFit.cover,
-                            errorFallback: Container(
-                              color: const Color(0xFFF4F6FB),
-                              alignment: Alignment.center,
-                              child: const Icon(
-                                Icons.person_rounded,
-                                color: kMetroMuted,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        height: 38,
-                        child: Align(
-                          alignment: Alignment.topCenter,
-                          child: Text(
-                            member.name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: kMetroInk,
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.18,
-                                ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1893,7 +1807,11 @@ class _MovieLockedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final priceLabel = AppConstants.moviePaymentsEnabled && movie.price > 0
+    final youtubeOnlyBlocked =
+        !movie.isYoutubeEmbedReady && !AppConstants.hostedMoviePlaybackEnabled;
+    final priceLabel = youtubeOnlyBlocked
+        ? context.tr('YouTube embed required')
+        : AppConstants.moviePaymentsEnabled && movie.price > 0
         ? '${movie.currency} ${movie.price.toStringAsFixed(2)}'
         : context.tr('Free community preview');
 
@@ -1933,7 +1851,11 @@ class _MovieLockedCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      context.tr('No payment in this app version'),
+                      context.tr(
+                        youtubeOnlyBlocked
+                            ? 'Only YouTube embedded videos are available'
+                            : 'No payment in this app version',
+                      ),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: kMetroInk,
                         fontWeight: FontWeight.w900,
@@ -1942,7 +1864,9 @@ class _MovieLockedCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       context.tr(
-                        'This App Store build does not include in-app purchases, subscriptions, or external checkout.',
+                        youtubeOnlyBlocked
+                            ? 'Hosted or direct video playback is disabled in this build. Use a public YouTube URL so the official YouTube embedded player can handle playback.'
+                            : 'This App Store build does not include in-app purchases, subscriptions, or external checkout.',
                       ),
                       style: Theme.of(
                         context,
@@ -1988,7 +1912,9 @@ class _MovieLockedCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         context.tr(
-                          'Movie access is free during review and community preview. Future paid features will use Apple-approved purchase flows.',
+                          youtubeOnlyBlocked
+                              ? 'Admin video entries are filtered before publishing and must be YouTube embeds for this iOS build.'
+                              : 'Video access is free during review and community preview. Future paid features will use Apple-approved purchase flows.',
                         ),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: kMetroMuted,

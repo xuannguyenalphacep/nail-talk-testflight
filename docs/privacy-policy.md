@@ -13,14 +13,14 @@ Nails Talk is a community app for Vietnamese nail and beauty professionals in th
 
 ## How we use information
 
-- To provide login, profile, chat, marketplace, job, housing, and movie preview features.
+- To provide login, profile, chat, marketplace, job, housing, service directory, and YouTube embedded video features.
 - To show community posts and messages to other members where you choose to publish or send them.
 - To maintain app security, prevent spam or abuse, and troubleshoot technical issues.
 - To improve the reliability and usability of Nails Talk.
 
 ## Payments and transactions
 
-The current App Store review build does not include in-app purchases, subscriptions, external checkout, or paid movie unlock. Movie content shown in the app is free community preview content.
+The current App Store review build does not include in-app purchases, subscriptions, external checkout, paid video unlock, or hosted/direct video playback. Video content shown in the app is limited to free YouTube embeds.
 
 Marketplace prices, job salary ranges, and room or rental amounts are listing information provided by members. Nails Talk does not process payments or transactions for those listings.
 

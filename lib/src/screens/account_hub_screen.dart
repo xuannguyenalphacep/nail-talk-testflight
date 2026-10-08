@@ -337,7 +337,7 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
         return context.tr(
           AppConstants.hideVideoForAppleReview
               ? 'Please use respectful language, truthful listings, and only post beauty services, housing, and items that fit the community. Objectionable content and abusive users are not tolerated.'
-              : 'Please use respectful language, truthful listings, and only post services, housing, movies, and items that fit the community.',
+              : 'Please use respectful language, truthful listings, and only post services, housing, YouTube videos, and items that fit the community.',
         );
       case AccountHubSection.privacy:
         return context.tr(
@@ -423,8 +423,8 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
                   ),
                   if (!hideVideo)
                     (
-                      'Does Nails Talk charge for movies?',
-                      'No. This App Store review build has no in-app purchases, subscriptions, external checkout, or paid movie unlock. Movie content is free community preview content.',
+                      'Does Nails Talk charge for videos?',
+                      'No. This App Store review build has no in-app purchases, subscriptions, external checkout, paid video unlock, or hosted/direct video playback. Videos are free YouTube embeds.',
                     ),
                   (
                     'How do I join a group chat?',
@@ -460,7 +460,7 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
                     'Community Terms',
                     hideVideo
                         ? 'Please use respectful language, truthful listings, and only post beauty services, housing, and items that fit the community. Objectionable content and abusive users are not tolerated.'
-                        : 'Please use respectful language, truthful listings, and only post services, housing, movies, and items that fit the community.',
+                        : 'Please use respectful language, truthful listings, and only post services, housing, YouTube videos, and items that fit the community.',
                   ),
                   (
                     'Account safety',
@@ -966,7 +966,7 @@ class _GuestAccountSection extends StatelessWidget {
             context.tr(
               hideVideo
                   ? 'Marketplace, jobs, beauty services, and housing can be browsed without an account. Sign in to chat, post, save, report, block users, or delete your account.'
-                  : 'Movies, marketplace, jobs, and housing can be browsed without an account. Sign in to chat, post, save, report, block users, or delete your account.',
+                  : 'YouTube videos, marketplace, jobs, and housing can be browsed without an account. Sign in to chat, post, save, report, block users, or delete your account.',
             ),
             style: Theme.of(
               context,

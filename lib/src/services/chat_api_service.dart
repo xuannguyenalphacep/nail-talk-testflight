@@ -1085,6 +1085,12 @@ class ChatApiService {
 
   MovieItem _normalizeMovieItem(MovieItem movie) {
     final paymentsEnabled = AppConstants.moviePaymentsEnabled;
+    final hostedPlaybackEnabled = AppConstants.hostedMoviePlaybackEnabled;
+    final youtubePlayable = movie.isYoutubeEmbedReady;
+    final hostedPlayable = hostedPlaybackEnabled && movie.isHosted;
+    final canWatch =
+        youtubePlayable ||
+        (hostedPlayable && (!paymentsEnabled || movie.canWatch));
 
     return MovieItem(
       id: movie.id,
@@ -1095,17 +1101,26 @@ class ChatApiService {
       posterUrl: _normalizeMediaUrl(movie.posterUrl),
       bannerUrl: _normalizeMediaUrl(movie.bannerUrl),
       thirdPartyProvider: movie.thirdPartyProvider,
-      thirdPartyUrl: _normalizeMediaUrl(movie.thirdPartyUrl),
+      thirdPartyUrl: movie.isYoutube || hostedPlaybackEnabled
+          ? _normalizeMediaUrl(movie.thirdPartyUrl)
+          : '',
       sourceType: movie.sourceType,
       youtubeUrl: movie.youtubeUrl,
       youtubeVideoId: movie.youtubeVideoId,
       youtubeEmbedUrl: movie.youtubeEmbedUrl,
-      hostedVideoUrl: _normalizeMediaUrl(movie.hostedVideoUrl),
-      accessType: paymentsEnabled ? movie.accessType : 'free',
-      price: paymentsEnabled ? movie.price : 0,
+      hostedVideoUrl: hostedPlaybackEnabled
+          ? _normalizeMediaUrl(movie.hostedVideoUrl)
+          : '',
+      accessType: youtubePlayable
+          ? 'free'
+          : (hostedPlayable
+                ? (paymentsEnabled ? movie.accessType : 'free')
+                : 'unavailable'),
+      price: paymentsEnabled && hostedPlayable ? movie.price : 0,
       currency: movie.currency,
-      requiresPayment: paymentsEnabled && movie.requiresPayment,
-      canWatch: !paymentsEnabled || movie.canWatch,
+      requiresPayment:
+          paymentsEnabled && hostedPlayable && movie.requiresPayment,
+      canWatch: canWatch,
       isPublished: movie.isPublished,
       category: movie.category,
     );

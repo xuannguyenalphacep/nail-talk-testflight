@@ -329,7 +329,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             title: item.title,
             subtitle: item.summary,
             meta: item.category?.name ?? item.thirdPartyProvider,
-            tag: 'Movie picks',
+            tag: 'YouTube videos',
             imageUrl: item.posterUrl.isNotEmpty
                 ? item.posterUrl
                 : item.bannerUrl,
@@ -439,12 +439,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onTap: () => widget.onNavigate(3),
     );
     final movieCard = _HomeCardData(
-      title: 'Movie picks',
-      subtitle: 'Featured movies for a relaxed night in.',
+      title: 'YouTube videos',
+      subtitle: 'Curated embedded videos for the community.',
       imageUrl: movieShowcaseImage,
       fallbackImageUrl: communityChatImage,
       arrowColor: const Color(0xFFF35F86),
-      chips: const [_CardChipData(label: 'Featured movies')],
+      chips: const [_CardChipData(label: 'YouTube embeds')],
       badge: movieCount > 0 ? '$movieCount' : null,
       badgeColor: const Color(0xFFF35F86),
       onTap: () => widget.onNavigate(1),

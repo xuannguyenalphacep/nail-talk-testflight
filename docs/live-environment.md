@@ -158,13 +158,14 @@ curl "http://54.205.74.122/socket.io/?EIO=4&transport=polling"
 
 4. For local API/socket testing, override the defaults with `--dart-define=BOOTSTRAP_API_BASE=http://127.0.0.1:8010/api` and `--dart-define=CHAT_CALL_BASE_URL=http://127.0.0.1:3000`.
 
-## iOS App Review temporary video hide
+## iOS App Review YouTube-only video mode
 
-As of 2026-10-07, the Flutter app hides the movie/video section on iOS only for Apple review. Android keeps the feature visible.
+As of 2026-10-08, the Flutter app shows the Video section on iOS, but defaults to YouTube-embed-only playback for Apple review.
 
 - Flag location: `flutter-app/lib/src/core/constants/app_constants.dart`
-- Default behavior: `TargetPlatform.iOS` hides video/movie UI and skips movie API calls.
-- To temporarily re-enable video on an iOS build, pass `--dart-define=FORCE_SHOW_APPLE_VIDEO_FEATURE=true`.
+- Default behavior: `YOUTUBE_VIDEO_FEATURE_ENABLED=true`, `MOVIE_PAYMENTS_ENABLED=false`, and `HOSTED_MOVIE_PLAYBACK_ENABLED=false`.
+- Flutter filters video data to YouTube embeds unless hosted playback is intentionally enabled.
+- The Laravel API also filters `/api/movies` to published YouTube entries only while `HOSTED_MOVIE_PLAYBACK_ENABLED=false`.
 
 ## Smoke test result
 
@@ -206,4 +207,4 @@ Checked again on 2026-10-07 after AWS login and local data sync:
 - Rewrote local API/socket URLs in the live database to `http://54.205.74.122`.
 - Restarted `php8.4-fpm`, `nginx`, and `nail-talk-socket.service`.
 - Confirmed live API app bootstrap, services, spa/beauty provider list, specialties, and Socket.IO handshake all return successfully.
-- Flutter iOS App Review hardening added after the live sync: movie/video is hidden on iOS, service UI is rewritten as spa/beauty instead of medical/clinic, Account has a visible Sign out button, and listing detail screens expose Report + Block actions.
+- Flutter iOS App Review hardening added after the live sync: service UI is rewritten as spa/beauty instead of medical/clinic, Account has a visible Sign out button, listing detail screens expose Report + Block actions, and the Video section is YouTube-embed-only with hosted/direct playback disabled.

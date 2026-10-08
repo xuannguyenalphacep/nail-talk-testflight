@@ -1187,7 +1187,7 @@ class _GuestChatGate extends StatelessWidget {
                 context.tr(
                   hideVideo
                       ? 'You can browse marketplace listings, jobs, beauty services, and housing without an account. Chat, reporting, blocking, posting, and saved items require sign-in.'
-                      : 'You can browse movies, marketplace listings, jobs, and housing without an account. Chat, reporting, blocking, posting, and saved items require sign-in.',
+                      : 'You can browse YouTube videos, marketplace listings, jobs, and housing without an account. Chat, reporting, blocking, posting, and saved items require sign-in.',
                 ),
                 textAlign: TextAlign.center,
                 style: Theme.of(

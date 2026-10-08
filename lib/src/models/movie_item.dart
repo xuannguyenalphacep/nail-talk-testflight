@@ -50,8 +50,19 @@ class MovieItem {
 
   bool get isYoutube => sourceType == 'youtube';
   bool get isHosted => sourceType == 'hosted';
+  bool get isYoutubeEmbedReady =>
+      isYoutube &&
+      (youtubeVideoId.isNotEmpty ||
+          youtubeEmbedUrl.isNotEmpty ||
+          youtubeUrl.isNotEmpty);
+  bool get isPlayableInThisBuild =>
+      isYoutubeEmbedReady ||
+      (AppConstants.hostedMoviePlaybackEnabled && isHosted);
   bool get isFree =>
-      !AppConstants.moviePaymentsEnabled || isYoutube || accessType == 'free';
+      isYoutube ||
+      accessType == 'free' ||
+      (!AppConstants.moviePaymentsEnabled &&
+          AppConstants.hostedMoviePlaybackEnabled);
   bool get isPaid =>
       AppConstants.moviePaymentsEnabled &&
       !isFree &&
@@ -63,6 +74,9 @@ class MovieItem {
   String get playableUrl {
     if (isYoutube) {
       return youtubeEmbedUrl.isNotEmpty ? youtubeEmbedUrl : youtubeUrl;
+    }
+    if (!AppConstants.hostedMoviePlaybackEnabled) {
+      return '';
     }
     return hostedVideoUrl.isNotEmpty ? hostedVideoUrl : thirdPartyUrl;
   }

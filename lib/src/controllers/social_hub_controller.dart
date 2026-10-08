@@ -100,6 +100,15 @@ class SocialHubController extends ChangeNotifier {
   bool get _hasSelectedService => _sessionController.selectedApp != null;
   bool get _isLoggedIn => _sessionController.isLoggedIn;
 
+  List<MovieItem> _safeVideoItems(List<MovieItem> movies) {
+    if (AppConstants.hostedMoviePlaybackEnabled) {
+      return movies;
+    }
+    return movies
+        .where((movie) => movie.isYoutubeEmbedReady)
+        .toList(growable: false);
+  }
+
   Future<void> initializeIfNeeded() async {
     if (!_hasSelectedService || _initializedForSession) return;
     _initializedForSession = true;
@@ -182,7 +191,7 @@ class SocialHubController extends ChangeNotifier {
 
       _movieCategories = results[0] as List<AppOption>;
       _moviePlans = results[1] as List<MoviePlanModel>;
-      _movies = moviePage.movies;
+      _movies = _safeVideoItems(moviePage.movies);
       _moviePage = moviePage.currentPage;
       _movieLastPage = moviePage.lastPage;
       _activeSubscription = results[3] as MovieSubscriptionModel?;
@@ -217,7 +226,9 @@ class SocialHubController extends ChangeNotifier {
       final seenIds = _movies.map((movie) => movie.id).toSet();
       _movies = [
         ..._movies,
-        ...moviePage.movies.where((movie) => seenIds.add(movie.id)),
+        ..._safeVideoItems(
+          moviePage.movies,
+        ).where((movie) => seenIds.add(movie.id)),
       ];
       _moviePage = moviePage.currentPage;
       _movieLastPage = moviePage.lastPage;
@@ -234,6 +245,11 @@ class SocialHubController extends ChangeNotifier {
       throw UnsupportedError('Movie content is unavailable in this build.');
     }
     final movie = await _apiService.fetchMovieDetail(movieId);
+    if (!movie.isPlayableInThisBuild) {
+      throw UnsupportedError(
+        'Only YouTube embedded videos are available in this build.',
+      );
+    }
     final index = _movies.indexWhere((item) => item.id == movieId);
     if (index >= 0) {
       final nextMovies = List<MovieItem>.from(_movies);

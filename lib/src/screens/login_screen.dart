@@ -401,7 +401,7 @@ class _AuthHeroPanel extends StatelessWidget {
             context.tr(
               hideVideo
                   ? 'Nails Talk is built for Vietnamese beauty professionals in the U.S. Sign in once, then move between job leads, housing posts, marketplace finds, beauty services, and live chat without extra setup.'
-                  : 'Nails Talk is built for Vietnamese beauty professionals in the U.S. Sign in once, then move between job leads, housing posts, movie access, marketplace finds, and live chat without extra setup.',
+                  : 'Nails Talk is built for Vietnamese beauty professionals in the U.S. Sign in once, then move between job leads, housing posts, YouTube videos, marketplace finds, and live chat without extra setup.',
             ),
             style: theme.textTheme.bodyLarge?.copyWith(
               color: Colors.white.withValues(alpha: 0.9),
@@ -459,7 +459,7 @@ class _AuthHeroPanel extends StatelessWidget {
                     subtitle: context.tr(
                       hideVideo
                           ? 'Feed, market, work & stay, services, and chat.'
-                          : 'Feed, movies, market, work & stay, and chat.',
+                          : 'Feed, videos, market, work & stay, and chat.',
                     ),
                   ),
                   _SignalCard(
@@ -735,7 +735,7 @@ class _LoginForm extends StatelessWidget {
                 context.tr(
                   hideVideo
                       ? 'Your account opens feed, room share, marketplace, beauty services, and chat in one sign-in.'
-                      : 'Your account opens feed, movies, room share, marketplace, and chat in one sign-in.',
+                      : 'Your account opens feed, YouTube videos, room share, marketplace, and chat in one sign-in.',
                 ),
                 style: const TextStyle(
                   color: _authInk,

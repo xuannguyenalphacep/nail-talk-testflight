@@ -101,8 +101,8 @@ class MoreMenuScreen extends StatelessWidget {
       ),
       if (!AppConstants.hideVideoForAppleReview)
         _MenuEntry(
-          label: 'Movie picks',
-          icon: Icons.movie_creation_rounded,
+          label: 'Videos',
+          icon: Icons.smart_display_rounded,
           tint: const Color(0xFFF66BA6),
           onTap: () => onNavigate(1),
         ),

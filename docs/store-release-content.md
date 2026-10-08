@@ -105,7 +105,7 @@ Beta review notes:
 ```text
 The app requires a test account or a new registration. Testers can create a new member account from the Register tab after accepting the EULA/community safety rules, then open Chat, join a public group, and send a message. The app uses the live API and Socket.IO server at http://54.205.74.122.
 
-Important App Review clarification: the submitted iOS build hides the movie/video feature entirely. The app does not sell digital content, has no in-app purchases, no subscriptions, and no external checkout. Marketplace prices, job salary ranges, and room rent amounts are user listing information only; the app does not process those transactions. The former medical booking data has been removed; the service directory is limited to spa/beauty providers and is not a healthcare service.
+Important App Review clarification: the submitted iOS build enables the Video tab in YouTube-embed-only mode. Nails Talk does not host, upload, store, download, convert, cache, redistribute, sell, or unlock video files. The app displays public YouTube videos through the official embedded player only; hosted/private/direct video playback is disabled. The app has no in-app purchases, no subscriptions, no external checkout, no paid video unlocks, and no pay-per-view flow. Marketplace prices, job salary ranges, and room rent amounts are user listing information only; the app does not process those transactions. The former medical booking data has been removed; the service directory is limited to spa/beauty providers and is not a healthcare service.
 
 UGC moderation for review: the EULA/community safety card appears before sign-in/registration. Posts and chat text are filtered before posting. Users can report chat messages, marketplace listings, job listings, and housing listings. Users can also block abusive users from chat and listing detail screens; blocking removes that user’s content from the current feed and notifies the moderation team. Safety reports are reviewed within 24 hours.
 
@@ -117,10 +117,11 @@ Password: enter the reviewer password directly in App Store Connect; do not comm
 
 Main flows to review:
 1. Register or sign in.
-2. Open the feed tabs: Marketplace, Work & Stay, Chat, Services, and More.
-3. Join a public chat room and send a text message.
-4. Browse marketplace/job/housing listings, report a listing, and block the listing owner if needed.
-5. Open Account > Edit profile > Sign out to confirm logout.
+2. Open the feed tabs: Video, Marketplace, Work & Stay, Chat, Services, and More.
+3. Open Video > a video detail page > Watch now. Confirm the player is a YouTube embed and no download/payment/unlock flow is present.
+4. Join a public chat room and send a text message.
+5. Browse marketplace/job/housing listings, report a listing, and block the listing owner if needed.
+6. Open Account > Edit profile > Sign out to confirm logout.
 ```
 
 ## Google Play listing draft
@@ -195,7 +196,7 @@ Use the final production privacy policy as the source of truth. Current function
 - Tracking: no advertising tracking was implemented in the current app code.
 - Third-party login: not implemented in the current app code.
 - Payments: online payment is not implemented in the current app code.
-- Digital content purchases: not implemented. The iOS App Review build hides the movie/video feature.
+- Digital content purchases: not implemented. The iOS App Review build only shows free YouTube embedded videos and disables hosted/direct playback.
 - External checkout: not implemented. No buttons or links send users outside the app to buy digital content.
 
 ## Pre-submission checklist
@@ -204,9 +205,10 @@ Use the final production privacy policy as the source of truth. Current function
 - Confirm Socket.IO handshake: `http://54.205.74.122/socket.io/?EIO=4&transport=polling`.
 - Confirm new member registration works.
 - Confirm new member can see public chat rooms, join one, and send a message.
-- Confirm the iOS build hides the movie/video feature.
+- Confirm the iOS build shows Video as YouTube-embed-only content.
+- Confirm hosted/direct video playback stays disabled unless `HOSTED_MOVIE_PLAYBACK_ENABLED=true` is intentionally set.
 - Confirm services data only shows spa/beauty providers, not clinic/medical/healthcare providers.
-- Remove old movie/video screenshots and metadata from App Store Connect before resubmitting.
+- Remove old movie/hosted-video screenshots and metadata from App Store Connect before resubmitting.
 - Put the UGC moderation/logout explanation above in App Review Notes.
 - Add final Support URL and Privacy Policy URL in App Store Connect.
 - Add reviewer credentials only inside App Store Connect / Play Console, not in this repository.

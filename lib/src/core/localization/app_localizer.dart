@@ -84,6 +84,8 @@ class AppLocalizer {
     'Mobile ready': 'Tối ưu cho di động',
     'Pick your local Nails Talk space, then jump into jobs, movies, marketplace posts, housing leads, and live community chat.':
         'Chọn không gian Nails Talk của bạn rồi vào ngay việc làm, phim, bài đăng mua bán, tin nhà ở và chat cộng đồng trực tiếp.',
+    'Pick your local Nails Talk space, then jump into jobs, YouTube videos, marketplace posts, housing leads, and live community chat.':
+        'Chọn không gian Nails Talk của bạn rồi vào ngay việc làm, video YouTube, bài đăng mua bán, tin nhà ở và chat cộng đồng trực tiếp.',
     'Pick your local Nails Talk space, then jump into jobs, marketplace posts, beauty services, housing leads, and live community chat.':
         'Chọn không gian Nails Talk của bạn rồi vào ngay việc làm, bài đăng mua bán, dịch vụ làm đẹp, tin nhà ở và chat cộng đồng trực tiếp.',
     'Real-time sync': 'Đồng bộ thời gian thực',
@@ -170,7 +172,7 @@ class AppLocalizer {
     '[File]': '[Tệp]',
     '[Message]': '[Tin nhắn]',
     'Feed': 'Bảng tin',
-    'Movies': 'Phim',
+    'Movies': 'Video',
     'Market': 'Chợ',
     'Work': 'Việc',
     'Chat tab': 'Chat',
@@ -181,6 +183,8 @@ class AppLocalizer {
         'Một nơi cho công việc salon, chia sẻ phòng ở và cập nhật cộng đồng địa phương.',
     'Nails Talk is built for Vietnamese beauty professionals in the U.S. Sign in once, then move between job leads, housing posts, movie access, marketplace finds, and live chat without extra setup.':
         'Nails Talk được xây cho cộng đồng làm đẹp người Việt tại Mỹ. Chỉ cần đăng nhập một lần là bạn có thể chuyển qua lại giữa việc làm, nhà ở, phim, chợ cộng đồng và chat trực tiếp mà không cần thiết lập thêm.',
+    'Nails Talk is built for Vietnamese beauty professionals in the U.S. Sign in once, then move between job leads, housing posts, YouTube videos, marketplace finds, and live chat without extra setup.':
+        'Nails Talk được xây cho cộng đồng làm đẹp người Việt tại Mỹ. Chỉ cần đăng nhập một lần là bạn có thể chuyển qua lại giữa việc làm, nhà ở, video YouTube, chợ cộng đồng và chat trực tiếp mà không cần thiết lập thêm.',
     'Nails Talk is built for Vietnamese beauty professionals in the U.S. Sign in once, then move between job leads, housing posts, marketplace finds, beauty services, and live chat without extra setup.':
         'Nails Talk được xây cho cộng đồng làm đẹp người Việt tại Mỹ. Chỉ cần đăng nhập một lần là bạn có thể chuyển qua lại giữa việc làm, nhà ở, chợ cộng đồng, dịch vụ làm đẹp và chat trực tiếp mà không cần thiết lập thêm.',
     'Salon-ready profiles': 'Hồ sơ sẵn sàng cho salon',
@@ -192,6 +196,8 @@ class AppLocalizer {
     'Core spaces': 'Khu vực chính',
     'Feed, movies, market, work & stay, and chat.':
         'Bảng tin, phim, chợ, việc làm & nhà ở, và chat.',
+    'Feed, videos, market, work & stay, and chat.':
+        'Bảng tin, video, chợ, việc làm & nhà ở, và chat.',
     'Feed, market, work & stay, services, and chat.':
         'Bảng tin, chợ, việc làm & nhà ở, dịch vụ và chat.',
     'Community-first': 'Ưu tiên cộng đồng',
@@ -218,6 +224,8 @@ class AppLocalizer {
     'Enter your password': 'Nhập mật khẩu',
     'Your account opens feed, movies, room share, marketplace, and chat in one sign-in.':
         'Chỉ với một lần đăng nhập, tài khoản của bạn sẽ mở bảng tin, phim, chia sẻ phòng, chợ và chat.',
+    'Your account opens feed, YouTube videos, room share, marketplace, and chat in one sign-in.':
+        'Chỉ với một lần đăng nhập, tài khoản của bạn sẽ mở bảng tin, video YouTube, chia sẻ phòng, chợ và chat.',
     'Your account opens feed, room share, marketplace, beauty services, and chat in one sign-in.':
         'Chỉ với một lần đăng nhập, tài khoản của bạn sẽ mở bảng tin, chia sẻ phòng, chợ, dịch vụ làm đẹp và chat.',
     'Signing in...': 'Đang đăng nhập...',
@@ -371,14 +379,20 @@ class AppLocalizer {
         'Các câu trả lời cho những tình huống thường gặp khi đăng bài, dùng tài khoản và chat.',
     'Please use respectful language, truthful listings, and only post services, housing, movies, and items that fit the community.':
         'Hãy dùng ngôn ngữ tôn trọng, đăng tin trung thực và chỉ chia sẻ dịch vụ, nhà ở, phim và món hàng phù hợp với cộng đồng.',
+    'Please use respectful language, truthful listings, and only post services, housing, YouTube videos, and items that fit the community.':
+        'Hãy dùng ngôn ngữ tôn trọng, đăng tin trung thực và chỉ chia sẻ dịch vụ, nhà ở, video YouTube và món hàng phù hợp với cộng đồng.',
     'Marketplace, jobs, beauty services, and housing can be browsed without an account. Sign in to chat, post, save, report, block users, or delete your account.':
         'Bạn có thể xem mua bán, việc làm, dịch vụ làm đẹp và nhà ở mà không cần tài khoản. Hãy đăng nhập để chat, đăng bài, lưu, báo cáo, chặn người dùng hoặc xóa tài khoản.',
     'Movies, marketplace, jobs, and housing can be browsed without an account. Sign in to chat, post, save, report, block users, or delete your account.':
         'Bạn có thể xem phim, mua bán, việc làm và nhà ở mà không cần tài khoản. Hãy đăng nhập để chat, đăng bài, lưu, báo cáo, chặn người dùng hoặc xóa tài khoản.',
+    'YouTube videos, marketplace, jobs, and housing can be browsed without an account. Sign in to chat, post, save, report, block users, or delete your account.':
+        'Bạn có thể xem video YouTube, mua bán, việc làm và nhà ở mà không cần tài khoản. Hãy đăng nhập để chat, đăng bài, lưu, báo cáo, chặn người dùng hoặc xóa tài khoản.',
     'You can browse marketplace listings, jobs, beauty services, and housing without an account. Chat, reporting, blocking, posting, and saved items require sign-in.':
         'Bạn có thể xem bài mua bán, việc làm, dịch vụ làm đẹp và nhà ở mà không cần tài khoản. Chat, báo cáo, chặn người dùng, đăng bài và lưu mục yêu thích cần đăng nhập.',
     'You can browse movies, marketplace listings, jobs, and housing without an account. Chat, reporting, blocking, posting, and saved items require sign-in.':
         'Bạn có thể xem phim, bài mua bán, việc làm và nhà ở mà không cần tài khoản. Chat, báo cáo, chặn người dùng, đăng bài và lưu mục yêu thích cần đăng nhập.',
+    'You can browse YouTube videos, marketplace listings, jobs, and housing without an account. Chat, reporting, blocking, posting, and saved items require sign-in.':
+        'Bạn có thể xem video YouTube, bài mua bán, việc làm và nhà ở mà không cần tài khoản. Chat, báo cáo, chặn người dùng, đăng bài và lưu mục yêu thích cần đăng nhập.',
     'Your account details are used to sign in, display your profile, and keep chat and listing activity tied to your account.':
         'Thông tin tài khoản được dùng để đăng nhập, hiển thị hồ sơ và gắn hoạt động chat, bài đăng với đúng tài khoản của bạn.',
     'Profile updated.': 'Đã cập nhật hồ sơ.',
@@ -459,6 +473,10 @@ class AppLocalizer {
         'Nails Talk có thu tiền xem phim không?',
     'No. This App Store review build has no in-app purchases, subscriptions, external checkout, or paid movie unlock. Movie content is free community preview content.':
         'Không. Bản gửi App Store hiện tại không có mua trong ứng dụng, không có thuê bao, không có thanh toán ngoài app và không mở khóa phim thu phí. Nội dung phim đang là bản xem thử cộng đồng miễn phí.',
+    'Does Nails Talk charge for videos?':
+        'Nails Talk có thu tiền xem video không?',
+    'No. This App Store review build has no in-app purchases, subscriptions, external checkout, paid video unlock, or hosted/direct video playback. Videos are free YouTube embeds.':
+        'Không. Bản gửi App Store này không có mua trong ứng dụng, thuê bao, thanh toán bên ngoài, mở khóa video trả phí hoặc phát video hosting/trực tiếp. Video là YouTube nhúng miễn phí.',
     'How do I join a group chat?': 'Tham gia chat nhóm như thế nào?',
     'Admin-created groups appear in the Chat tab. Tap a group to join and start reading or sending messages.':
         'Các nhóm do admin tạo sẽ xuất hiện ở tab Chat. Chạm vào nhóm để tham gia và bắt đầu đọc hoặc gửi tin nhắn.',
@@ -561,6 +579,11 @@ class AppLocalizer {
     'Guest': 'Khách',
     'Heart-to-heart chat': 'Trò chuyện và Tâm Sự',
     'Movie picks': 'Phim Hay',
+    'Videos': 'Video',
+    'YouTube videos': 'Video YouTube',
+    'YouTube embeds': 'Video nhúng YouTube',
+    'Curated embedded videos for the community.':
+        'Video YouTube nhúng đã chọn lọc cho cộng đồng.',
     'Find a job': 'Kiếm Việc Làm',
     'Find a tech': 'Đăng Kiếm Thợ',
     'Buy & Sell': 'Mua Và Bán',
@@ -696,6 +719,10 @@ class AppLocalizer {
         'Liên kết phát này hiện chưa khả dụng.',
     'Unable to load the movie stream right now.':
         'Hiện chưa thể tải luồng phát phim.',
+    'Unable to load the video stream right now.':
+        'Hiện chưa thể tải luồng phát video.',
+    'Hosted video playback is disabled in this app version.':
+        'Phát video hosting đang tắt trong phiên bản này.',
     'Unable to load the YouTube player right now.':
         'Hiện chưa thể tải trình phát YouTube.',
     'This YouTube embed is not available yet.':
@@ -720,13 +747,23 @@ class AppLocalizer {
     'No payment in this app version': 'Không thanh toán trong phiên bản này',
     'This App Store build does not include in-app purchases, subscriptions, or external checkout.':
         'Bản gửi App Store này không có mua trong ứng dụng, thuê bao hoặc thanh toán bên ngoài.',
+    'YouTube embed required': 'Cần video YouTube nhúng',
+    'Only YouTube embedded videos are available':
+        'Chỉ video YouTube nhúng được hỗ trợ',
+    'Hosted or direct video playback is disabled in this build. Use a public YouTube URL so the official YouTube embedded player can handle playback.':
+        'Bản này đã tắt phát video hosting hoặc link trực tiếp. Hãy dùng URL YouTube công khai để trình phát nhúng chính thức của YouTube xử lý phát video.',
     'Movie access is free during review and community preview. Future paid features will use Apple-approved purchase flows.':
         'Quyền xem phim đang miễn phí trong giai đoạn review và xem thử cộng đồng. Nếu có tính năng thu phí sau này, app sẽ dùng luồng mua hàng được Apple chấp thuận.',
+    'Video access is free during review and community preview. Future paid features will use Apple-approved purchase flows.':
+        'Quyền xem video đang miễn phí trong giai đoạn review và xem thử cộng đồng. Nếu có tính năng thu phí sau này, app sẽ dùng luồng mua hàng được Apple chấp thuận.',
+    'Admin video entries are filtered before publishing and must be YouTube embeds for this iOS build.':
+        'Các video do admin nhập được lọc trước khi đăng và phải là video YouTube nhúng cho bản iOS này.',
     'Free YouTube': 'YouTube miễn phí',
     'YouTube free': 'YouTube miễn phí',
     'Community access': 'Quyền xem cộng đồng',
     'Active until {date}': 'Hiệu lực đến {date}',
     'About this movie': 'Giới thiệu phim',
+    'About this video': 'Giới thiệu video',
     'Now playing': 'Đang phát',
     'Loading your stream...': 'Đang tải luồng phát...',
     'Preparing video controls...': 'Đang chuẩn bị điều khiển video...',
@@ -750,6 +787,7 @@ class AppLocalizer {
     'Featured movies': 'Phim nổi bật',
     'Ready to watch': 'Sẵn sàng để xem',
     'Open now for this account.': 'Mở ngay với tài khoản này.',
+    'Open the embedded YouTube player.': 'Mở trình phát YouTube nhúng.',
     'Open these instantly with the current account.':
         'Mở xem ngay bằng tài khoản hiện tại.',
     'Community picks': 'Gợi ý cộng đồng',
@@ -777,6 +815,8 @@ class AppLocalizer {
         'Tìm phim, nhà cung cấp hoặc thể loại cảm hứng',
     'Search movies, providers, or categories':
         'Tìm phim, nhà cung cấp hoặc thể loại',
+    'Search videos, providers, or categories':
+        'Tìm video, nhà cung cấp hoặc thể loại',
     'Browse mode': 'Chế độ duyệt',
     'Quick filters': 'Bộ lọc nhanh',
     'All': 'Tất cả',
@@ -787,6 +827,7 @@ class AppLocalizer {
     'Categories': 'Danh mục',
     'All genres': 'Tất cả thể loại',
     'Featured movie': 'Phim nổi bật',
+    'Featured YouTube video': 'Video YouTube nổi bật',
     'Movie rows': 'Dãy phim',
     'Swipe through posters by category and open a title in one tap.':
         'Vuốt qua các poster theo từng thể loại và mở phim chỉ với một chạm.',
@@ -867,28 +908,46 @@ class AppLocalizer {
     'Open movie preview': 'Mở xem thử phim',
     'Preview available': 'Có bản xem thử',
     'No titles match this setup': 'Không có tựa phim nào khớp bộ lọc này',
+    'No videos match this setup': 'Không có video nào khớp bộ lọc này',
     'Clear the category or access filters to reopen the full movie shelves.':
         'Hãy xóa bộ lọc thể loại hoặc quyền truy cập để mở lại toàn bộ kệ phim.',
+    'Clear filters or refresh to sync the latest YouTube embeds.':
+        'Xóa bộ lọc hoặc làm mới để đồng bộ video YouTube nhúng mới nhất.',
     'Pull to refresh and sync the latest movie list from the live API.':
         'Kéo xuống để làm mới và đồng bộ danh sách phim mới nhất từ API.',
     'Reset filters': 'Đặt lại bộ lọc',
     'soon': 'sắp có',
     'Quality movie picks, refreshed daily.':
         'Kho phim chất lượng, cập nhật mỗi ngày.',
+    'Curated YouTube embeds, refreshed daily.':
+        'Video YouTube nhúng được chọn lọc, cập nhật mỗi ngày.',
     'Movie vault': 'Kho phim',
+    'Video library': 'Thư viện video',
     'Search across the movie vault and open a title right away.':
         'Tìm trong toàn bộ kho phim và mở xem ngay chỉ với một chạm.',
+    'Search YouTube embeds and open a video right away.':
+        'Tìm video YouTube nhúng và mở xem ngay.',
     'Trending now': 'Phim thịnh hành',
+    'Popular videos': 'Video phổ biến',
     'The most opened titles inside Nails Talk this week.':
         'Những tựa phim được mở xem nhiều nhất trên Nails Talk tuần này.',
+    'The most opened YouTube embeds inside Nails Talk this week.':
+        'Các video YouTube nhúng được mở nhiều nhất trong Nails Talk tuần này.',
     'Free tonight': 'Phim miễn phí tối nay',
+    'Free YouTube videos': 'Video YouTube miễn phí',
     'No plan needed for these picks.':
         'Không cần gói xem cho các lựa chọn này.',
+    'No plan or payment is needed.': 'Không cần gói hoặc thanh toán.',
     'Fresh releases': 'Mới cập nhật',
+    'Fresh embeds': 'Video nhúng mới',
     'New posters and fresh streams for the week.':
         'Poster mới và luồng phim mới cập nhật trong tuần.',
+    'New YouTube entries prepared for the week.':
+        'Các video YouTube mới được chuẩn bị trong tuần.',
     'Loading more movies...': 'Đang tải thêm phim...',
+    'Loading more videos...': 'Đang tải thêm video...',
     'Scroll down to load more movies.': 'Kéo xuống để tải thêm phim.',
+    'Scroll down to load more videos.': 'Kéo xuống để tải thêm video.',
     'Popular categories': 'Danh mục phổ biến',
     'Movie categories': 'Danh mục',
     'Every shelf available for browsing in one place.':
@@ -907,12 +966,15 @@ class AppLocalizer {
     'Share': 'Chia sẻ',
     'Your movie list will sync in the next demo update.':
         'Danh sách xem sau sẽ được đồng bộ ở bản demo kế tiếp.',
+    'Your video list will sync in the next update.':
+        'Danh sách video của bạn sẽ được đồng bộ ở bản cập nhật sau.',
     'Offline movie download will be connected in the next release.':
         'Tải phim offline sẽ được kết nối ở bản phát hành tiếp theo.',
     'Tap Watch now to open the stream player right inside this detail page.':
         'Bấm Xem ngay để mở trình phát ngay trong trang chi tiết này.',
     'Cast': 'Diễn viên',
     'Movie link copied.': 'Đã sao chép liên kết phim.',
+    'Video link copied.': 'Đã sao chép liên kết video.',
     'Post Housing': 'Đăng nhà ở',
     'Nail Jobs': 'Việc làm nail',
     'Salon owners are posting open positions here so members can quickly find the right team.':

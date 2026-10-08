@@ -210,14 +210,14 @@ class _MoviesScreenState extends State<MoviesScreen> {
               padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
               children: [
                 _TopScreenBar(
-                  title: 'Movies',
+                  title: 'Videos',
                   unreadCount: unreadCount,
                   onNotifications: _openChatCenter,
                   onRefresh: controller.loadingMovies ? null : _refreshMovies,
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  context.tr('Quality movie picks, refreshed daily.'),
+                  context.tr('Curated YouTube embeds, refreshed daily.'),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: kMetroMuted,
                     fontWeight: FontWeight.w700,
@@ -230,9 +230,9 @@ class _MoviesScreenState extends State<MoviesScreen> {
                     final query = _searchController.text.trim();
                     if (query.isEmpty) return;
                     _openBrowseScreen(
-                      title: 'Movie vault',
+                      title: 'Video library',
                       subtitle:
-                          'Search across the movie vault and open a title right away.',
+                          'Search YouTube embeds and open a video right away.',
                       library: library,
                       initialQuery: query,
                     );
@@ -248,10 +248,10 @@ class _MoviesScreenState extends State<MoviesScreen> {
                   const SizedBox(
                     height: 220,
                     child: MetroEmptyState(
-                      icon: Icons.movie_filter_outlined,
-                      title: 'No titles match this setup',
+                      icon: Icons.smart_display_outlined,
+                      title: 'No videos match this setup',
                       message:
-                          'Clear the category or access filters to reopen the full movie shelves.',
+                          'Clear filters or refresh to sync the latest YouTube embeds.',
                       borderColor: Color(0xFF6D7A94),
                     ),
                   )
@@ -285,13 +285,13 @@ class _MoviesScreenState extends State<MoviesScreen> {
                   if (readyMovies.isNotEmpty)
                     _MoviePosterStripSection(
                       title: 'Ready to watch',
-                      subtitle: 'Open now for this account.',
+                      subtitle: 'Open the embedded YouTube player.',
                       movies: readyMovies,
                       onOpen: _openMovie,
                       actionLabel: 'See all',
                       onAction: () => _openBrowseScreen(
                         title: 'Ready to watch',
-                        subtitle: 'Open now for this account.',
+                        subtitle: 'Open the embedded YouTube player.',
                         library: library,
                         accessFilter: _MovieAccessFilter.ready,
                       ),
@@ -299,16 +299,16 @@ class _MoviesScreenState extends State<MoviesScreen> {
                   if (readyMovies.isNotEmpty) const SizedBox(height: 18),
                   if (trendingMovies.isNotEmpty)
                     _MoviePosterStripSection(
-                      title: 'Trending now',
+                      title: 'Popular videos',
                       subtitle:
-                          'The most opened titles inside Nails Talk this week.',
+                          'The most opened YouTube embeds inside Nails Talk this week.',
                       movies: trendingMovies.take(8).toList(growable: false),
                       onOpen: _openMovie,
                       actionLabel: 'See all',
                       onAction: () => _openBrowseScreen(
-                        title: 'Trending now',
+                        title: 'Popular videos',
                         subtitle:
-                            'The most opened titles inside Nails Talk this week.',
+                            'The most opened YouTube embeds inside Nails Talk this week.',
                         library: library,
                         initialSort: _MovieBrowseSort.popular,
                       ),
@@ -316,14 +316,14 @@ class _MoviesScreenState extends State<MoviesScreen> {
                   if (trendingMovies.isNotEmpty) const SizedBox(height: 18),
                   if (freeMovies.isNotEmpty)
                     _MoviePosterStripSection(
-                      title: 'Free tonight',
-                      subtitle: 'No plan needed for these picks.',
+                      title: 'Free YouTube videos',
+                      subtitle: 'No plan or payment is needed.',
                       movies: freeMovies,
                       onOpen: _openMovie,
                       actionLabel: 'See all',
                       onAction: () => _openBrowseScreen(
-                        title: 'Free tonight',
-                        subtitle: 'No plan needed for these picks.',
+                        title: 'Free YouTube videos',
+                        subtitle: 'No plan or payment is needed.',
                         library: library,
                         accessFilter: _MovieAccessFilter.free,
                       ),
@@ -331,14 +331,14 @@ class _MoviesScreenState extends State<MoviesScreen> {
                   if (freeMovies.isNotEmpty) const SizedBox(height: 18),
                   if (newestMovies.isNotEmpty)
                     _MoviePosterStripSection(
-                      title: 'Fresh releases',
-                      subtitle: 'New posters and fresh streams for the week.',
+                      title: 'Fresh embeds',
+                      subtitle: 'New YouTube entries prepared for the week.',
                       movies: newestMovies.take(8).toList(growable: false),
                       onOpen: _openMovie,
                       actionLabel: 'See all',
                       onAction: () => _openBrowseScreen(
-                        title: 'Fresh releases',
-                        subtitle: 'New posters and fresh streams for the week.',
+                        title: 'Fresh embeds',
+                        subtitle: 'New YouTube entries prepared for the week.',
                         library: library,
                         initialSort: _MovieBrowseSort.newest,
                       ),
@@ -478,7 +478,7 @@ class _MovieSearchField extends StatelessWidget {
         onSubmitted: (_) => onSubmit(),
         textInputAction: TextInputAction.search,
         decoration: InputDecoration(
-          hintText: context.tr('Search movies, providers, or categories'),
+          hintText: context.tr('Search videos, providers, or categories'),
           prefixIcon: const Icon(Icons.search_rounded),
           suffixIcon: IconButton(
             onPressed: onSubmit,
@@ -582,7 +582,7 @@ class _MovieHeroSlide extends StatelessWidget {
           Row(
             children: [
               MetroBadge(
-                label: 'Featured movie',
+                label: 'Featured YouTube video',
                 backgroundColor: kMetroCoral,
                 foregroundColor: Colors.white,
                 outlined: false,
@@ -677,7 +677,7 @@ class _MovieHeroSlide extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                context.tr(unlocked ? 'Ready to watch' : 'Free preview'),
+                context.tr(unlocked ? 'Ready to watch' : 'Free YouTube'),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.white.withValues(alpha: 0.84),
                   fontWeight: FontWeight.w700,
@@ -1081,7 +1081,7 @@ class _MovieLoadMoreFooter extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Text(
-              context.tr('Loading more movies...'),
+              context.tr('Loading more videos...'),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: kMetroMuted,
                 fontWeight: FontWeight.w800,
@@ -1099,7 +1099,7 @@ class _MovieLoadMoreFooter extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 2, 0, 18),
       child: Text(
-        context.tr('Scroll down to load more movies.'),
+        context.tr('Scroll down to load more videos.'),
         textAlign: TextAlign.center,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           color: kMetroMuted,
