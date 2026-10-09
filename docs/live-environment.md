@@ -169,7 +169,7 @@ As of 2026-10-08, the Flutter app shows the Video section on iOS, but defaults t
 
 ## Admin feature toggles for App Review
 
-As of 2026-10-09, the live app can hide or show the Video and community card-game areas from the Laravel admin dashboard without rebuilding the mobile app.
+As of 2026-10-09, the code supports hiding or showing the Video and community card-game areas from the Laravel admin dashboard without rebuilding the mobile app. The live server must have the latest `admin-api/` code deployed and `php artisan migrate --force` run before the admin fields appear.
 
 - Admin location: `/admin/resources/chat-apps` → edit the `social-hub` / `Nails Talk` chat app.
 - `Enable Video tab` controls the mobile Video tab and the `/api/movies` API. When off, the app hides Video and the API returns no movie records / 404 for movie detail.
