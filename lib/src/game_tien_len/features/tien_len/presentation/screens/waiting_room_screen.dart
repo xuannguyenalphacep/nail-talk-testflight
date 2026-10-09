@@ -31,7 +31,8 @@ class WaitingRoomScreen extends StatefulWidget {
 
 class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
   static const int _autoStartDelaySeconds = 15;
-  static const int _neededOpponents = 3;
+  static const int _maxOpponents = 3;
+  static const int _minOpponentsToStart = 1;
   static const List<int> _joinMilestones = <int>[4, 8, 12];
 
   Timer? _autoStartTimer;
@@ -45,7 +46,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
   void initState() {
     super.initState();
     _joinedOpponents = widget.initialOpponentCount
-        .clamp(0, _neededOpponents)
+        .clamp(0, _maxOpponents)
         .toInt();
     _opponentJoinRemaining = _secondsUntilNextJoin(_autoStartRemaining);
     _status = _countdownStatus();
@@ -59,7 +60,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
   }
 
   int _secondsUntilNextJoin(int remainingSeconds) {
-    if (_joinedOpponents >= _neededOpponents) {
+    if (_joinedOpponents >= _maxOpponents) {
       return 0;
     }
     final int elapsedSeconds = _autoStartDelaySeconds - remainingSeconds;
@@ -70,7 +71,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
   int _matchedOpponentsForRemaining(int remainingSeconds) {
     final int elapsedSeconds = _autoStartDelaySeconds - remainingSeconds;
     int matchedOpponents = widget.initialOpponentCount
-        .clamp(0, _neededOpponents)
+        .clamp(0, _maxOpponents)
         .toInt();
     for (
       int index = matchedOpponents;
@@ -81,13 +82,16 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
         matchedOpponents = index + 1;
       }
     }
-    return matchedOpponents.clamp(0, _neededOpponents).toInt();
+    return matchedOpponents.clamp(0, _maxOpponents).toInt();
   }
 
   String _countdownStatus() {
-    final String prefix = _joinedOpponents >= _neededOpponents
-        ? 'Đủ người chơi'
-        : 'Đang ghép ${_joinedOpponents + 1}/4 người chơi';
+    final bool canStart = _joinedOpponents >= _minOpponentsToStart;
+    final String prefix = _joinedOpponents >= _maxOpponents
+        ? 'Đủ bàn 4/4'
+        : canStart
+        ? 'Đủ 2 người · Có thể bắt đầu'
+        : 'Đang ghép người chơi thứ 2';
     final String tableLabel = widget.entryLabel == null
         ? ''
         : '${widget.entryLabel} · ';
@@ -103,10 +107,12 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
       if (_autoStartRemaining <= 1) {
         timer.cancel();
         setState(() {
-          _joinedOpponents = _neededOpponents;
+          if (_joinedOpponents < _minOpponentsToStart) {
+            _joinedOpponents = _minOpponentsToStart;
+          }
           _opponentJoinRemaining = 0;
           _autoStartRemaining = 0;
-          _status = 'Đủ người chơi · Chủ phòng ${widget.hostName} đang start';
+          _status = 'Đủ 2 người · Chủ phòng ${widget.hostName} đang start';
         });
         _startGame(autoStart: true);
         return;
@@ -136,10 +142,9 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
   }
 
   void _startGame({bool autoStart = false}) {
-    if (_joinedOpponents < _neededOpponents) {
+    if (_joinedOpponents < _minOpponentsToStart) {
       setState(
-        () => _status =
-            'Chưa đủ người · Chủ phòng ${widget.hostName} sẽ start sau $_autoStartRemaining giây',
+        () => _status = 'Cần ít nhất 2 người · Đang ghép thêm người chơi',
       );
       return;
     }
@@ -237,7 +242,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                     child: GptButton(
                       assetPath: 'assets/game_tien_len/buttons/start_game.png',
                       semanticLabel: 'Bắt đầu chơi',
-                      onPressed: _joinedOpponents >= _neededOpponents
+                      onPressed: _joinedOpponents >= _minOpponentsToStart
                           ? () => _startGame()
                           : null,
                     ),
@@ -462,10 +467,10 @@ class _WaitingPanel extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     Icon(
-                      joinedOpponents >= 3
+                      joinedOpponents >= 1
                           ? Icons.play_circle_fill
                           : Icons.search,
-                      color: joinedOpponents >= 3
+                      color: joinedOpponents >= 1
                           ? GameTheme.mint
                           : GameTheme.gold,
                       size: 20,
@@ -514,7 +519,9 @@ class _CounterBadge extends StatelessWidget {
         child: Text(
           joinedOpponents >= 3
               ? '4/4 người chơi · Chủ phòng start sau ${autoStartRemaining}s'
-              : '${joinedOpponents + 1}/4 người chơi · Ghép thêm sau ${opponentJoinRemaining}s',
+              : joinedOpponents >= 1
+              ? '${joinedOpponents + 1}/4 người chơi · Có thể bắt đầu · Ghép thêm sau ${opponentJoinRemaining}s'
+              : '1/4 người chơi · Cần 2 người · Ghép sau ${opponentJoinRemaining}s',
           style: const TextStyle(
             color: GameTheme.ivory,
             fontSize: 13,
