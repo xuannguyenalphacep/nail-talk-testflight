@@ -700,67 +700,13 @@ class _MainPlayButtonState extends State<_MainPlayButton>
                     color: const Color(0xFFFF6E91),
                   ),
                 ),
-                Text(
-                  'Chơi ngay',
-                  style: TextStyle(
-                    fontFamily: 'Rowdies',
-                    fontSize: 46,
-                    height: 0.92,
-                    fontWeight: FontWeight.w900,
-                    foreground: Paint()
-                      ..shader = const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: <Color>[
-                          Color(0xFFFFFFFF),
-                          Color(0xFFFFF1B4),
-                          Color(0xFFFFA51F),
-                        ],
-                      ).createShader(const Rect.fromLTWH(0, 0, 340, 74)),
-                    shadows: const <Shadow>[
-                      Shadow(
-                        color: Color(0xFF713200),
-                        blurRadius: 0,
-                        offset: Offset(0, 4),
-                      ),
-                      Shadow(
-                        color: Color(0x99000000),
-                        blurRadius: 10,
-                        offset: Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                ),
-                Positioned(
-                  top: 6,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      gradient: const LinearGradient(
-                        colors: <Color>[Color(0xFF00E0C7), Color(0xFF0C8CC4)],
-                      ),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.78),
-                      ),
-                      boxShadow: const <BoxShadow>[
-                        BoxShadow(color: Color(0x5500EAD5), blurRadius: 16),
-                      ],
-                    ),
-                    child: const Text(
-                      'BOT THÔNG MINH',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontFamily: 'Baloo2',
-                        fontSize: 18,
-                        height: 1,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
+                const Positioned(
+                  top: 54,
+                  child: _CasinoButtonText(
+                    text: 'CHƠI NGAY',
+                    fontSize: 48,
+                    letterSpacing: 1.4,
+                    strokeWidth: 6.5,
                   ),
                 ),
               ],
@@ -923,37 +869,34 @@ class _SecondaryActionButtonState extends State<_SecondaryActionButton> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Text(
-                                widget.label,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontFamily: 'Rowdies',
-                                  fontSize: 30,
-                                  height: 1,
-                                  fontWeight: FontWeight.w900,
-                                  shadows: <Shadow>[
-                                    Shadow(
-                                      color: Color(0x99003239),
-                                      blurRadius: 5,
-                                      offset: Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
+                              _CasinoButtonText(
+                                text: widget.label.toUpperCase(),
+                                fontSize: 29,
+                                letterSpacing: 0.7,
+                                strokeWidth: 4.2,
+                                compact: true,
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                widget.subtitle,
+                                widget.subtitle.toUpperCase(),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.86),
+                                  color: const Color(
+                                    0xFFFFF2BE,
+                                  ).withValues(alpha: 0.96),
                                   fontFamily: 'Baloo2',
-                                  fontSize: 16,
+                                  fontSize: 17,
                                   height: 1,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.4,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.7,
+                                  shadows: const <Shadow>[
+                                    Shadow(
+                                      color: Color(0x99002D30),
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -968,6 +911,105 @@ class _SecondaryActionButtonState extends State<_SecondaryActionButton> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _CasinoButtonText extends StatelessWidget {
+  const _CasinoButtonText({
+    required this.text,
+    required this.fontSize,
+    required this.letterSpacing,
+    required this.strokeWidth,
+    this.compact = false,
+  });
+
+  final String text;
+  final double fontSize;
+  final double letterSpacing;
+  final double strokeWidth;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle baseStyle = TextStyle(
+      fontFamily: 'Baloo2',
+      fontSize: fontSize,
+      height: compact ? 0.9 : 0.84,
+      fontWeight: FontWeight.w900,
+      letterSpacing: letterSpacing,
+    );
+    final Rect shaderBounds = Rect.fromLTWH(
+      0,
+      0,
+      fontSize * text.length * 0.78,
+      fontSize * 1.28,
+    );
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.center,
+      children: <Widget>[
+        Transform.translate(
+          offset: Offset(0, compact ? 4 : 6),
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.visible,
+            style: baseStyle.copyWith(
+              foreground: Paint()
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = strokeWidth + 3
+                ..color = const Color(0x99000000),
+            ),
+          ),
+        ),
+        Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.visible,
+          style: baseStyle.copyWith(
+            foreground: Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = strokeWidth
+              ..color = const Color(0xFF7A3300),
+          ),
+        ),
+        Transform.translate(
+          offset: Offset(0, compact ? -1 : -2),
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.visible,
+            style: baseStyle.copyWith(
+              foreground: Paint()
+                ..shader = const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: <Color>[
+                    Color(0xFFFFFFFF),
+                    Color(0xFFFFF0A7),
+                    Color(0xFFFFB531),
+                    Color(0xFFE56A00),
+                  ],
+                  stops: <double>[0, 0.34, 0.7, 1],
+                ).createShader(shaderBounds),
+              shadows: const <Shadow>[
+                Shadow(
+                  color: Color(0xFFFFE37A),
+                  blurRadius: 8,
+                  offset: Offset(0, -1),
+                ),
+                Shadow(
+                  color: Color(0xAA000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 5),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
