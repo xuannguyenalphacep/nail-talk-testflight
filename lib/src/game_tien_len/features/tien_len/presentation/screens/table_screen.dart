@@ -32,8 +32,8 @@ class TableScreen extends StatefulWidget {
 class _TableScreenState extends State<TableScreen> {
   static const int _humanIndex = 0;
   static const int _playerCount = 4;
-  static const int _turnThinkingSeconds = 60;
-  static const int _newRoundDelaySeconds = 15;
+  static const int _turnThinkingSeconds = 15;
+  static const int _newRoundDelaySeconds = 8;
   static const List<String> _seatNames = <String>[
     'Tây Bích 88',
     'Minh Khang',
@@ -463,7 +463,7 @@ class _TableScreenState extends State<TableScreen> {
       }
       setState(() {
         _newRoundRemaining--;
-        _status = '$baseStatus · Ván mới sau $_newRoundRemaining giây';
+        _status = '$baseStatus · Tự chia ván mới sau $_newRoundRemaining giây';
       });
     });
   }
@@ -722,10 +722,11 @@ class _TableScreenState extends State<TableScreen> {
 
     _recordTurn('Kết quả: $summary');
     _human.coins = _playerCoins;
-    _status = whiteWinReason != null
+    final String resultStatus = whiteWinReason != null
         ? '${_displayName(_finishedOrder.first)} tới trắng: $whiteWinReason · $coinText'
         : 'Bạn xong bài · $rankText · $coinText';
-    _startNewRoundCountdown(_status);
+    _status = '$resultStatus · Tự chia ván mới sau $_newRoundDelaySeconds giây';
+    _startNewRoundCountdown(resultStatus);
   }
 
   void _newRound() {
@@ -886,6 +887,7 @@ class _TableScreenState extends State<TableScreen> {
                                   isHumanTurn: _isHumanTurn,
                                   roundEnded: _roundEnded,
                                   remainingSeconds: _turnRemaining,
+                                  newRoundRemainingSeconds: _newRoundRemaining,
                                   turnLogs: _turnLogs,
                                 ),
                               ),
@@ -1083,7 +1085,7 @@ class _TurnBanner extends StatelessWidget {
                     ),
                     child: Text(
                       roundEnded
-                          ? 'Ván mới ${remainingSeconds}s'
+                          ? 'Tự sang ván mới ${remainingSeconds}s'
                           : '${remainingSeconds}s',
                       style: TextStyle(
                         color: accent,
@@ -1276,6 +1278,7 @@ class _CenterBoard extends StatelessWidget {
     required this.isHumanTurn,
     required this.roundEnded,
     required this.remainingSeconds,
+    required this.newRoundRemainingSeconds,
     required this.turnLogs,
   });
 
@@ -1287,6 +1290,7 @@ class _CenterBoard extends StatelessWidget {
   final bool isHumanTurn;
   final bool roundEnded;
   final int remainingSeconds;
+  final int newRoundRemainingSeconds;
   final List<String> turnLogs;
 
   @override
@@ -1407,7 +1411,12 @@ class _CenterBoard extends StatelessWidget {
                 duration: const Duration(milliseconds: 260),
                 switchInCurve: Curves.easeOutCubic,
                 switchOutCurve: Curves.easeInCubic,
-                child: cards.isEmpty
+                child: roundEnded
+                    ? _RoundCountdownPanel(
+                        key: const ValueKey<String>('round-countdown'),
+                        remainingSeconds: newRoundRemainingSeconds,
+                      )
+                    : cards.isEmpty
                     ? const _EmptyBoard()
                     : _PlayedCardStack(
                         key: ValueKey<String>(
@@ -1515,6 +1524,111 @@ class _TurnNotice extends StatelessWidget {
   }
 }
 
+class _RoundCountdownPanel extends StatelessWidget {
+  const _RoundCountdownPanel({required this.remainingSeconds, super.key});
+
+  final int remainingSeconds;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[
+              Color(0xEE331B06),
+              Color(0xEE0E3F36),
+              Color(0xEE071F29),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: GameTheme.gold, width: 2),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color(0xAAE8B84D),
+              blurRadius: 34,
+              spreadRadius: 2,
+            ),
+            BoxShadow(color: Color(0xAA000000), blurRadius: 26),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 34, vertical: 22),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const Icon(
+                Icons.emoji_events,
+                color: GameTheme.gold,
+                size: 52,
+                shadows: <Shadow>[Shadow(color: Colors.black, blurRadius: 10)],
+              ),
+              const SizedBox(width: 18),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const Text(
+                    'TỰ CHIA VÁN MỚI',
+                    style: TextStyle(
+                      color: GameTheme.ivory,
+                      fontFamily: 'Bungee',
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.4,
+                      shadows: <Shadow>[
+                        Shadow(color: Colors.black, blurRadius: 10),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        '$remainingSeconds',
+                        style: const TextStyle(
+                          color: Color(0xFF52F7FF),
+                          fontFamily: 'Bungee',
+                          fontSize: 44,
+                          fontWeight: FontWeight.w900,
+                          shadows: <Shadow>[
+                            Shadow(color: Color(0xAA52F7FF), blurRadius: 18),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'giây',
+                        style: TextStyle(
+                          color: GameTheme.gold,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Không cần bấm gì, hệ thống tự bắt đầu ván kế tiếp.',
+                    style: TextStyle(
+                      color: Color(0xFFC8F8FF),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _TurnLogPanel extends StatelessWidget {
   const _TurnLogPanel({required this.logs});
 
@@ -1535,7 +1649,7 @@ class _TurnLogPanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             const Text(
-              'NHẬT KÝ LƯỢT',
+              'DIỄN BIẾN LƯỢT',
               style: TextStyle(
                 color: GameTheme.gold,
                 fontSize: 11,
