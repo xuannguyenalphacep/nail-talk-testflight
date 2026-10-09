@@ -29,6 +29,7 @@ dependencies:
   google_fonts: ^6.2.1
   video_player: ^2.11.1
   webview_flutter: ^4.14.1
+  audioplayers: ^6.1.0
 
 dev_dependencies:
   flutter_test:
@@ -43,6 +44,22 @@ flutter:
     - assets/branding/brand_logo.png
     - assets/branding/tien_len_banner_bg.png
     - assets/branding/vietnam_clinic_banner_bg.png
+    - assets/game_tien_len/backgrounds/
+    - assets/game_tien_len/branding/
+    - assets/game_tien_len/buttons/
+    - assets/game_tien_len/cards/
+    - assets/game_tien_len/audio/
+    - assets/game_tien_len/effects/
+  fonts:
+    - family: Rowdies
+      fonts:
+        - asset: assets/game_tien_len/fonts/Rowdies-Bold.ttf
+    - family: Bungee
+      fonts:
+        - asset: assets/game_tien_len/fonts/Bungee-Regular.ttf
+    - family: Baloo2
+      fonts:
+        - asset: assets/game_tien_len/fonts/Baloo2-VariableFont_wght.ttf
 
 flutter_launcher_icons:
   android: true

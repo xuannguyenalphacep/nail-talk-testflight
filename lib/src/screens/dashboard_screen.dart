@@ -18,6 +18,7 @@ import 'account_hub_screen.dart';
 import 'chat_home_screen.dart';
 import 'marketplace_detail_screen.dart';
 import 'movie_detail_screen.dart';
+import 'tien_len_game_screen.dart';
 import 'work_stay_detail_screen.dart';
 
 const Color _homeBgTop = Color(0xFFFFFCFA);
@@ -80,17 +81,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _showGameComingSoon() {
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text(
-          context.tr(
-            'The community game space is being polished for a future update.',
-          ),
-        ),
-      ),
-    );
+  Future<void> _openTienLenGame() {
+    return Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const TienLenGameScreen()));
   }
 
   Future<void> _contactSeller(MarketplaceItem item) async {
@@ -580,7 +574,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 10),
                 if (showCardGame) ...[
-                  _TienLenComingSoonBanner(onTap: _showGameComingSoon),
+                  _TienLenComingSoonBanner(onTap: _openTienLenGame),
                   const SizedBox(height: 14),
                 ],
                 _ServicesHomeBanner(onTap: widget.onOpenServices),
@@ -1523,7 +1517,7 @@ class _TienLenComingSoonBanner extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _CardChip(
-                        label: 'Entertainment preview',
+                        label: 'Play with bot',
                         backgroundColor: Colors.white,
                         foregroundColor: _homeText,
                         padding: const EdgeInsets.symmetric(
@@ -1549,7 +1543,7 @@ class _TienLenComingSoonBanner extends StatelessWidget {
                           ],
                         ),
                         child: Text(
-                          context.tr('Coming soon'),
+                          context.tr('Play now'),
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: Colors.white,
@@ -1563,7 +1557,7 @@ class _TienLenComingSoonBanner extends StatelessWidget {
                   SizedBox(
                     width: 214,
                     child: Text(
-                      context.tr('Community game preview'),
+                      context.tr('Tiến Lên Miền Nam'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.headlineSmall

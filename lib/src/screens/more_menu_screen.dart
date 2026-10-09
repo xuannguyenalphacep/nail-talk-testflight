@@ -7,6 +7,7 @@ import '../core/localization/app_localizer.dart';
 import '../widgets/app_logo.dart';
 import 'account_hub_screen.dart';
 import 'login_screen.dart';
+import 'tien_len_game_screen.dart';
 
 const Color _menuBgTop = Color(0xFFFFFCFA);
 const Color _menuBgBottom = Color(0xFFFFF3ED);
@@ -46,6 +47,12 @@ class MoreMenuScreen extends StatelessWidget {
     return Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
+  }
+
+  Future<void> _openTienLenGame(BuildContext context) {
+    return Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const TienLenGameScreen()));
   }
 
   void _showMessage(BuildContext context, String message) {
@@ -113,10 +120,7 @@ class MoreMenuScreen extends StatelessWidget {
           label: 'Game bài',
           icon: Icons.style_rounded,
           tint: const Color(0xFFF35F86),
-          onTap: () => _showMessage(
-            context,
-            'The community game space is being polished for a future update.',
-          ),
+          onTap: () => _openTienLenGame(context),
         ),
       _MenuEntry(
         label: 'Services',

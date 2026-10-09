@@ -617,6 +617,9 @@ class AppLocalizer {
     'Tìm thợ nhanh': 'Tìm thợ nhanh',
     'Xem nhà cho thuê': 'Xem nhà cho thuê',
     'Community game preview': 'Game cộng đồng',
+    'Play with bot': 'Chơi với bot',
+    'Play now': 'Chơi ngay',
+    'Tiến Lên Miền Nam': 'Tiến Lên Miền Nam',
     'Game cộng đồng': 'Game cộng đồng',
     'Bấm vào để xem trước tính năng giải trí sắp ra mắt.':
         'Bấm vào để xem trước tính năng giải trí sắp ra mắt.',
