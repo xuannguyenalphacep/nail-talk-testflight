@@ -34,6 +34,8 @@ class _TableScreenState extends State<TableScreen> {
   static const int _playerCount = 4;
   static const int _turnThinkingSeconds = 15;
   static const int _newRoundDelaySeconds = 8;
+  static const double _botFavoredDealRate = 0.60;
+  static const int _dealSearchAttempts = 80;
   static const List<String> _seatNames = <String>[
     'Tây Bích 88',
     'Minh Khang',
@@ -157,6 +159,30 @@ class _TableScreenState extends State<TableScreen> {
   }
 
   List<List<PlayingCardData>> _dealHands() {
+    final bool botFavored = _random.nextDouble() < _botFavoredDealRate;
+    List<List<PlayingCardData>>? bestHands;
+    int bestPenalty = 1 << 30;
+
+    for (int attempt = 0; attempt < _dealSearchAttempts; attempt++) {
+      final List<List<PlayingCardData>> hands = _shuffleDealHands();
+      final int penalty = _dealPenalty(hands, botFavored: botFavored);
+      if (penalty < bestPenalty) {
+        bestPenalty = penalty;
+        bestHands = hands;
+        if (penalty == 0) {
+          break;
+        }
+      }
+    }
+
+    final List<List<PlayingCardData>> hands = bestHands ?? _shuffleDealHands();
+    for (final List<PlayingCardData> hand in hands) {
+      hand.sort(PlayRules.compareCards);
+    }
+    return hands;
+  }
+
+  List<List<PlayingCardData>> _shuffleDealHands() {
     final List<PlayingCardData> deck = _buildDeck()..shuffle(_random);
     final List<List<PlayingCardData>> hands =
         List<List<PlayingCardData>>.generate(
@@ -170,10 +196,156 @@ class _TableScreenState extends State<TableScreen> {
       seat = (seat + 1) % _playerCount;
     }
 
-    for (final List<PlayingCardData> hand in hands) {
-      hand.sort(PlayRules.compareCards);
-    }
     return hands;
+  }
+
+  int _dealPenalty(
+    List<List<PlayingCardData>> hands, {
+    required bool botFavored,
+  }) {
+    final List<int> strengths = hands.map(_handStrength).toList();
+    final int bestIndex = _strongestPlayerIndex(strengths);
+    final int humanStrength = strengths[_humanIndex];
+    final int bestBotStrength = strengths
+        .asMap()
+        .entries
+        .where((MapEntry<int, int> entry) => entry.key != _humanIndex)
+        .map((MapEntry<int, int> entry) => entry.value)
+        .reduce(math.max);
+
+    int penalty = _humanHandShapePenalty(hands[_humanIndex]);
+
+    if (botFavored) {
+      if (bestIndex == _humanIndex) {
+        penalty += 2200;
+      }
+      final int botLead = bestBotStrength - humanStrength;
+      if (botLead < 18) {
+        penalty += (18 - botLead) * 16;
+      }
+      if (botLead > 115) {
+        penalty += (botLead - 115) * 10;
+      }
+    } else {
+      if (bestIndex != _humanIndex) {
+        penalty += 2200;
+      }
+      final int humanLead = humanStrength - bestBotStrength;
+      if (humanLead < 12) {
+        penalty += (12 - humanLead) * 18;
+      }
+      if (humanLead > 125) {
+        penalty += (humanLead - 125) * 8;
+      }
+    }
+
+    return penalty;
+  }
+
+  int _strongestPlayerIndex(List<int> strengths) {
+    int bestIndex = 0;
+    for (int index = 1; index < strengths.length; index++) {
+      if (strengths[index] > strengths[bestIndex]) {
+        bestIndex = index;
+      }
+    }
+    return bestIndex;
+  }
+
+  int _humanHandShapePenalty(List<PlayingCardData> hand) {
+    int penalty = 0;
+    final int lowCardCount = hand
+        .where((PlayingCardData card) => PlayRules.rankValue(card.rank) <= 2)
+        .length;
+    final int highCardCount = hand
+        .where((PlayingCardData card) => PlayRules.rankValue(card.rank) >= 8)
+        .length;
+    final Map<int, int> groups = _rankCounts(hand);
+    final int lowComboCards = groups.entries
+        .where((MapEntry<int, int> entry) => entry.key <= 2 && entry.value >= 2)
+        .fold<int>(0, (int total, MapEntry<int, int> entry) {
+          return total + entry.value;
+        });
+
+    if (lowCardCount > 6) {
+      penalty += (lowCardCount - 6) * 520;
+    }
+    if (highCardCount < 3) {
+      penalty += (3 - highCardCount) * 620;
+    }
+    if (lowComboCards > 5) {
+      penalty += (lowComboCards - 5) * 420;
+    }
+    return penalty;
+  }
+
+  int _handStrength(List<PlayingCardData> hand) {
+    int score = 0;
+    for (final PlayingCardData card in hand) {
+      final int rank = PlayRules.rankValue(card.rank);
+      score += rank * 12 + PlayRules.suitValue(card.suit);
+      if (rank == PlayRules.twoRank) {
+        score += 46;
+      } else if (rank >= 8) {
+        score += 18;
+      }
+    }
+
+    final Map<int, int> groups = _rankCounts(hand);
+    for (final MapEntry<int, int> entry in groups.entries) {
+      final int rank = entry.key;
+      final int count = entry.value;
+      if (count >= 2) {
+        score += 34 + rank * 4;
+      }
+      if (count >= 3) {
+        score += 62 + rank * 5;
+      }
+      if (count == 4) {
+        score += 170 + rank * 8;
+      }
+    }
+
+    score += _longestStraightLength(groups) * 18;
+    score += _consecutivePairLength(groups) * 28;
+    return score;
+  }
+
+  Map<int, int> _rankCounts(List<PlayingCardData> hand) {
+    final Map<int, int> groups = <int, int>{};
+    for (final PlayingCardData card in hand) {
+      final int rank = PlayRules.rankValue(card.rank);
+      groups[rank] = (groups[rank] ?? 0) + 1;
+    }
+    return groups;
+  }
+
+  int _longestStraightLength(Map<int, int> groups) {
+    int longest = 0;
+    int current = 0;
+    for (int rank = 0; rank < PlayRules.twoRank; rank++) {
+      if (groups.containsKey(rank)) {
+        current++;
+        longest = math.max(longest, current);
+      } else {
+        current = 0;
+      }
+    }
+    return longest >= 3 ? longest : 0;
+  }
+
+  int _consecutivePairLength(Map<int, int> groups) {
+    int longest = 0;
+    int current = 0;
+    for (int rank = 0; rank < PlayRules.twoRank; rank++) {
+      if ((groups[rank] ?? 0) >= 2) {
+        current++;
+        longest = math.max(longest, current);
+      } else {
+        current = 0;
+      }
+    }
+    return longest >= 3 ? longest : 0;
   }
 
   void _recordTurn(String message) {
