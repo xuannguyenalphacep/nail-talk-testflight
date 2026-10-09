@@ -182,6 +182,24 @@ class ChatApiService {
     );
   }
 
+  Future<({SessionUser user, int coins, int granted, String message})>
+  claimGameDailyCoin() async {
+    final response = await _dio.post('/game/wallet/daily-coin');
+    final payload = response.data as Map<String, dynamic>;
+    final wallet = Map<String, dynamic>.from(
+      payload['wallet'] as Map? ?? const <String, dynamic>{},
+    );
+    final user = _normalizeSessionUser(
+      SessionUser.fromJson(payload['user'] as Map<String, dynamic>),
+    );
+    return (
+      user: user,
+      coins: (wallet['coins'] as num?)?.toInt() ?? user.gameCoins,
+      granted: (payload['granted'] as num?)?.toInt() ?? 0,
+      message: (payload['message'] ?? '').toString(),
+    );
+  }
+
   Future<void> logout() async {
     await _dio.post('/mobile-chat/logout');
   }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../core/audio/game_audio.dart';
 import '../../../../core/theme/game_theme.dart';
@@ -9,7 +10,9 @@ import '../../../../core/widgets/card_view.dart';
 import '../../../../core/widgets/game_stage.dart';
 import '../../../../core/widgets/gpt_button.dart';
 import '../../../../core/widgets/profile_chip.dart';
+import '../../../../../services/chat_socket_service.dart';
 import '../../data/game_data.dart';
+import '../../data/realtime_game_models.dart';
 import '../../domain/bot_strategy.dart';
 import '../../domain/play_rules.dart';
 import 'lobby_screen.dart';
@@ -1157,6 +1160,487 @@ class _TablePlayer {
   final bool isComputerControlled;
   int coins;
   List<PlayingCardData> hand;
+}
+
+class RealtimeTableScreen extends StatefulWidget {
+  const RealtimeTableScreen({
+    required this.room,
+    required this.initialState,
+    super.key,
+  });
+
+  final DemoRoom room;
+  final TienLenRoomState initialState;
+
+  @override
+  State<RealtimeTableScreen> createState() => _RealtimeTableScreenState();
+}
+
+class _RealtimeTableScreenState extends State<RealtimeTableScreen> {
+  final Set<int> _selectedCards = <int>{};
+  StreamSubscription<TienLenRoomState>? _stateSubscription;
+  StreamSubscription<Map<String, dynamic>>? _eventSubscription;
+  Timer? _clockTimer;
+  late TienLenRoomState _state;
+  DateTime _now = DateTime.now();
+  String? _localStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _state = widget.initialState;
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _stateSubscription ??= context
+        .read<ChatSocketService>()
+        .tienLenRoomStateStream
+        .listen((TienLenRoomState state) {
+          if (!mounted || state.roomId != _state.roomId) return;
+          setState(() {
+            _state = state;
+            _selectedCards.clear();
+            _localStatus = null;
+          });
+        });
+    _eventSubscription ??= context
+        .read<ChatSocketService>()
+        .tienLenEventStream
+        .listen((Map<String, dynamic> event) {
+          if (!mounted || event['roomId']?.toString() != _state.roomId) {
+            return;
+          }
+          if (event['event'] == 'kicked') {
+            ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+              const SnackBar(content: Text('Bạn đã bị mời ra khỏi phòng.')),
+            );
+            Navigator.of(context).maybePop();
+          }
+        });
+  }
+
+  @override
+  void dispose() {
+    _stateSubscription?.cancel();
+    _eventSubscription?.cancel();
+    _clockTimer?.cancel();
+    super.dispose();
+  }
+
+  List<TienLenRealtimePlayer> get _seatedPlayers {
+    final viewerId = _state.viewerId;
+    final viewer = _state.viewerPlayer;
+    final others = _state.players
+        .where((player) => player.id != viewerId)
+        .toList(growable: false);
+    final seated = <TienLenRealtimePlayer>[];
+    if (viewer != null) seated.add(viewer);
+    seated.addAll(others);
+    return seated;
+  }
+
+  TienLenRealtimePlayer? _seatPlayer(int index) {
+    final players = _seatedPlayers;
+    if (index < 0 || index >= players.length) return null;
+    return players[index];
+  }
+
+  _TablePlayer? _tablePlayerAt(int index) {
+    final player = _seatPlayer(index);
+    if (player == null) return null;
+    return _TablePlayer(
+      name: player.name,
+      isComputerControlled: player.isBot,
+      coins: player.coins,
+      hand: List<PlayingCardData>.generate(
+        player.id == _state.viewerId ? player.hand.length : player.handCount,
+        (int cardIndex) => player.id == _state.viewerId
+            ? player.hand[cardIndex].playingCard
+            : const PlayingCardData('A', CardSuit.spades),
+      ),
+    );
+  }
+
+  _TablePlayer get _humanTablePlayer {
+    return _tablePlayerAt(0) ??
+        _TablePlayer(
+          name: 'Bạn',
+          isComputerControlled: false,
+          coins: 0,
+          hand: const <PlayingCardData>[],
+        );
+  }
+
+  bool _isActiveSeat(int index) {
+    final player = _seatPlayer(index);
+    return player != null && player.id == _state.currentTurnPlayerId;
+  }
+
+  bool _isFinishedSeat(int index) {
+    final player = _seatPlayer(index);
+    return player?.finished ?? false;
+  }
+
+  bool get _isHumanTurn => _state.isViewerTurn;
+
+  List<TienLenRealtimeCard> get _humanCards {
+    return _state.viewerPlayer?.hand ?? const <TienLenRealtimeCard>[];
+  }
+
+  String? _playerNameById(String playerId) {
+    if (playerId.isEmpty) return null;
+    for (final player in _state.players) {
+      if (player.id == playerId) return player.name;
+    }
+    return null;
+  }
+
+  PlayEvaluation? get _lastPlay {
+    final play = _state.lastPlay;
+    if (play == null) return null;
+    return PlayEvaluation(
+      type: _playTypeFromRealtime(play.type),
+      rankValue: play.rankValue,
+      suitValue: play.suitValue,
+      cards: play.cards.map((card) => card.playingCard).toList(),
+    );
+  }
+
+  PlayType _playTypeFromRealtime(String type) {
+    return switch (type) {
+      'pair' => PlayType.pair,
+      'triple' => PlayType.triple,
+      'straight' => PlayType.straight,
+      'threePairs' => PlayType.threePairs,
+      'fourPairs' => PlayType.fourPairs,
+      'fivePairs' => PlayType.fivePairs,
+      'bomb' => PlayType.bomb,
+      _ => PlayType.single,
+    };
+  }
+
+  String get _status {
+    if (_localStatus != null) return _localStatus!;
+    if (_state.isRoundEnded) {
+      return 'Ván đã kết thúc · chờ chủ phòng chia ván mới';
+    }
+    final current = _state.currentTurnPlayer;
+    if (_isHumanTurn) {
+      return _lastPlay == null
+          ? 'Đến lượt bạn · Mở vòng mới'
+          : 'Đến lượt bạn · Chọn bài để chặn';
+    }
+    return '${current?.name ?? 'Người chơi'} đang suy nghĩ đánh bài';
+  }
+
+  void _toggleCard(int index) {
+    if (!_isHumanTurn) {
+      setState(() => _localStatus = 'Chưa đến lượt bạn · Đợi người chơi khác');
+      return;
+    }
+    setState(() {
+      if (_selectedCards.contains(index)) {
+        _selectedCards.remove(index);
+      } else {
+        _selectedCards.add(index);
+      }
+      _localStatus = _selectedCards.isEmpty
+          ? null
+          : 'Đã chọn ${_selectedCards.length} lá · Bấm Đánh bài để gửi lượt';
+    });
+  }
+
+  Future<void> _sortCards() async {
+    try {
+      final state = await context.read<ChatSocketService>().sortTienLenHand();
+      setState(() {
+        _state = state;
+        _selectedCards.clear();
+        _localStatus = 'Đã sắp bài theo thứ tự tăng dần';
+      });
+    } catch (error) {
+      setState(
+        () => _localStatus = 'Không sắp bài được: ${_shortError(error)}',
+      );
+    }
+  }
+
+  Future<void> _playCards() async {
+    if (!_isHumanTurn || _selectedCards.isEmpty) return;
+    final indexes = _selectedCards.toList()..sort();
+    final cards = _humanCards;
+    final codes = <String>[
+      for (final index in indexes)
+        if (index >= 0 && index < cards.length) cards[index].code,
+    ];
+    try {
+      final state = await context.read<ChatSocketService>().playTienLenCards(
+        codes,
+      );
+      GameAudio.playCard();
+      setState(() {
+        _state = state;
+        _selectedCards.clear();
+        _localStatus = null;
+      });
+    } catch (error) {
+      setState(() => _localStatus = 'Không đánh được: ${_shortError(error)}');
+    }
+  }
+
+  Future<void> _passTurn() async {
+    if (!_isHumanTurn) return;
+    try {
+      final state = await context.read<ChatSocketService>().passTienLenTurn();
+      setState(() {
+        _state = state;
+        _selectedCards.clear();
+        _localStatus = null;
+      });
+    } catch (error) {
+      setState(
+        () => _localStatus = 'Không bỏ lượt được: ${_shortError(error)}',
+      );
+    }
+  }
+
+  String _shortError(Object error) {
+    final raw = error.toString().replaceFirst('Exception: ', '');
+    if (raw.contains('first-play-must-include-3-spades')) {
+      return 'lượt đầu phải có 3♠';
+    }
+    if (raw.contains('not-your-turn')) return 'chưa đến lượt bạn';
+    if (raw.contains('invalid-play')) return 'bộ bài chưa hợp lệ';
+    if (raw.contains('cannot-pass-opening-turn')) {
+      return 'đang mở lượt nên không thể bỏ';
+    }
+    return raw;
+  }
+
+  Future<void> _openMenu() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xF20A2C27),
+      barrierColor: Colors.black54,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (BuildContext sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(28, 22, 28, 24),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: SizedBox(
+                    height: 126,
+                    child: GptButton(
+                      assetPath:
+                          'assets/game_tien_len/buttons/back_lobby_v2.png',
+                      semanticLabel: 'Rời bàn',
+                      onPressed: () async {
+                        Navigator.of(sheetContext).pop();
+                        try {
+                          await context
+                              .read<ChatSocketService>()
+                              .leaveTienLenRoom();
+                        } catch (_) {}
+                        if (mounted) Navigator.of(context).pop();
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final human = _humanTablePlayer;
+    final lastPlay = _lastPlay;
+    final remaining = _state.remainingTurnSeconds(_now);
+    final visibleTableCards = _state.tableCards
+        .map((card) => card.playingCard)
+        .toList(growable: false);
+    final currentPlayerName = _state.currentTurnPlayer?.name ?? 'Người chơi';
+
+    return GameStage(
+      backgroundAsset: 'assets/game_tien_len/backgrounds/table_stage.png',
+      stageWidth: 1659,
+      stageHeight: 948,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(28, 22, 28, 26),
+        child: Column(
+          children: <Widget>[
+            SizedBox(
+              height: 62,
+              child: Row(
+                children: <Widget>[
+                  SizedBox(
+                    width: 60,
+                    height: 60,
+                    child: GptButton(
+                      assetPath: 'assets/game_tien_len/buttons/table_menu.png',
+                      semanticLabel: 'Mở menu bàn chơi',
+                      onPressed: _openMenu,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      '${widget.room.title} · ID ${_state.roomId} · '
+                      '${_state.playerCount}/${_state.maxPlayers} người · '
+                      'Ván ${_state.roundNumber}',
+                      style: const TextStyle(
+                        color: GameTheme.ivory,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        shadows: <Shadow>[
+                          Shadow(color: Colors.black, blurRadius: 8),
+                        ],
+                      ),
+                    ),
+                  ),
+                  ProfileChip(name: human.name, balance: human.coins),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Expanded(
+                    child: Column(
+                      children: <Widget>[
+                        SizedBox(
+                          height: 74,
+                          child: _TopOpponentSlot(
+                            player: _tablePlayerAt(2),
+                            active: _isActiveSeat(2),
+                            finished: _isFinishedSeat(2),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Expanded(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              SizedBox(
+                                width: 68,
+                                child: _SideOpponentSlot(
+                                  player: _tablePlayerAt(1),
+                                  active: _isActiveSeat(1),
+                                  finished: _isFinishedSeat(1),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _CenterBoard(
+                                  cards: visibleTableCards,
+                                  coveredCardCount:
+                                      _state.coveredTableCardCount,
+                                  currentPlay: lastPlay,
+                                  lastActorName: _playerNameById(
+                                    _state.lastActorId,
+                                  ),
+                                  currentPlayerName: currentPlayerName,
+                                  isHumanTurn: _isHumanTurn,
+                                  roundEnded: _state.isRoundEnded,
+                                  remainingSeconds: remaining,
+                                  newRoundRemainingSeconds: 0,
+                                  turnLogs: _state.turnLogs,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              SizedBox(
+                                width: 68,
+                                child: _SideOpponentSlot(
+                                  player: _tablePlayerAt(3),
+                                  active: _isActiveSeat(3),
+                                  finished: _isFinishedSeat(3),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 236,
+                          child: _PlayerHand(
+                            player: human,
+                            active: _isHumanTurn,
+                            cards: human.hand,
+                            onCardTap: _toggleCard,
+                            selected: _selectedCards,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  SizedBox(
+                    width: 128,
+                    child: Column(
+                      children: <Widget>[
+                        Expanded(
+                          child: GptButton(
+                            assetPath:
+                                'assets/game_tien_len/buttons/sort_cards.png',
+                            semanticLabel: 'Sắp bài',
+                            onPressed: _sortCards,
+                          ),
+                        ),
+                        Expanded(
+                          child: GptButton(
+                            assetPath:
+                                'assets/game_tien_len/buttons/play_card.png',
+                            semanticLabel: 'Đánh bài',
+                            onPressed: _isHumanTurn && _selectedCards.isNotEmpty
+                                ? _playCards
+                                : null,
+                          ),
+                        ),
+                        Expanded(
+                          child: GptButton(
+                            assetPath:
+                                'assets/game_tien_len/buttons/pass_turn.png',
+                            semanticLabel: 'Bỏ lượt',
+                            onPressed: _isHumanTurn && lastPlay != null
+                                ? _passTurn
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.center,
+              child: _TurnBanner(
+                message: _status,
+                highlighted: _isHumanTurn,
+                roundEnded: _state.isRoundEnded,
+                remainingSeconds: remaining,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _TurnBanner extends StatelessWidget {

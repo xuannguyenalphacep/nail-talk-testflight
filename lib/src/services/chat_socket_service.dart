@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
+import '../game_tien_len/features/tien_len/data/realtime_game_models.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/session_user.dart';
@@ -32,6 +33,10 @@ class ChatSocketService {
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<bool> _connectionController =
       StreamController<bool>.broadcast();
+  final StreamController<TienLenRoomState> _tienLenRoomStateController =
+      StreamController<TienLenRoomState>.broadcast();
+  final StreamController<Map<String, dynamic>> _tienLenEventController =
+      StreamController<Map<String, dynamic>>.broadcast();
 
   Stream<List<ChatRoom>> get roomsStream => _roomsController.stream;
   Stream<List<ChatRoom>> get hiddenRoomsStream => _hiddenRoomsController.stream;
@@ -47,6 +52,10 @@ class ChatSocketService {
   Stream<Map<String, dynamic>> get messageRecalledStream =>
       _messageRecalledController.stream;
   Stream<bool> get connectionStream => _connectionController.stream;
+  Stream<TienLenRoomState> get tienLenRoomStateStream =>
+      _tienLenRoomStateController.stream;
+  Stream<Map<String, dynamic>> get tienLenEventStream =>
+      _tienLenEventController.stream;
 
   bool get isConnected => _socket?.connected == true;
 
@@ -183,6 +192,8 @@ class ChatSocketService {
         }
       });
 
+    _registerTienLenListeners(_socket!);
+
     _socket!.connect();
 
     connectFallbackTimer = Timer(const Duration(seconds: 4), () {
@@ -206,6 +217,198 @@ class ChatSocketService {
     _socket?.dispose();
     _socket = null;
     _connectionController.add(false);
+  }
+
+  void _registerTienLenListeners(io.Socket socket) {
+    void addEvent(String event, dynamic payload) {
+      final data = payload is Map<String, dynamic>
+          ? payload
+          : payload is Map
+          ? Map<String, dynamic>.from(payload)
+          : <String, dynamic>{'payload': payload};
+      _tienLenEventController.add(<String, dynamic>{'event': event, ...data});
+    }
+
+    socket
+      ..on('tien-len:room-state', (payload) {
+        if (payload is Map<String, dynamic>) {
+          _tienLenRoomStateController.add(TienLenRoomState.fromJson(payload));
+        } else if (payload is Map) {
+          _tienLenRoomStateController.add(
+            TienLenRoomState.fromJson(Map<String, dynamic>.from(payload)),
+          );
+        }
+      })
+      ..on('tien-len:kicked', (payload) => addEvent('kicked', payload))
+      ..on(
+        'tien-len:player-kicked',
+        (payload) => addEvent('player-kicked', payload),
+      )
+      ..on('tien-len:player-joined', (payload) {
+        addEvent('player-joined', payload);
+      })
+      ..on('tien-len:player-left', (payload) {
+        addEvent('player-left', payload);
+      })
+      ..on('tien-len:round-started', (payload) {
+        addEvent('round-started', payload);
+      })
+      ..on('tien-len:played', (payload) => addEvent('played', payload))
+      ..on('tien-len:passed', (payload) => addEvent('passed', payload));
+  }
+
+  Future<List<TienLenRoomSummary>> listTienLenRooms() async {
+    final response = await _emitWithAck<Map<String, dynamic>>(
+      'tien-len:list-rooms',
+      <String, dynamic>{},
+    );
+    final rooms = (response['rooms'] as List<dynamic>? ?? const <dynamic>[])
+        .whereType<Map>()
+        .map(
+          (item) =>
+              TienLenRoomSummary.fromJson(Map<String, dynamic>.from(item)),
+        )
+        .toList();
+    return rooms;
+  }
+
+  Future<TienLenRoomState> createTienLenRoom({
+    required String roomId,
+    required String title,
+    required int baseBet,
+    required int userId,
+    required String name,
+    required int coins,
+    int maxPlayers = 3,
+  }) async {
+    final response = await _emitWithAck<Map<String, dynamic>>(
+      'tien-len:create-room',
+      <String, dynamic>{
+        'roomId': roomId,
+        'title': title,
+        'baseBet': baseBet,
+        'maxPlayers': maxPlayers,
+        'autoJoin': true,
+        'user_id': userId,
+        'name': name,
+        'coins': coins,
+      },
+    );
+    return TienLenRoomState.fromJson(
+      Map<String, dynamic>.from(response['room'] as Map),
+    );
+  }
+
+  Future<TienLenRoomState> joinTienLenRoom({
+    required String roomId,
+    required int userId,
+    required String name,
+    required int coins,
+    String? title,
+    int? baseBet,
+  }) async {
+    final payload = <String, dynamic>{
+      'roomId': roomId,
+      'maxPlayers': 3,
+      'user_id': userId,
+      'name': name,
+      'coins': coins,
+    };
+    if (title != null) payload['title'] = title;
+    if (baseBet != null) payload['baseBet'] = baseBet;
+
+    final response = await _emitWithAck<Map<String, dynamic>>(
+      'tien-len:join-room',
+      payload,
+    );
+    return TienLenRoomState.fromJson(
+      Map<String, dynamic>.from(response['room'] as Map),
+    );
+  }
+
+  Future<TienLenRoomState> addTienLenBot() async {
+    final response = await _emitWithAck<Map<String, dynamic>>(
+      'tien-len:add-bot',
+      <String, dynamic>{},
+    );
+    return TienLenRoomState.fromJson(
+      Map<String, dynamic>.from(response['room'] as Map),
+    );
+  }
+
+  Future<TienLenRoomState> kickTienLenPlayer(String playerId) async {
+    final response = await _emitWithAck<Map<String, dynamic>>(
+      'tien-len:kick-player',
+      <String, dynamic>{'playerId': playerId},
+    );
+    return TienLenRoomState.fromJson(
+      Map<String, dynamic>.from(response['room'] as Map),
+    );
+  }
+
+  Future<TienLenRoomState> readyTienLen({bool ready = true}) async {
+    final response = await _emitWithAck<Map<String, dynamic>>(
+      'tien-len:ready',
+      <String, dynamic>{'ready': ready},
+    );
+    return TienLenRoomState.fromJson(
+      Map<String, dynamic>.from(response['room'] as Map),
+    );
+  }
+
+  Future<TienLenRoomState> startTienLenRoom() async {
+    final response = await _emitWithAck<Map<String, dynamic>>(
+      'tien-len:start',
+      <String, dynamic>{'fillBots': false},
+    );
+    return TienLenRoomState.fromJson(
+      Map<String, dynamic>.from(response['room'] as Map),
+    );
+  }
+
+  Future<TienLenRoomState> sortTienLenHand() async {
+    await _emitWithAck<Map<String, dynamic>>(
+      'tien-len:sort-hand',
+      <String, dynamic>{},
+    );
+    return fetchTienLenState();
+  }
+
+  Future<TienLenRoomState> playTienLenCards(List<String> cardCodes) async {
+    final response = await _emitWithAck<Map<String, dynamic>>(
+      'tien-len:play-cards',
+      <String, dynamic>{'cards': cardCodes},
+    );
+    return TienLenRoomState.fromJson(
+      Map<String, dynamic>.from(response['room'] as Map),
+    );
+  }
+
+  Future<TienLenRoomState> passTienLenTurn() async {
+    final response = await _emitWithAck<Map<String, dynamic>>(
+      'tien-len:pass',
+      <String, dynamic>{},
+    );
+    return TienLenRoomState.fromJson(
+      Map<String, dynamic>.from(response['room'] as Map),
+    );
+  }
+
+  Future<TienLenRoomState> fetchTienLenState() async {
+    final response = await _emitWithAck<Map<String, dynamic>>(
+      'tien-len:state',
+      <String, dynamic>{},
+    );
+    return TienLenRoomState.fromJson(
+      Map<String, dynamic>.from(response['room'] as Map),
+    );
+  }
+
+  Future<void> leaveTienLenRoom() async {
+    await _emitWithAck<Map<String, dynamic>>(
+      'tien-len:leave-room',
+      <String, dynamic>{},
+    );
   }
 
   Future<List<ChatRoom>> fetchRooms() async {
@@ -357,5 +560,7 @@ class ChatSocketService {
     await _pinsUpdatedController.close();
     await _messageRecalledController.close();
     await _connectionController.close();
+    await _tienLenRoomStateController.close();
+    await _tienLenEventController.close();
   }
 }

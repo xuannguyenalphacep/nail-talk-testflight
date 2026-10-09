@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../../../../controllers/session_controller.dart';
 import '../../../../core/audio/game_audio.dart';
 import '../../../../core/widgets/card_view.dart';
 import '../../../../core/widgets/game_stage.dart';
@@ -35,6 +37,11 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionController>();
+    final playerName = session.user?.name.trim().isNotEmpty == true
+        ? session.user!.name
+        : 'Tây Bích 88';
+    final playerCoins = session.user?.gameCoins ?? 0;
     return GameStage(
       backgroundAsset: _stageBackground,
       stageWidth: 1672,
@@ -45,9 +52,9 @@ class HomeScreen extends StatelessWidget {
           children: <Widget>[
             const Positioned.fill(child: _PaintedCasinoBackdrop()),
             const Positioned.fill(child: _LobbySparkleOverlay()),
-            const Align(
+            Align(
               alignment: Alignment.topLeft,
-              child: ProfileChip(name: 'Tây Bích 88', balance: 12500),
+              child: ProfileChip(name: playerName, balance: playerCoins),
             ),
             const Align(alignment: Alignment.topRight, child: _RoomSignal()),
             Align(

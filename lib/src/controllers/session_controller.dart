@@ -321,6 +321,20 @@ class SessionController extends ChangeNotifier {
     }
   }
 
+  Future<int> claimGameDailyCoin() async {
+    if (_selectedApp == null || _token == null || _user == null) {
+      _error = AppLocalizer.current.tr('Please sign in to continue.');
+      notifyListeners();
+      throw Exception(_error);
+    }
+
+    final result = await _apiService.claimGameDailyCoin();
+    _user = result.user;
+    await _storageService.saveUser(result.user);
+    notifyListeners();
+    return result.granted;
+  }
+
   Future<({String message, String? demoCode, bool requiresEmailUpdate})>
   requestPasswordReset({required String login}) async {
     if (_selectedApp == null) {

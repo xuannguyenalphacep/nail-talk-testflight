@@ -9,6 +9,8 @@ class SessionUser {
     required this.bio,
     required this.companyId,
     required this.avatarUrl,
+    required this.gameCoins,
+    required this.gameCoinGrantedOn,
   });
 
   final int id;
@@ -20,6 +22,8 @@ class SessionUser {
   final String bio;
   final int? companyId;
   final String avatarUrl;
+  final int gameCoins;
+  final String gameCoinGrantedOn;
 
   factory SessionUser.fromJson(Map<String, dynamic> json) {
     return SessionUser(
@@ -32,6 +36,8 @@ class SessionUser {
       bio: (json['bio'] ?? '').toString(),
       companyId: (json['company_id'] as num?)?.toInt(),
       avatarUrl: (json['avatar_url'] ?? '').toString(),
+      gameCoins: (json['game_coins'] as num?)?.toInt() ?? 0,
+      gameCoinGrantedOn: (json['game_coin_granted_on'] ?? '').toString(),
     );
   }
 
@@ -43,6 +49,8 @@ class SessionUser {
     String? bio,
     int? companyId,
     String? avatarUrl,
+    int? gameCoins,
+    String? gameCoinGrantedOn,
   }) {
     return SessionUser(
       id: id,
@@ -54,6 +62,8 @@ class SessionUser {
       bio: bio ?? this.bio,
       companyId: companyId ?? this.companyId,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      gameCoins: gameCoins ?? this.gameCoins,
+      gameCoinGrantedOn: gameCoinGrantedOn ?? this.gameCoinGrantedOn,
     );
   }
 
@@ -68,6 +78,8 @@ class SessionUser {
       'bio': bio,
       'company_id': companyId,
       'avatar_url': avatarUrl,
+      'game_coins': gameCoins,
+      'game_coin_granted_on': gameCoinGrantedOn,
     };
   }
 }
