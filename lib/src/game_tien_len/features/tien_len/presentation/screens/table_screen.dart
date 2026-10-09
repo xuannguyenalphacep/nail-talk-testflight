@@ -1136,21 +1136,57 @@ class _TopOpponent extends StatelessWidget {
           height: 62,
           child: finished
               ? const _FinishedSeatPill()
-              : Row(
-                  children: List<Widget>.generate(
-                    player.hand.length.clamp(0, 13),
-                    (int index) => Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 1.5),
-                        child: CardBackView(key: ValueKey<int>(index)),
-                      ),
-                    ),
-                  ),
-                ),
+              : _TopCardBackFan(count: player.hand.length),
         ),
         const SizedBox(width: 12),
         _CoinPill(coins: player.coins),
       ],
+    );
+  }
+}
+
+class _TopCardBackFan extends StatelessWidget {
+  const _TopCardBackFan({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final int visibleCount = count.clamp(0, 13).toInt();
+    if (visibleCount == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final double cardHeight = constraints.maxHeight;
+        final double cardWidth = math.min(42, cardHeight / 1.45);
+        final double maxStep = visibleCount == 1
+            ? 0
+            : (constraints.maxWidth - cardWidth) / (visibleCount - 1);
+        final double step = visibleCount == 1
+            ? 0
+            : math.max(0, math.min(cardWidth * 0.48, maxStep));
+        final double totalWidth = cardWidth + (step * (visibleCount - 1));
+        final double startLeft = math.max(
+          0,
+          (constraints.maxWidth - totalWidth) / 2,
+        );
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: List<Widget>.generate(
+            visibleCount,
+            (int index) => Positioned(
+              left: startLeft + (index * step),
+              top: 0,
+              width: cardWidth,
+              height: cardHeight,
+              child: CardBackView(key: ValueKey<int>(index)),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -1847,21 +1883,59 @@ class _PlayerHand extends StatelessWidget {
         ),
         const SizedBox(height: 5),
         Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: cards
-                .asMap()
-                .entries
-                .map(
-                  (MapEntry<int, PlayingCardData> entry) => Expanded(
-                    child: PlayingCardView(
-                      card: entry.value,
-                      selected: selected.contains(entry.key),
-                      onTap: () => onCardTap(entry.key),
-                    ),
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              if (cards.isEmpty) {
+                return const SizedBox.shrink();
+              }
+
+              const double spacing = 4;
+              final double idealHeight = math.min(constraints.maxHeight, 210);
+              final double idealWidth = math.min(128, idealHeight / 1.45);
+              final double fittedWidth =
+                  (constraints.maxWidth - spacing * (cards.length - 1)) /
+                  cards.length;
+              final double cardWidth = math.max(
+                56,
+                math.min(idealWidth, fittedWidth),
+              );
+              final double cardHeight = math.min(
+                constraints.maxHeight,
+                cardWidth * 1.45,
+              );
+
+              return Align(
+                alignment: Alignment.bottomCenter,
+                child: SizedBox(
+                  height: cardHeight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: cards
+                        .asMap()
+                        .entries
+                        .map(
+                          (MapEntry<int, PlayingCardData> entry) => Padding(
+                            padding: EdgeInsets.only(
+                              right: entry.key == cards.length - 1
+                                  ? 0
+                                  : spacing,
+                            ),
+                            child: SizedBox(
+                              width: cardWidth,
+                              child: PlayingCardView(
+                                card: entry.value,
+                                selected: selected.contains(entry.key),
+                                onTap: () => onCardTap(entry.key),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
                   ),
-                )
-                .toList(),
+                ),
+              );
+            },
           ),
         ),
       ],
