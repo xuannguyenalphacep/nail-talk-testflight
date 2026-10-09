@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -11,78 +12,86 @@ import '../../data/game_data.dart';
 import 'table_screen.dart';
 
 class WaitingRoomScreen extends StatefulWidget {
-  const WaitingRoomScreen({required this.room, super.key});
+  const WaitingRoomScreen({
+    required this.room,
+    this.initialOpponentCount = 0,
+    this.hostName = 'Tây Bích 88',
+    this.entryLabel,
+    super.key,
+  });
 
   final DemoRoom room;
+  final int initialOpponentCount;
+  final String hostName;
+  final String? entryLabel;
 
   @override
   State<WaitingRoomScreen> createState() => _WaitingRoomScreenState();
 }
 
 class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
-  static const int _opponentJoinDelaySeconds = 5;
   static const int _autoStartDelaySeconds = 15;
   static const int _neededOpponents = 3;
+  static const List<int> _joinMilestones = <int>[4, 8, 12];
 
-  Timer? _opponentJoinTimer;
   Timer? _autoStartTimer;
   bool _isReady = false;
-  int _joinedOpponents = 0;
-  int _opponentJoinRemaining = _opponentJoinDelaySeconds;
+  late int _joinedOpponents;
+  int _opponentJoinRemaining = _joinMilestones.first;
   int _autoStartRemaining = _autoStartDelaySeconds;
-  String _status = 'Bạn đã vào bàn · Đang tìm đối thủ trong 5 giây';
+  late String _status;
 
   @override
   void initState() {
     super.initState();
-    _startOpponentJoinTimer();
+    _joinedOpponents = widget.initialOpponentCount
+        .clamp(0, _neededOpponents)
+        .toInt();
+    _opponentJoinRemaining = _secondsUntilNextJoin(_autoStartRemaining);
+    _status = _countdownStatus();
+    _startAutoStartTimer();
   }
 
   @override
   void dispose() {
-    _opponentJoinTimer?.cancel();
     _autoStartTimer?.cancel();
     super.dispose();
   }
 
-  void _startOpponentJoinTimer() {
-    _opponentJoinTimer?.cancel();
-    _opponentJoinTimer = Timer.periodic(const Duration(seconds: 1), (
-      Timer timer,
-    ) {
-      if (!mounted) {
-        return;
-      }
-      if (_opponentJoinRemaining <= 1) {
-        _addMatchedOpponent();
-        return;
-      }
-      setState(() {
-        _opponentJoinRemaining--;
-        _status = 'Đang tìm đối thủ · Ghép sau $_opponentJoinRemaining giây';
-      });
-    });
+  int _secondsUntilNextJoin(int remainingSeconds) {
+    if (_joinedOpponents >= _neededOpponents) {
+      return 0;
+    }
+    final int elapsedSeconds = _autoStartDelaySeconds - remainingSeconds;
+    final int nextMilestone = _joinMilestones[_joinedOpponents];
+    return math.max(1, nextMilestone - elapsedSeconds);
   }
 
-  void _addMatchedOpponent() {
-    if (_joinedOpponents >= _neededOpponents) {
-      return;
-    }
-    setState(() {
-      _joinedOpponents++;
-      if (_joinedOpponents >= _neededOpponents) {
-        _opponentJoinTimer?.cancel();
-        _autoStartRemaining = _autoStartDelaySeconds;
-        _status = 'Đủ người chơi · Tự start sau 15 giây';
-      } else {
-        _opponentJoinRemaining = _opponentJoinDelaySeconds;
-        _status =
-            'Đã có ${_joinedOpponents + 1}/4 người chơi · Ghép tiếp sau 5 giây';
+  int _matchedOpponentsForRemaining(int remainingSeconds) {
+    final int elapsedSeconds = _autoStartDelaySeconds - remainingSeconds;
+    int matchedOpponents = widget.initialOpponentCount
+        .clamp(0, _neededOpponents)
+        .toInt();
+    for (
+      int index = matchedOpponents;
+      index < _joinMilestones.length;
+      index++
+    ) {
+      if (elapsedSeconds >= _joinMilestones[index]) {
+        matchedOpponents = index + 1;
       }
-    });
-    if (_joinedOpponents >= _neededOpponents) {
-      _startAutoStartTimer();
     }
+    return matchedOpponents.clamp(0, _neededOpponents).toInt();
+  }
+
+  String _countdownStatus() {
+    final String prefix = _joinedOpponents >= _neededOpponents
+        ? 'Đủ người chơi'
+        : 'Đang ghép ${_joinedOpponents + 1}/4 người chơi';
+    final String tableLabel = widget.entryLabel == null
+        ? ''
+        : '${widget.entryLabel} · ';
+    return '$tableLabel$prefix · Chủ phòng ${widget.hostName} sẽ start sau $_autoStartRemaining giây';
   }
 
   void _startAutoStartTimer() {
@@ -93,12 +102,20 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
       }
       if (_autoStartRemaining <= 1) {
         timer.cancel();
+        setState(() {
+          _joinedOpponents = _neededOpponents;
+          _opponentJoinRemaining = 0;
+          _autoStartRemaining = 0;
+          _status = 'Đủ người chơi · Chủ phòng ${widget.hostName} đang start';
+        });
         _startGame(autoStart: true);
         return;
       }
       setState(() {
         _autoStartRemaining--;
-        _status = 'Đủ người chơi · Tự start sau $_autoStartRemaining giây';
+        _joinedOpponents = _matchedOpponentsForRemaining(_autoStartRemaining);
+        _opponentJoinRemaining = _secondsUntilNextJoin(_autoStartRemaining);
+        _status = _countdownStatus();
       });
     });
   }
@@ -107,12 +124,8 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     setState(() {
       _isReady = !_isReady;
       _status = _isReady
-          ? _joinedOpponents >= _neededOpponents
-                ? 'Bạn đã sẵn sàng · Có thể start ngay hoặc đợi countdown'
-                : 'Bạn đã sẵn sàng · Đang chờ người chơi vào bàn'
-          : _joinedOpponents >= _neededOpponents
-          ? 'Bạn chưa sẵn sàng · Countdown vẫn đang chạy'
-          : 'Bạn chưa sẵn sàng · Đang tìm đối thủ';
+          ? 'Bạn đã sẵn sàng · Chủ phòng ${widget.hostName} sẽ start sau $_autoStartRemaining giây'
+          : _countdownStatus();
     });
   }
 
@@ -125,11 +138,11 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
   void _startGame({bool autoStart = false}) {
     if (_joinedOpponents < _neededOpponents) {
       setState(
-        () => _status = 'Chưa đủ người · Ghép sau $_opponentJoinRemaining giây',
+        () => _status =
+            'Chưa đủ người · Chủ phòng ${widget.hostName} sẽ start sau $_autoStartRemaining giây',
       );
       return;
     }
-    _opponentJoinTimer?.cancel();
     _autoStartTimer?.cancel();
     GameAudio.enterRoom();
     Navigator.of(context).pushReplacement(
@@ -184,6 +197,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                 opponentJoinRemaining: _opponentJoinRemaining,
                 autoStartRemaining: _autoStartRemaining,
                 status: _status,
+                hostName: widget.hostName,
               ),
             ),
             const SizedBox(height: 14),
@@ -287,6 +301,7 @@ class _WaitingPanel extends StatelessWidget {
     required this.opponentJoinRemaining,
     required this.autoStartRemaining,
     required this.status,
+    required this.hostName,
   });
 
   final DemoRoom room;
@@ -295,6 +310,31 @@ class _WaitingPanel extends StatelessWidget {
   final int opponentJoinRemaining;
   final int autoStartRemaining;
   final String status;
+  final String hostName;
+
+  bool get _isHostedByUser => hostName == 'Tây Bích 88';
+
+  String _seatName(int seatNumber) {
+    if (_isHostedByUser) {
+      return switch (seatNumber) {
+        1 => 'Minh Khang',
+        2 => 'Lan Anh',
+        _ => 'Hoàng Nam',
+      };
+    }
+    return switch (seatNumber) {
+      1 => hostName,
+      2 => 'Minh Khang',
+      _ => 'Lan Anh',
+    };
+  }
+
+  String _seatDetail(int seatNumber) {
+    if (!_isHostedByUser && seatNumber == 1) {
+      return 'Chủ phòng · Sẵn sàng';
+    }
+    return 'Đã vào · Sẵn sàng';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -347,7 +387,11 @@ class _WaitingPanel extends StatelessWidget {
                   Expanded(
                     child: _SeatCard(
                       name: 'Tây Bích 88',
-                      detail: isReady ? 'Bạn · Đã sẵn sàng' : 'Bạn · Chủ bàn',
+                      detail: isReady
+                          ? 'Bạn · Đã sẵn sàng'
+                          : _isHostedByUser
+                          ? 'Bạn · Chủ bàn'
+                          : 'Bạn · Khách vào bàn',
                       icon: Icons.person,
                       isReady: isReady,
                       isPlayer: true,
@@ -357,10 +401,10 @@ class _WaitingPanel extends StatelessWidget {
                   Expanded(
                     child: _SeatCard(
                       name: joinedOpponents >= 1
-                          ? 'Minh Khang'
+                          ? _seatName(1)
                           : 'Đang tìm người',
                       detail: joinedOpponents >= 1
-                          ? 'Đã vào · Sẵn sàng'
+                          ? _seatDetail(1)
                           : 'Ghép sau ${opponentJoinRemaining}s',
                       icon: joinedOpponents >= 1
                           ? Icons.person
@@ -372,9 +416,9 @@ class _WaitingPanel extends StatelessWidget {
                   const SizedBox(width: 14),
                   Expanded(
                     child: _SeatCard(
-                      name: joinedOpponents >= 2 ? 'Lan Anh' : 'Chỗ trống',
+                      name: joinedOpponents >= 2 ? _seatName(2) : 'Chỗ trống',
                       detail: joinedOpponents >= 2
-                          ? 'Đã vào · Sẵn sàng'
+                          ? _seatDetail(2)
                           : 'Người chơi thực',
                       icon: joinedOpponents >= 2
                           ? Icons.person
@@ -386,9 +430,9 @@ class _WaitingPanel extends StatelessWidget {
                   const SizedBox(width: 14),
                   Expanded(
                     child: _SeatCard(
-                      name: joinedOpponents >= 3 ? 'Hoàng Nam' : 'Chỗ trống',
+                      name: joinedOpponents >= 3 ? _seatName(3) : 'Chỗ trống',
                       detail: joinedOpponents >= 3
-                          ? 'Đã vào · Sẵn sàng'
+                          ? _seatDetail(3)
                           : 'Người chơi thực',
                       icon: joinedOpponents >= 3
                           ? Icons.person
@@ -427,9 +471,13 @@ class _WaitingPanel extends StatelessWidget {
                       size: 20,
                     ),
                     const SizedBox(width: 9),
-                    Text(
-                      '$status · Cược ${room.stakeLabel}',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    Flexible(
+                      child: Text(
+                        '$status · Cược ${room.stakeLabel}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
                     ),
                   ],
                 ),
@@ -465,8 +513,8 @@ class _CounterBadge extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
         child: Text(
           joinedOpponents >= 3
-              ? '4/4 người chơi · Start sau ${autoStartRemaining}s'
-              : '${joinedOpponents + 1}/4 người chơi · Ghép sau ${opponentJoinRemaining}s',
+              ? '4/4 người chơi · Chủ phòng start sau ${autoStartRemaining}s'
+              : '${joinedOpponents + 1}/4 người chơi · Ghép thêm sau ${opponentJoinRemaining}s',
           style: const TextStyle(
             color: GameTheme.ivory,
             fontSize: 13,

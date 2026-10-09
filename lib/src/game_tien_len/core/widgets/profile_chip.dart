@@ -91,25 +91,27 @@ class ProfileChip extends StatelessWidget {
                   name,
                   style: const TextStyle(
                     color: GameTheme.ivory,
-                    fontSize: 16,
+                    fontSize: 14,
+                    height: 1,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 3),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     const Icon(
                       Icons.monetization_on,
                       color: GameTheme.gold,
-                      size: 18,
+                      size: 16,
                     ),
                     const SizedBox(width: 5),
                     Text(
                       balance.toString(),
                       style: const TextStyle(
                         color: Color(0xFFFFD978),
-                        fontSize: 13,
+                        fontSize: 12,
+                        height: 1,
                         fontWeight: FontWeight.w800,
                       ),
                     ),

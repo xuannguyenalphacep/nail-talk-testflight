@@ -8,7 +8,7 @@ import '../../../../core/widgets/profile_chip.dart';
 import '../../data/game_data.dart';
 import 'home_screen.dart';
 import 'lobby_screen.dart';
-import 'table_screen.dart';
+import 'waiting_room_screen.dart';
 
 class ActiveTablesScreen extends StatelessWidget {
   const ActiveTablesScreen({super.key});
@@ -53,7 +53,12 @@ class ActiveTablesScreen extends StatelessWidget {
     GameAudio.enterRoom();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => TableScreen(room: demoRooms[table.roomIndex]),
+        builder: (_) => WaitingRoomScreen(
+          room: demoRooms[table.roomIndex],
+          initialOpponentCount: table.currentPlayers.clamp(0, 3).toInt(),
+          hostName: table.host,
+          entryLabel: '${table.name} · ${table.state}',
+        ),
       ),
     );
   }
