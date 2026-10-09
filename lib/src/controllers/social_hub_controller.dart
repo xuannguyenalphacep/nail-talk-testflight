@@ -99,6 +99,7 @@ class SocialHubController extends ChangeNotifier {
   List<ClinicItem> get clinicItems => List.unmodifiable(_clinicItems);
   bool get _hasSelectedService => _sessionController.selectedApp != null;
   bool get _isLoggedIn => _sessionController.isLoggedIn;
+  bool get _videoFeatureEnabled => _sessionController.videoFeatureEnabled;
 
   List<MovieItem> _safeVideoItems(List<MovieItem> movies) {
     if (AppConstants.hostedMoviePlaybackEnabled) {
@@ -115,7 +116,7 @@ class SocialHubController extends ChangeNotifier {
     await Future.wait([
       ensureUsStatesLoaded(),
       refreshHome(),
-      if (!AppConstants.hideVideoForAppleReview) refreshMovies(),
+      if (_videoFeatureEnabled) refreshMovies(),
       refreshMarketplace(),
       refreshJobs(),
       refreshProperties(),
@@ -148,17 +149,8 @@ class SocialHubController extends ChangeNotifier {
 
   Future<void> refreshMovies({int? categoryId, String? search}) async {
     if (!_hasSelectedService) return;
-    if (AppConstants.hideVideoForAppleReview) {
-      _loadingMovies = false;
-      _loadingMoreMovies = false;
-      _movieCategories = const [];
-      _movies = const [];
-      _moviePlans = const [];
-      _activeSubscription = null;
-      _moviePage = 0;
-      _movieLastPage = 1;
-      _movieCategoryId = null;
-      _movieSearch = null;
+    if (!_videoFeatureEnabled) {
+      _clearMovieState();
       notifyListeners();
       return;
     }
@@ -205,7 +197,7 @@ class SocialHubController extends ChangeNotifier {
 
   Future<void> loadMoreMovies() async {
     if (!_hasSelectedService ||
-        AppConstants.hideVideoForAppleReview ||
+        !_videoFeatureEnabled ||
         _loadingMovies ||
         _loadingMoreMovies ||
         !hasMoreMovies) {
@@ -241,7 +233,7 @@ class SocialHubController extends ChangeNotifier {
   }
 
   Future<MovieItem> fetchMovieDetail(int movieId) async {
-    if (AppConstants.hideVideoForAppleReview) {
+    if (!_videoFeatureEnabled) {
       throw UnsupportedError('Movie content is unavailable in this build.');
     }
     final movie = await _apiService.fetchMovieDetail(movieId);
@@ -408,7 +400,7 @@ class SocialHubController extends ChangeNotifier {
   Future<void> subscribeToMoviePlan(int planId) async {
     _requireLogin();
 
-    if (AppConstants.hideVideoForAppleReview) {
+    if (!_videoFeatureEnabled) {
       _error = 'Movie content is unavailable in this build.';
       notifyListeners();
       return;
@@ -737,6 +729,9 @@ class SocialHubController extends ChangeNotifier {
 
   void _handleSessionChange() {
     _initializedForSession = false;
+    if (!_videoFeatureEnabled) {
+      _clearMovieState();
+    }
 
     if (_sessionController.isLoggedIn) {
       unawaited(initializeIfNeeded());
@@ -767,6 +762,19 @@ class SocialHubController extends ChangeNotifier {
       unawaited(initializeIfNeeded());
     }
     notifyListeners();
+  }
+
+  void _clearMovieState() {
+    _loadingMovies = false;
+    _loadingMoreMovies = false;
+    _movieCategories = const [];
+    _movies = const [];
+    _moviePlans = const [];
+    _activeSubscription = null;
+    _moviePage = 0;
+    _movieLastPage = 1;
+    _movieCategoryId = null;
+    _movieSearch = null;
   }
 
   @override

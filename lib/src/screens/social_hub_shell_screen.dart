@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../controllers/session_controller.dart';
 import '../controllers/social_hub_controller.dart';
-import '../core/constants/app_constants.dart';
 import '../core/localization/app_localizer.dart';
 import 'chat_home_screen.dart';
 import 'dashboard_screen.dart';
@@ -29,7 +28,8 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
   static const Color _navShadow = Color(0x140F172A);
 
   void _goToTab(int value) {
-    final nextIndex = AppConstants.hideVideoForAppleReview && value == 1
+    final nextIndex =
+        context.read<SessionController>().hideVideoFeature && value == 1
         ? 2
         : value;
     setState(() => _index = nextIndex.clamp(0, 4));
@@ -84,7 +84,7 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
 
     final type = bookmarks.first.savableType.toLowerCase();
     if (type.contains('movie')) {
-      _goToTab(AppConstants.hideVideoForAppleReview ? 2 : 1);
+      _goToTab(context.read<SessionController>().hideVideoFeature ? 2 : 1);
       return;
     }
     if (type.contains('job')) {
@@ -111,7 +111,14 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hideVideo = AppConstants.hideVideoForAppleReview;
+    final hideVideo = context.watch<SessionController>().hideVideoFeature;
+    if (hideVideo && _index == 1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _index == 1) {
+          setState(() => _index = 2);
+        }
+      });
+    }
     final screens = <Widget>[
       DashboardScreen(
         onNavigate: _goToTab,

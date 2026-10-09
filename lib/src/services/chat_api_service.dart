@@ -87,12 +87,14 @@ class ChatApiService {
     _appUrl = _inferAppUrl(baseUrl);
     _dio.options.baseUrl = _baseUrl!;
     _dio.options.headers.remove('Authorization');
+    _dio.options.headers.remove('X-Chat-App-Code');
   }
 
   void setContext({required ChatAppModel app, String? accessToken}) {
     _baseUrl = _normalizeBaseUrl(app.apiBaseUrl);
     _appUrl = app.appUrl;
     _dio.options.baseUrl = _baseUrl!;
+    _dio.options.headers['X-Chat-App-Code'] = app.code;
     if (accessToken != null && accessToken.isNotEmpty) {
       _dio.options.headers['Authorization'] = 'Bearer $accessToken';
     } else {
@@ -1076,6 +1078,8 @@ class ChatApiService {
             preserveCandidatePort: true,
           ) ??
           preferred.toString(),
+      videoEnabled: app.videoEnabled,
+      cardGameEnabled: app.cardGameEnabled,
     );
   }
 

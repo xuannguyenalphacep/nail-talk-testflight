@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../controllers/session_controller.dart';
-import '../core/constants/app_constants.dart';
 import '../core/localization/app_localizer.dart';
 import '../models/chat_app_model.dart';
 import '../widgets/app_logo.dart';
@@ -104,7 +103,7 @@ class _BrandPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hideVideo = AppConstants.hideVideoForAppleReview;
+    final hideVideo = context.watch<SessionController>().hideVideoFeature;
     if (compact) {
       return Container(
         width: double.infinity,

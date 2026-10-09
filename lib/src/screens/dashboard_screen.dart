@@ -60,9 +60,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _refreshFeed(SocialHubController social) {
+    final session = context.read<SessionController>();
     return Future.wait([
       social.refreshHome(),
-      if (!AppConstants.hideVideoForAppleReview) social.refreshMovies(),
+      if (session.videoFeatureEnabled) social.refreshMovies(),
       social.refreshMarketplace(),
       social.refreshJobs(),
       social.refreshProperties(),
@@ -313,7 +314,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    if (!AppConstants.hideVideoForAppleReview) {
+    if (context.read<SessionController>().videoFeatureEnabled) {
       for (final item in social.movies) {
         final score = _matchScore(query, [
           item.title,
@@ -379,7 +380,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final session = context.watch<SessionController>();
     final social = context.watch<SocialHubController>();
     final chat = context.watch<ChatController>();
-    final hideVideo = AppConstants.hideVideoForAppleReview;
+    final hideVideo = session.hideVideoFeature;
+    final showCardGame = session.cardGameFeatureEnabled;
     final summary = social.profile?.summary;
     final featuredMovie = !hideVideo && social.movies.isNotEmpty
         ? social.movies.first
@@ -577,8 +579,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                _TienLenComingSoonBanner(onTap: _showGameComingSoon),
-                const SizedBox(height: 14),
+                if (showCardGame) ...[
+                  _TienLenComingSoonBanner(onTap: _showGameComingSoon),
+                  const SizedBox(height: 14),
+                ],
                 _ServicesHomeBanner(onTap: widget.onOpenServices),
                 const SizedBox(height: 14),
                 GridView.builder(
@@ -791,7 +795,7 @@ class _DashboardSearchSuggestionPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hideVideo = AppConstants.hideVideoForAppleReview;
+    final hideVideo = context.watch<SessionController>().hideVideoFeature;
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 180),
       child: suggestions.isEmpty

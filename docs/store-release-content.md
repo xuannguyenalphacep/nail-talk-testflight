@@ -206,6 +206,7 @@ Use the final production privacy policy as the source of truth. Current function
 - Confirm new member registration works.
 - Confirm new member can see public chat rooms, join one, and send a message.
 - Confirm the iOS build shows Video as YouTube-embed-only content.
+- For Apple review, keep `Enable Video tab` and `Enable Game bài / card game` off in `/admin/resources/chat-apps`; after approval, enable them from admin if the production app should show them.
 - Confirm hosted/direct video playback stays disabled unless `HOSTED_MOVIE_PLAYBACK_ENABLED=true` is intentionally set.
 - Confirm services data only shows spa/beauty providers, not clinic/medical/healthcare providers.
 - Remove old movie/hosted-video screenshots and metadata from App Store Connect before resubmitting.

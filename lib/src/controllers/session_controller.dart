@@ -45,6 +45,14 @@ class SessionController extends ChangeNotifier {
   bool get hasChosenApp => _selectedApp != null;
   bool get isLoggedIn =>
       _selectedApp != null && _token != null && _user != null;
+  bool get videoFeatureEnabled {
+    if (AppConstants.forceShowAppleVideoFeature) return true;
+    if (AppConstants.hideVideoForAppleReview) return false;
+    return _selectedApp?.videoEnabled ?? false;
+  }
+
+  bool get hideVideoFeature => !videoFeatureEnabled;
+  bool get cardGameFeatureEnabled => _selectedApp?.cardGameEnabled ?? false;
   DeviceIdentity? get deviceIdentity => _deviceIdentity;
   String get notifyApiUrl => _selectedApp == null
       ? ''
@@ -85,7 +93,9 @@ class SessionController extends ChangeNotifier {
             syncedApp.appUrl != storedApp.appUrl ||
             syncedApp.uuid != storedApp.uuid ||
             syncedApp.name != storedApp.name ||
-            syncedApp.logoUrl != storedApp.logoUrl) {
+            syncedApp.logoUrl != storedApp.logoUrl ||
+            syncedApp.videoEnabled != storedApp.videoEnabled ||
+            syncedApp.cardGameEnabled != storedApp.cardGameEnabled) {
           await _storageService.saveSelectedApp(syncedApp);
         }
       } else if (_apps.isNotEmpty) {

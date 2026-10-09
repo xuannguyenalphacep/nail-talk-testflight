@@ -355,7 +355,7 @@ class _AuthHeroPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hideVideo = AppConstants.hideVideoForAppleReview;
+    final hideVideo = context.watch<SessionController>().hideVideoFeature;
     return Container(
       padding: const EdgeInsets.all(30),
       decoration: BoxDecoration(
@@ -680,7 +680,7 @@ class _LoginForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hideVideo = AppConstants.hideVideoForAppleReview;
+    final hideVideo = context.watch<SessionController>().hideVideoFeature;
     return Form(
       key: formKey,
       child: Column(
@@ -1409,7 +1409,7 @@ class _ServiceBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hideVideo = AppConstants.hideVideoForAppleReview;
+    final hideVideo = context.watch<SessionController>().hideVideoFeature;
     if (ready) {
       return Container(
         width: double.infinity,

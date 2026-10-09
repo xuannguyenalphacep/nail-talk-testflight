@@ -167,6 +167,16 @@ As of 2026-10-08, the Flutter app shows the Video section on iOS, but defaults t
 - Flutter filters video data to YouTube embeds unless hosted playback is intentionally enabled.
 - The Laravel API also filters `/api/movies` to published YouTube entries only while `HOSTED_MOVIE_PLAYBACK_ENABLED=false`.
 
+## Admin feature toggles for App Review
+
+As of 2026-10-09, the live app can hide or show the Video and community card-game areas from the Laravel admin dashboard without rebuilding the mobile app.
+
+- Admin location: `/admin/resources/chat-apps` → edit the `social-hub` / `Nails Talk` chat app.
+- `Enable Video tab` controls the mobile Video tab and the `/api/movies` API. When off, the app hides Video and the API returns no movie records / 404 for movie detail.
+- `Enable Game bài / card game` controls the community card-game preview/banner in the app.
+- Both toggles default to off for Apple review safety. After Apple approval, turn on only the features that should be visible in production.
+- Hosted/direct movie playback remains separately blocked unless `HOSTED_MOVIE_PLAYBACK_ENABLED=true` is intentionally set on the server.
+
 ## Smoke test result
 
 Checked from local machine on 2026-09-16:

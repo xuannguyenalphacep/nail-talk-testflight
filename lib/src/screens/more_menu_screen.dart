@@ -61,6 +61,8 @@ class MoreMenuScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final isLoggedIn = session.isLoggedIn;
+    final hideVideo = session.hideVideoFeature;
+    final showCardGame = session.cardGameFeatureEnabled;
     final rawUsername = session.user?.username.trim() ?? '';
     final userHandle = !isLoggedIn
         ? '@guest'
@@ -99,12 +101,22 @@ class MoreMenuScreen extends StatelessWidget {
         tint: const Color(0xFF6B9DFF),
         onTap: () => onNavigate(2),
       ),
-      if (!AppConstants.hideVideoForAppleReview)
+      if (!hideVideo)
         _MenuEntry(
           label: 'Videos',
           icon: Icons.smart_display_rounded,
           tint: const Color(0xFFF66BA6),
           onTap: () => onNavigate(1),
+        ),
+      if (showCardGame)
+        _MenuEntry(
+          label: 'Game bài',
+          icon: Icons.style_rounded,
+          tint: const Color(0xFFF35F86),
+          onTap: () => _showMessage(
+            context,
+            'The community game space is being polished for a future update.',
+          ),
         ),
       _MenuEntry(
         label: 'Services',

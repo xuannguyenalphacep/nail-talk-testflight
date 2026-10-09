@@ -1163,7 +1163,7 @@ class _GuestChatGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hideVideo = AppConstants.hideVideoForAppleReview;
+    final hideVideo = context.watch<SessionController>().hideVideoFeature;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(20),

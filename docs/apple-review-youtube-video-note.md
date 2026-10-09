@@ -2,6 +2,12 @@
 
 Use this note in App Store Connect Review Notes or as a reply to App Review when reopening the Video tab.
 
+If the admin `Enable Video tab` toggle is off for review, use the shorter clarification below instead:
+
+Hello App Review Team,
+
+This build keeps the Video tab and community card-game preview disabled through our server-side admin feature settings while the app is under review. The visible app experience includes community feed, marketplace, jobs/housing, spa/beauty service directory, account safety, reporting/blocking, and chat. No in-app purchases, subscriptions, paid video unlocks, external checkout, hosted/direct movie playback, gambling, real-money gaming, prizes, or betting flows are available in this review build.
+
 ## Suggested reply to Apple
 
 Hello App Review Team,

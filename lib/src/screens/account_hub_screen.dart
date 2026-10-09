@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 
 import '../controllers/session_controller.dart';
 import '../controllers/social_hub_controller.dart';
-import '../core/constants/app_constants.dart';
 import '../core/localization/app_localizer.dart';
 import '../models/session_user.dart';
 import '../widgets/metro_ui.dart';
@@ -319,7 +318,7 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
     }
   }
 
-  String _sectionSubtitle(BuildContext context) {
+  String _sectionSubtitle(BuildContext context, {required bool hideVideo}) {
     switch (_section) {
       case AccountHubSection.profile:
         return context.tr(
@@ -335,7 +334,7 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
         );
       case AccountHubSection.terms:
         return context.tr(
-          AppConstants.hideVideoForAppleReview
+          hideVideo
               ? 'Please use respectful language, truthful listings, and only post beauty services, housing, and items that fit the community. Objectionable content and abusive users are not tolerated.'
               : 'Please use respectful language, truthful listings, and only post services, housing, YouTube videos, and items that fit the community.',
         );
@@ -350,7 +349,7 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final user = session.user;
-    final hideVideo = AppConstants.hideVideoForAppleReview;
+    final hideVideo = session.hideVideoFeature;
     final bottomSpacing = MediaQuery.viewPaddingOf(context).bottom + 24;
 
     return Scaffold(
@@ -362,7 +361,7 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
             _AccountHeroCard(
               user: user,
               title: _sectionTitle(context),
-              subtitle: _sectionSubtitle(context),
+              subtitle: _sectionSubtitle(context, hideVideo: hideVideo),
             ),
             const SizedBox(height: 14),
             _AccountSectionPicker(
@@ -949,7 +948,7 @@ class _GuestAccountSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hideVideo = AppConstants.hideVideoForAppleReview;
+    final hideVideo = context.watch<SessionController>().hideVideoFeature;
     return MetroInsetPanel(
       borderColor: kMetroPrimary,
       child: Column(

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../controllers/session_controller.dart';
 import '../controllers/social_hub_controller.dart';
 import '../core/constants/app_constants.dart';
 import '../core/localization/app_localizer.dart';
@@ -49,7 +50,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
     _movie = widget.movie;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (AppConstants.hideVideoForAppleReview) return;
+      if (context.read<SessionController>().hideVideoFeature) return;
       _refreshMovieDetail();
     });
   }
@@ -263,7 +264,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (AppConstants.hideVideoForAppleReview) {
+    if (context.watch<SessionController>().hideVideoFeature) {
       return const SizedBox.shrink();
     }
     final social = context.watch<SocialHubController>();
