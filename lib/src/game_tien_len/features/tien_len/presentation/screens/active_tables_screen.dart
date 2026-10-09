@@ -69,6 +69,107 @@ class ActiveTablesScreen extends StatelessWidget {
     ).push(MaterialPageRoute<void>(builder: (_) => const LobbyScreen()));
   }
 
+  Future<void> _joinByRoomId(BuildContext context) async {
+    final TextEditingController controller = TextEditingController();
+    final String? roomId = await showDialog<String>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xF20A2C27),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+            side: BorderSide(color: GameTheme.gold.withValues(alpha: 0.65)),
+          ),
+          title: const Text(
+            'Nhập ID phòng',
+            style: TextStyle(
+              color: GameTheme.ivory,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            textCapitalization: TextCapitalization.characters,
+            style: const TextStyle(
+              color: GameTheme.ivory,
+              fontWeight: FontWeight.w800,
+            ),
+            decoration: InputDecoration(
+              hintText: 'VD: NT12345',
+              hintStyle: const TextStyle(color: Colors.white54),
+              filled: true,
+              fillColor: const Color(0xAA071B1B),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: GameTheme.mint.withValues(alpha: 0.45),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: GameTheme.mint.withValues(alpha: 0.45),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: GameTheme.gold, width: 1.4),
+              ),
+            ),
+            onSubmitted: (String value) {
+              Navigator.of(dialogContext).pop(value.trim());
+            },
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Hủy'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(controller.text.trim());
+              },
+              child: const Text('Vào phòng'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    if (!context.mounted) {
+      return;
+    }
+    if (roomId == null) {
+      return;
+    }
+    final String cleanRoomId = roomId.trim().toUpperCase();
+    if (cleanRoomId.length < 4) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('ID phòng chưa hợp lệ.')));
+      return;
+    }
+
+    final int roomSeed = cleanRoomId.codeUnits.fold<int>(
+      0,
+      (int total, int codeUnit) => total + codeUnit,
+    );
+    final DemoRoom room = demoRooms[roomSeed % demoRooms.length];
+    GameAudio.enterRoom();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => WaitingRoomScreen(
+          room: room,
+          initialOpponentCount: 1,
+          hostName: 'Chủ phòng $cleanRoomId',
+          entryLabel: 'ID $cleanRoomId',
+          roomId: cleanRoomId,
+        ),
+      ),
+    );
+  }
+
   void _backToHome(BuildContext context) {
     final NavigatorState navigator = Navigator.of(context);
     if (navigator.canPop()) {
@@ -217,6 +318,13 @@ class ActiveTablesScreen extends StatelessWidget {
                   const SizedBox(width: 20),
                   SizedBox(
                     width: 285,
+                    child: _JoinRoomIdButton(
+                      onPressed: () => _joinByRoomId(context),
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  SizedBox(
+                    width: 285,
                     child: GptButton(
                       assetPath:
                           'assets/game_tien_len/buttons/back_lobby_v2.png',
@@ -255,6 +363,62 @@ class ActiveDemoTable {
 
   bool get isFull => currentPlayers >= maxPlayers;
   String get playersLabel => '$currentPlayers/$maxPlayers người chơi';
+}
+
+class _JoinRoomIdButton extends StatelessWidget {
+  const _JoinRoomIdButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            Color(0xFFE9B44C),
+            Color(0xFFB96D18),
+            Color(0xFF6F2D0A),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFFFE3A1), width: 1.4),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(color: Color(0xAA000000), blurRadius: 14),
+          BoxShadow(color: Color(0x77F2C05A), blurRadius: 16),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: onPressed,
+          child: const Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(Icons.tag_rounded, color: Color(0xFF2D1304), size: 22),
+                SizedBox(width: 8),
+                Text(
+                  'Nhập ID phòng',
+                  style: TextStyle(
+                    color: Color(0xFF2D1304),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    shadows: <Shadow>[
+                      Shadow(color: Color(0x66FFFFFF), blurRadius: 4),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _ActiveTableRow extends StatelessWidget {

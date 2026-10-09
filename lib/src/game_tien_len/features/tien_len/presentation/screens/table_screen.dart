@@ -18,11 +18,13 @@ import 'result_screen.dart';
 class TableScreen extends StatefulWidget {
   const TableScreen({
     required this.room,
+    this.opponentNames = const <String>['Minh Khang'],
     this.initialBalance = 12500,
     super.key,
   });
 
   final DemoRoom room;
+  final List<String> opponentNames;
   final int initialBalance;
 
   @override
@@ -31,17 +33,10 @@ class TableScreen extends StatefulWidget {
 
 class _TableScreenState extends State<TableScreen> {
   static const int _humanIndex = 0;
-  static const int _playerCount = 4;
   static const int _turnThinkingSeconds = 15;
   static const int _newRoundDelaySeconds = 8;
   static const double _botFavoredDealRate = 0.60;
   static const int _dealSearchAttempts = 80;
-  static const List<String> _seatNames = <String>[
-    'Tây Bích 88',
-    'Minh Khang',
-    'Lan Anh',
-    'Hoàng Nam',
-  ];
 
   final Set<int> _selectedCards = <int>{};
   final math.Random _random = math.Random();
@@ -75,6 +70,39 @@ class _TableScreenState extends State<TableScreen> {
   PlayEvaluation? get _lastPlay =>
       _playHistory.isEmpty ? null : _playHistory.last;
   _TablePlayer get _human => _players[_humanIndex];
+  int get _playerCount =>
+      math.max(2, math.min(3, 1 + widget.opponentNames.length));
+  List<String> get _seatNames {
+    final List<String> names = <String>[
+      'Tây Bích 88',
+      ...widget.opponentNames.take(2),
+    ];
+    const List<String> fallbackBots = <String>['Minh Khang', 'Lan Anh'];
+    for (final String botName in fallbackBots) {
+      if (names.length >= _playerCount) {
+        break;
+      }
+      if (!names.contains(botName)) {
+        names.add(botName);
+      }
+    }
+    return names;
+  }
+
+  _TablePlayer? _playerAt(int index) {
+    if (index < 0 || index >= _players.length) {
+      return null;
+    }
+    return _players[index];
+  }
+
+  bool _isActiveSeat(int index) {
+    return index >= 0 && index < _players.length && _currentTurn == index;
+  }
+
+  bool _isFinishedSeat(int index) {
+    return index >= 0 && index < _players.length && _isFinished(index);
+  }
 
   int get _coveredTableCardCount =>
       _playHistory.length <= 1 ? 0 : (_playHistory.length - 1).clamp(0, 5);
@@ -104,10 +132,11 @@ class _TableScreenState extends State<TableScreen> {
     _newRoundRemaining = _newRoundDelaySeconds;
     final bool firstTableRound = _roundNumber == 1;
     final List<List<PlayingCardData>> hands = _dealHands();
+    final List<String> seatNames = _seatNames;
 
     _players = List<_TablePlayer>.generate(_playerCount, (int index) {
       return _TablePlayer(
-        name: _seatNames[index],
+        name: seatNames[index],
         isComputerControlled: index != _humanIndex,
         coins: index == _humanIndex ? _playerCoins : _opponentCoins[index - 1],
         hand: hands[index],
@@ -184,19 +213,35 @@ class _TableScreenState extends State<TableScreen> {
 
   List<List<PlayingCardData>> _shuffleDealHands() {
     final List<PlayingCardData> deck = _buildDeck()..shuffle(_random);
+    _keepOpeningCardInDeal(deck);
     final List<List<PlayingCardData>> hands =
         List<List<PlayingCardData>>.generate(
           _playerCount,
           (_) => <PlayingCardData>[],
         );
 
-    int seat = 0;
-    while (deck.isNotEmpty) {
-      hands[seat].add(deck.removeAt(0));
-      seat = (seat + 1) % _playerCount;
+    for (int round = 0; round < 13; round++) {
+      for (int seat = 0; seat < _playerCount; seat++) {
+        hands[seat].add(deck.removeAt(0));
+      }
     }
 
     return hands;
+  }
+
+  void _keepOpeningCardInDeal(List<PlayingCardData> deck) {
+    final int dealCardCount = _playerCount * 13;
+    final int threeSpadesIndex = deck.indexWhere(
+      (PlayingCardData card) =>
+          card.rank == '3' && card.suit == CardSuit.spades,
+    );
+    if (threeSpadesIndex == -1 || threeSpadesIndex < dealCardCount) {
+      return;
+    }
+    final int swapIndex = _random.nextInt(dealCardCount);
+    final PlayingCardData swappedCard = deck[swapIndex];
+    deck[swapIndex] = deck[threeSpadesIndex];
+    deck[threeSpadesIndex] = swappedCard;
   }
 
   int _dealPenalty(
@@ -979,10 +1024,10 @@ class _TableScreenState extends State<TableScreen> {
                       children: <Widget>[
                         SizedBox(
                           height: 74,
-                          child: _TopOpponent(
-                            player: _players[2],
-                            active: _currentTurn == 2,
-                            finished: _isFinished(2),
+                          child: _TopOpponentSlot(
+                            player: _playerAt(2),
+                            active: _isActiveSeat(2),
+                            finished: _isFinishedSeat(2),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -992,10 +1037,10 @@ class _TableScreenState extends State<TableScreen> {
                             children: <Widget>[
                               SizedBox(
                                 width: 68,
-                                child: _SideOpponent(
-                                  player: _players[1],
-                                  active: _currentTurn == 1,
-                                  finished: _isFinished(1),
+                                child: _SideOpponentSlot(
+                                  player: _playerAt(1),
+                                  active: _isActiveSeat(1),
+                                  finished: _isFinishedSeat(1),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -1019,10 +1064,10 @@ class _TableScreenState extends State<TableScreen> {
                               const SizedBox(width: 8),
                               SizedBox(
                                 width: 68,
-                                child: _SideOpponent(
-                                  player: _players[3],
-                                  active: _currentTurn == 3,
-                                  finished: _isFinished(3),
+                                child: _SideOpponentSlot(
+                                  player: _playerAt(3),
+                                  active: _isActiveSeat(3),
+                                  finished: _isFinishedSeat(3),
                                 ),
                               ),
                             ],
@@ -1230,28 +1275,32 @@ class _TurnBanner extends StatelessWidget {
   }
 }
 
-class _TopOpponent extends StatelessWidget {
-  const _TopOpponent({
+class _TopOpponentSlot extends StatelessWidget {
+  const _TopOpponentSlot({
     required this.player,
     required this.active,
     required this.finished,
   });
 
-  final _TablePlayer player;
+  final _TablePlayer? player;
   final bool active;
   final bool finished;
 
   @override
   Widget build(BuildContext context) {
+    final _TablePlayer? seatPlayer = player;
+    if (seatPlayer == null) {
+      return const _EmptyTopSeat();
+    }
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
         _SeatBadge(
           name: finished
-              ? '${player.name} · Xong bài'
+              ? '${seatPlayer.name} · Xong bài'
               : active
-              ? '${player.name} · Đang đánh'
-              : player.name,
+              ? '${seatPlayer.name} · Đang đánh'
+              : seatPlayer.name,
           compact: true,
           active: active,
         ),
@@ -1261,11 +1310,39 @@ class _TopOpponent extends StatelessWidget {
           height: 62,
           child: finished
               ? const _FinishedSeatPill()
-              : _TopCardBackFan(count: player.hand.length),
+              : _TopCardBackFan(count: seatPlayer.hand.length),
         ),
         const SizedBox(width: 12),
-        _CoinPill(coins: player.coins),
+        _CoinPill(coins: seatPlayer.coins),
       ],
+    );
+  }
+}
+
+class _EmptyTopSeat extends StatelessWidget {
+  const _EmptyTopSeat();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0x66071917),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+          child: Text(
+            'Chờ người thật',
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1316,19 +1393,23 @@ class _TopCardBackFan extends StatelessWidget {
   }
 }
 
-class _SideOpponent extends StatelessWidget {
-  const _SideOpponent({
+class _SideOpponentSlot extends StatelessWidget {
+  const _SideOpponentSlot({
     required this.player,
     required this.active,
     required this.finished,
   });
 
-  final _TablePlayer player;
+  final _TablePlayer? player;
   final bool active;
   final bool finished;
 
   @override
   Widget build(BuildContext context) {
+    final _TablePlayer? seatPlayer = player;
+    if (seatPlayer == null) {
+      return const _EmptySideSeat();
+    }
     final Color accent = finished
         ? GameTheme.gold
         : active
@@ -1347,7 +1428,7 @@ class _SideOpponent extends StatelessWidget {
           size: 24,
         ),
         Text(
-          player.name,
+          seatPlayer.name,
           textAlign: TextAlign.center,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
@@ -1358,7 +1439,7 @@ class _SideOpponent extends StatelessWidget {
           ),
         ),
         Text(
-          finished ? 'Xong bài' : '${player.hand.length} lá',
+          finished ? 'Xong bài' : '${seatPlayer.hand.length} lá',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: accent,
@@ -1383,7 +1464,7 @@ class _SideOpponent extends StatelessWidget {
                     children: <Widget>[
                       for (
                         int index = 0;
-                        index < math.min(player.hand.length, 5);
+                        index < math.min(seatPlayer.hand.length, 5);
                         index++
                       )
                         Positioned(
@@ -1396,6 +1477,52 @@ class _SideOpponent extends StatelessWidget {
                         ),
                     ],
                   ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EmptySideSeat extends StatelessWidget {
+  const _EmptySideSeat();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        const Icon(Icons.person_off, color: Colors.white30, size: 22),
+        const Text(
+          'Trống',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white38,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Expanded(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0x22000000),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: const Center(
+              child: RotatedBox(
+                quarterTurns: 3,
+                child: Text(
+                  'Không thêm bot',
+                  style: TextStyle(
+                    color: Colors.white30,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ],
