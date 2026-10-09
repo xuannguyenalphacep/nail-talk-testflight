@@ -54,7 +54,6 @@ class _TableScreenState extends State<TableScreen> {
   int _currentTurn = _humanIndex;
   int? _lastActor;
   int? _nextStarter;
-  bool _opponentAdvantagedThisRound = false;
   bool _roundEnded = false;
   bool _firstPlayPending = true;
   int _turnRemaining = _turnThinkingSeconds;
@@ -102,11 +101,7 @@ class _TableScreenState extends State<TableScreen> {
     _turnRemaining = _turnThinkingSeconds;
     _newRoundRemaining = _newRoundDelaySeconds;
     final bool firstTableRound = _roundNumber == 1;
-    _opponentAdvantagedThisRound = _random.nextDouble() < 0.60;
-    final List<List<PlayingCardData>> hands = _dealHands(
-      forceHumanThreeSpades: firstTableRound,
-      opponentAdvantage: _opponentAdvantagedThisRound,
-    );
+    final List<List<PlayingCardData>> hands = _dealHands();
 
     _players = List<_TablePlayer>.generate(_playerCount, (int index) {
       return _TablePlayer(
@@ -129,11 +124,9 @@ class _TableScreenState extends State<TableScreen> {
         : (_nextStarter ?? _findOpeningPlayer());
     _turnLogs = <String>[
       firstTableRound
-          ? 'Ván đầu: người có 3♠ mở lượt'
+          ? 'Ván đầu: ${_displayName(_currentTurn)} có 3♠ mở lượt'
           : '${_players[_currentTurn].name} thắng ván trước nên đi trước',
-      _opponentAdvantagedThisRound
-          ? 'Đối thủ đang có thế bài mạnh'
-          : 'Ván này đã chia bài cân bằng',
+      'Bài được xào ngẫu nhiên',
     ];
 
     if (!firstTableRound) {
@@ -149,7 +142,9 @@ class _TableScreenState extends State<TableScreen> {
     }
 
     _status = firstTableRound
-        ? 'Ván $_roundNumber · Bạn có 3♠, hãy mở lượt đúng luật'
+        ? _currentTurn == _humanIndex
+              ? 'Ván $_roundNumber · Bạn có 3♠, hãy mở lượt đúng luật'
+              : 'Ván $_roundNumber · ${_players[_currentTurn].name} có 3♠, đang mở lượt'
         : 'Ván $_roundNumber · ${_players[_currentTurn].name} đi trước';
   }
 
@@ -161,62 +156,20 @@ class _TableScreenState extends State<TableScreen> {
     ];
   }
 
-  List<List<PlayingCardData>> _dealHands({
-    required bool forceHumanThreeSpades,
-    required bool opponentAdvantage,
-  }) {
+  List<List<PlayingCardData>> _dealHands() {
     final List<PlayingCardData> deck = _buildDeck()..shuffle(_random);
     final List<List<PlayingCardData>> hands =
         List<List<PlayingCardData>>.generate(
           _playerCount,
           (_) => <PlayingCardData>[],
         );
-    if (forceHumanThreeSpades) {
-      final int threeSpadesIndex = deck.indexWhere(
-        (PlayingCardData card) =>
-            card.rank == '3' && card.suit == CardSuit.spades,
-      );
-      hands[_humanIndex].add(deck.removeAt(threeSpadesIndex));
+
+    int seat = 0;
+    while (deck.isNotEmpty) {
+      hands[seat].add(deck.removeAt(0));
+      seat = (seat + 1) % _playerCount;
     }
 
-    if (!opponentAdvantage) {
-      int seat = forceHumanThreeSpades ? 1 : 0;
-      while (deck.isNotEmpty &&
-          hands.any((List<PlayingCardData> hand) => hand.length < 13)) {
-        if (hands[seat].length < 13) {
-          hands[seat].add(deck.removeAt(0));
-        }
-        seat = (seat + 1) % _playerCount;
-      }
-      for (final List<PlayingCardData> hand in hands) {
-        hand.sort(PlayRules.compareCards);
-      }
-      return hands;
-    }
-
-    final List<PlayingCardData> sorted = List<PlayingCardData>.of(deck)
-      ..sort((PlayingCardData a, PlayingCardData b) {
-        return PlayRules.compareCards(b, a);
-      });
-
-    while (hands[1].length < 13 && sorted.isNotEmpty) {
-      final int pickWindow = math.min(18, sorted.length);
-      hands[1].add(sorted.removeAt(_random.nextInt(pickWindow)));
-    }
-    while (hands[_humanIndex].length < 13 && sorted.isNotEmpty) {
-      hands[_humanIndex].add(sorted.removeLast());
-    }
-    for (final int seat in <int>[2, 3]) {
-      while (hands[seat].length < 13 && sorted.isNotEmpty) {
-        hands[seat].add(sorted.removeAt(_random.nextInt(sorted.length)));
-      }
-    }
-
-    for (int seat = 0; seat < _playerCount && sorted.isNotEmpty; seat++) {
-      while (hands[seat].length < 13 && sorted.isNotEmpty) {
-        hands[seat].add(sorted.removeAt(0));
-      }
-    }
     for (final List<PlayingCardData> hand in hands) {
       hand.sort(PlayRules.compareCards);
     }
