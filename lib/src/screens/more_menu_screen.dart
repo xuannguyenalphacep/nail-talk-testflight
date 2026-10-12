@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../controllers/session_controller.dart';
 import '../core/constants/app_constants.dart';
@@ -32,6 +35,9 @@ class MoreMenuScreen extends StatelessWidget {
   final Future<void> Function() onOpenServices;
   final VoidCallback onOpenSaved;
 
+  static const _supportEmail = 'kietlamphim@gmail.com';
+  static const _shareUrl = 'https://vietnamfilmproduction.com/nail-talk';
+
   Future<void> _openAccountSection(
     BuildContext context,
     AccountHubSection section,
@@ -49,8 +55,15 @@ class MoreMenuScreen extends StatelessWidget {
     ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
   }
 
-  Future<void> _openTienLenGame(BuildContext context) {
-    return Navigator.of(
+  Future<void> _openTienLenGame(BuildContext context) async {
+    final session = context.read<SessionController>();
+    await session.refreshFeatureFlags();
+    if (!context.mounted) return;
+    if (!session.cardGameFeatureEnabled) {
+      _showMessage(context, 'Game bài hiện đang được quản trị viên tắt.');
+      return;
+    }
+    await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const TienLenGameScreen()));
   }
@@ -61,6 +74,48 @@ class MoreMenuScreen extends StatelessWidget {
         behavior: SnackBarBehavior.floating,
         content: Text(AppLocalizer.current.tr(message)),
       ),
+    );
+  }
+
+  Future<void> _openFeedback(BuildContext context) async {
+    final subject = Uri.encodeComponent('Góp ý Nails Talk');
+    final body = Uri.encodeComponent('Nội dung góp ý:\n\n');
+    final mailto = Uri(
+      scheme: 'mailto',
+      path: _supportEmail,
+      query: 'subject=$subject&body=$body',
+    );
+    try {
+      if (await launchUrl(mailto, mode: LaunchMode.externalApplication)) {
+        return;
+      }
+    } catch (_) {
+      // Keep the contact address available when no mail app is installed.
+    }
+    await Clipboard.setData(const ClipboardData(text: _supportEmail));
+    if (context.mounted) {
+      _showMessage(
+        context,
+        'Support email copied. Paste it into your email app.',
+      );
+    }
+  }
+
+  Future<void> _shareApp(BuildContext context) async {
+    await Clipboard.setData(const ClipboardData(text: _shareUrl));
+    if (context.mounted) {
+      _showMessage(context, 'Nails Talk app link copied.');
+    }
+  }
+
+  Future<void> _showAbout(BuildContext context) async {
+    final package = await PackageInfo.fromPlatform();
+    if (!context.mounted) return;
+    showAboutDialog(
+      context: context,
+      applicationName: AppConstants.appName,
+      applicationVersion: package.version,
+      applicationLegalese: context.tr(AppConstants.appTagline),
     );
   }
 
@@ -173,20 +228,10 @@ class MoreMenuScreen extends StatelessWidget {
 
     final suggestions = <_SuggestionEntry>[
       _SuggestionEntry(
-        label: 'Nails Talk Plus',
-        icon: Icons.auto_awesome_rounded,
-        color: const Color(0xFF9B7CF7),
-        onTap: () => _showMessage(
-          context,
-          'Nails Talk Plus community features will be prepared in a later update. This version does not charge in the app.',
-        ),
-      ),
-      _SuggestionEntry(
-        label: 'Ads',
-        icon: Icons.campaign_rounded,
+        label: 'Feedback',
+        icon: Icons.rate_review_outlined,
         color: const Color(0xFF6A6C91),
-        onTap: () =>
-            _showMessage(context, 'Ads can be managed from the admin console.'),
+        onTap: () => _openFeedback(context),
       ),
       _SuggestionEntry(
         label: 'Help center',
@@ -198,10 +243,19 @@ class MoreMenuScreen extends StatelessWidget {
         label: 'Share app',
         icon: Icons.share_rounded,
         color: const Color(0xFF6A6C91),
-        onTap: () => _showMessage(
-          context,
-          'App sharing will be connected in the next release.',
-        ),
+        onTap: () => _shareApp(context),
+      ),
+      _SuggestionEntry(
+        label: 'Privacy policy',
+        icon: Icons.privacy_tip_outlined,
+        color: const Color(0xFF6A6C91),
+        onTap: () => _openAccountSection(context, AccountHubSection.privacy),
+      ),
+      _SuggestionEntry(
+        label: 'About app',
+        icon: Icons.info_outline_rounded,
+        color: const Color(0xFF6A6C91),
+        onTap: () => _showAbout(context),
       ),
     ];
 
@@ -335,7 +389,12 @@ class MoreMenuScreen extends StatelessWidget {
                     mainAxisExtent: 84,
                   ),
                   itemBuilder: (context, index) {
-                    return _MenuTile(entry: exploreEntries[index]);
+                    return _MenuTile(
+                      key: ValueKey(
+                        'more-menu-feature-${exploreEntries[index].label}',
+                      ),
+                      entry: exploreEntries[index],
+                    );
                   },
                 ),
                 const SizedBox(height: 22),
@@ -397,7 +456,7 @@ class _SuggestionEntry {
 }
 
 class _MenuTile extends StatelessWidget {
-  const _MenuTile({required this.entry});
+  const _MenuTile({required this.entry, super.key});
 
   final _MenuEntry entry;
 
@@ -473,6 +532,7 @@ class _SuggestionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
+      key: ValueKey('more-menu-utility-${entry.label}'),
       onTap: entry.onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),

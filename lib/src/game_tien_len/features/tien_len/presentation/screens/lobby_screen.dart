@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../../../../controllers/session_controller.dart';
 import '../../../../core/audio/game_audio.dart';
 import '../../../../core/widgets/game_stage.dart';
 import '../../../../core/widgets/gpt_button.dart';
@@ -8,14 +10,24 @@ import '../../data/game_data.dart';
 import 'home_screen.dart';
 import 'waiting_room_screen.dart';
 
-class LobbyScreen extends StatelessWidget {
+class LobbyScreen extends StatefulWidget {
   const LobbyScreen({super.key});
 
-  void _openRoom(BuildContext context, DemoRoom room) {
+  @override
+  State<LobbyScreen> createState() => _LobbyScreenState();
+}
+
+class _LobbyScreenState extends State<LobbyScreen> {
+  bool _openingRoom = false;
+
+  Future<void> _openRoom(BuildContext context, DemoRoom room) async {
+    if (_openingRoom) return;
+    setState(() => _openingRoom = true);
     GameAudio.enterRoom();
-    Navigator.of(context).push(
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => WaitingRoomScreen(room: room)),
     );
+    if (mounted) setState(() => _openingRoom = false);
   }
 
   void _backToHome(BuildContext context) {
@@ -31,6 +43,11 @@ class LobbyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionController>();
+    final playerName = session.user?.name.trim().isNotEmpty == true
+        ? session.user!.name
+        : 'Người chơi';
+    final playerCoins = session.user?.gameCoins ?? 0;
     return GameStage(
       backgroundAsset: 'assets/game_tien_len/backgrounds/lobby_stage.png',
       stageWidth: 1672,
@@ -43,7 +60,7 @@ class LobbyScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const ProfileChip(name: 'Tây Bích 88', balance: 12500),
+                ProfileChip(name: playerName, balance: playerCoins),
                 SizedBox(
                   width: 355,
                   height: 110,
@@ -80,7 +97,9 @@ class LobbyScreen extends StatelessWidget {
                                 child: GptButton(
                                   assetPath: room.buttonAsset,
                                   semanticLabel: room.title,
-                                  onPressed: () => _openRoom(context, room),
+                                  onPressed: _openingRoom
+                                      ? null
+                                      : () => _openRoom(context, room),
                                 ),
                               ),
                             ],

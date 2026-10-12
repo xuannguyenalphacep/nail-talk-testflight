@@ -424,7 +424,7 @@ class _ClinicBookingScreenState extends State<ClinicBookingScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  _reviewSafeServiceText(context, widget.clinic.name),
+                  _localizedServiceText(context, widget.clinic.name),
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: kMetroMuted,
                     fontWeight: FontWeight.w800,
@@ -611,7 +611,7 @@ class _ClinicHeader extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: Text(
-            _reviewSafeServiceText(context, title),
+            _localizedServiceText(context, title),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: _clinicInk,
               fontWeight: FontWeight.w900,
@@ -683,8 +683,8 @@ class _ClinicHeroBanner extends StatelessWidget {
               children: [
                 _SoftChip(
                   label: service.shortLabel.trim().isEmpty
-                      ? _reviewSafeServiceText(context, service.name)
-                      : _reviewSafeServiceText(context, service.shortLabel),
+                      ? _localizedServiceText(context, service.name)
+                      : _localizedServiceText(context, service.shortLabel),
                   icon: _serviceIcon(service),
                   color: Colors.white,
                   foreground: _clinicInk,
@@ -693,7 +693,7 @@ class _ClinicHeroBanner extends StatelessWidget {
                 SizedBox(
                   width: 245,
                   child: Text(
-                    _reviewSafeServiceText(context, service.displayTitle),
+                    _localizedServiceText(context, service.displayTitle),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -708,7 +708,7 @@ class _ClinicHeroBanner extends StatelessWidget {
                 SizedBox(
                   width: 250,
                   child: Text(
-                    _reviewSafeServiceText(context, service.displaySummary),
+                    _localizedServiceText(context, service.displaySummary),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -847,7 +847,7 @@ class _ClinicCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          _reviewSafeServiceText(context, clinic.name),
+                          _localizedServiceText(context, clinic.name),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleMedium
@@ -876,7 +876,7 @@ class _ClinicCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 7),
                   Text(
-                    _reviewSafeServiceText(context, clinic.summary),
+                    _localizedServiceText(context, clinic.summary),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -894,7 +894,7 @@ class _ClinicCard extends StatelessWidget {
                           .take(3)
                           .map(
                             (item) => _TinyPill(
-                              label: _reviewSafeServiceText(context, item),
+                              label: _localizedServiceText(context, item),
                               background: _clinicSoft,
                               foreground: _clinicInk,
                             ),
@@ -973,7 +973,7 @@ class _ClinicDetailHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  _reviewSafeServiceText(context, clinic.name),
+                  _localizedServiceText(context, clinic.name),
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: _clinicInk,
                     fontSize: 25,
@@ -983,7 +983,7 @@ class _ClinicDetailHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  _reviewSafeServiceText(context, clinic.summary),
+                  _localizedServiceText(context, clinic.summary),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: kMetroMuted,
                     height: 1.35,
@@ -998,7 +998,7 @@ class _ClinicDetailHero extends StatelessWidget {
                     children: clinic.specialtyNames
                         .map(
                           (item) => _TinyPill(
-                            label: _reviewSafeServiceText(context, item),
+                            label: _localizedServiceText(context, item),
                             background: _clinicSoft,
                             foreground: _clinicInk,
                           ),
@@ -1388,7 +1388,7 @@ String _providerListTitle(BuildContext context, ServiceCategory service) {
 IconData _serviceIcon(ServiceCategory service) {
   return switch (service.icon.trim().toLowerCase()) {
     'spa' || 'beauty' => Icons.spa_rounded,
-    'clinic' || 'hospital' || 'health' => Icons.spa_rounded,
+    'clinic' || 'hospital' || 'health' => Icons.local_hospital_rounded,
     _ => Icons.room_service_rounded,
   };
 }
@@ -1400,29 +1400,5 @@ String _dateForApi(DateTime? date) {
   return '${date.year}-$month-$day';
 }
 
-String _reviewSafeServiceText(BuildContext context, String raw) {
-  final translated = context.tr(raw);
-  return translated
-      .replaceAll(
-        RegExp(r'\bclinics?\b', caseSensitive: false),
-        'service partners',
-      )
-      .replaceAll(
-        RegExp(r'\bhospitals?\b', caseSensitive: false),
-        'beauty partners',
-      )
-      .replaceAll(
-        RegExp(r'\bhealthcare\b', caseSensitive: false),
-        'beauty services',
-      )
-      .replaceAll(RegExp(r'\bmedical\b', caseSensitive: false), 'beauty')
-      .replaceAll(
-        RegExp(r'phòng khám', caseSensitive: false),
-        'đối tác dịch vụ',
-      )
-      .replaceAll(RegExp(r'bệnh viện', caseSensitive: false), 'đối tác làm đẹp')
-      .replaceAll(RegExp(r'y tế', caseSensitive: false), 'dịch vụ làm đẹp')
-      .replaceAll(RegExp(r'chuyên khoa', caseSensitive: false), 'dịch vụ')
-      .replaceAll(RegExp(r'xét nghiệm', caseSensitive: false), 'dịch vụ')
-      .replaceAll(RegExp(r'khám', caseSensitive: false), 'đặt lịch');
-}
+String _localizedServiceText(BuildContext context, String raw) =>
+    context.tr(raw);

@@ -25,6 +25,7 @@ class ChatController extends ChangeNotifier {
   }) : _sessionController = sessionController,
        _apiService = apiService,
        _socketService = socketService {
+    _observedSessionKey = _currentSessionKey();
     _sessionController.addListener(_onSessionChanged);
   }
 
@@ -65,6 +66,9 @@ class ChatController extends ChangeNotifier {
   int _messageScrollToken = 0;
   int _focusTargetToken = 0;
   int? _focusTargetMessageId;
+  int _roomLoadToken = 0;
+  bool _disposed = false;
+  late String _observedSessionKey;
 
   List<ChatRoom> get rooms => List.unmodifiable(_rooms);
   List<ChatRoom> get hiddenRooms => List.unmodifiable(_hiddenRooms);
@@ -141,6 +145,7 @@ class ChatController extends ChangeNotifier {
 
     final user = _sessionController.user!;
     final app = _sessionController.selectedApp!;
+    final sessionKey = _currentSessionKey();
 
     _connecting = true;
     _error = null;
@@ -158,7 +163,9 @@ class ChatController extends ChangeNotifier {
         socketUrl: app.socketUrl,
         user: user,
         notifyApiUrl: _sessionController.notifyApiUrl,
+        accessToken: _sessionController.token!,
       );
+      if (_disposed || sessionKey != _currentSessionKey()) return;
       _initializedForSession = true;
       _connected = true;
       _error = null;
@@ -166,6 +173,7 @@ class ChatController extends ChangeNotifier {
         refreshRooms(silent: true),
         refreshHiddenRooms(silent: true),
       ]);
+      if (_disposed || sessionKey != _currentSessionKey()) return;
       await _syncOfflineNotifications();
       if (kDebugMode) {
         debugPrint(
@@ -173,6 +181,7 @@ class ChatController extends ChangeNotifier {
         );
       }
     } catch (error) {
+      if (_disposed || sessionKey != _currentSessionKey()) return;
       if (kDebugMode) {
         debugPrint('[ChatController] connect failed: $error');
       }
@@ -192,7 +201,7 @@ class ChatController extends ChangeNotifier {
       _connected = false;
     } finally {
       _connecting = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 
@@ -208,7 +217,7 @@ class ChatController extends ChangeNotifier {
       ..add(_socketService.onlineUsersStream.listen(_replaceOnlineUsers))
       ..add(_socketService.readReceiptStream.listen(_handleReadReceipt))
       ..add(_socketService.reactionUpdatedStream.listen(_handleReactionUpdated))
-      ..add(_socketService.pinsUpdatedStream.listen(_replacePinnedMessages))
+      ..add(_socketService.pinsUpdatedStream.listen(_handlePinsUpdated))
       ..add(_socketService.messageRecalledStream.listen(_handleMessageRecalled))
       ..add(
         _socketService.connectionStream.listen((status) {
@@ -282,10 +291,14 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> openRoom(ChatRoom room) async {
+    final requestToken = ++_roomLoadToken;
+    final sessionToken = _sessionController.token;
     if (room.canJoin) {
       try {
         final joinedRoom = await _apiService.joinPublicGroup(room.id);
+        if (!_isCurrentRoomRequest(requestToken, sessionToken)) return;
         await refreshRooms(silent: true);
+        if (!_isCurrentRoomRequest(requestToken, sessionToken)) return;
         room =
             findRoomById(joinedRoom.id) ??
             joinedRoom.copyWith(isJoined: true, canJoin: false);
@@ -325,6 +338,10 @@ class ChatController extends ChangeNotifier {
       );
 
       final messagePage = await _apiService.fetchMessages(room.id);
+      if (!_isCurrentRoomRequest(requestToken, sessionToken) ||
+          _activeRoom?.id != room.id) {
+        return;
+      }
       if (kDebugMode) {
         debugPrint(
           '[ChatController] openRoom messages loaded room=${room.id} count=${messagePage.messages.length} page=${messagePage.currentPage}/${messagePage.lastPage}',
@@ -332,12 +349,16 @@ class ChatController extends ChangeNotifier {
       }
       _setMessagePage(messagePage);
       _cacheMessagesForRoom(room.id);
-      unawaited(loadPinnedMessages());
+      unawaited(loadPinnedMessages(expectedRoomId: room.id));
       _messageScrollToken++;
       unawaited(_apiService.markRoomReadAll(room.id));
       _markRoomUnread(room.id, 0);
       _error = null;
     } catch (_) {
+      if (!_isCurrentRoomRequest(requestToken, sessionToken) ||
+          _activeRoom?.id != room.id) {
+        return;
+      }
       if (kDebugMode) {
         debugPrint('[ChatController] openRoom failed room=${room.id}');
       }
@@ -345,9 +366,19 @@ class ChatController extends ChangeNotifier {
         _error = AppLocalizer.current.tr('Failed to load chat history.');
       }
     } finally {
-      _loadingMessages = false;
-      notifyListeners();
+      if (_isCurrentRoomRequest(requestToken, sessionToken) &&
+          _activeRoom?.id == room.id &&
+          !_disposed) {
+        _loadingMessages = false;
+        notifyListeners();
+      }
     }
+  }
+
+  bool _isCurrentRoomRequest(int requestToken, String? sessionToken) {
+    return !_disposed &&
+        requestToken == _roomLoadToken &&
+        sessionToken == _sessionController.token;
   }
 
   Future<void> _refreshActiveRoomMessagesSilently(int roomId) async {
@@ -450,7 +481,7 @@ class ChatController extends ChangeNotifier {
     _sending = true;
     notifyListeners();
     try {
-      final uploaded = await _apiService.uploadFile(file);
+      final uploaded = await _apiService.uploadChatFile(file);
       await _socketService.sendMessage({
         'room_id': room.id,
         'type': uploaded.type,
@@ -458,6 +489,7 @@ class ChatController extends ChangeNotifier {
             ? ChatContentUtils.encodeFileContent(uploaded.fileName)
             : uploaded.fileName,
         'file_path': uploaded.filePath,
+        'file_name': uploaded.storedFileName,
         'file_size': uploaded.fileSize,
         'reply_to_id': replyTo?.id,
       });
@@ -772,11 +804,18 @@ class ChatController extends ChangeNotifier {
     );
   }
 
-  Future<void> loadPinnedMessages() async {
+  Future<void> loadPinnedMessages({int? expectedRoomId}) async {
     final room = _activeRoom;
     if (room == null) return;
+    if (expectedRoomId != null && room.id != expectedRoomId) return;
+    final sessionToken = _sessionController.token;
     try {
       final pins = await _socketService.fetchPinnedMessages(room.id);
+      if (_activeRoom?.id != room.id ||
+          _sessionController.token != sessionToken ||
+          _disposed) {
+        return;
+      }
       _replacePinnedMessages(pins);
     } catch (_) {
       _error = AppLocalizer.current.tr('Failed to load pinned messages.');
@@ -892,6 +931,7 @@ class ChatController extends ChangeNotifier {
   }
 
   void clearActiveRoom() {
+    _roomLoadToken++;
     _activeRoom = null;
     _messages.clear();
     _pinnedMessages.clear();
@@ -905,6 +945,7 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> reset() async {
+    _roomLoadToken++;
     for (final subscription in _subscriptions) {
       await subscription.cancel();
     }
@@ -934,7 +975,7 @@ class ChatController extends ChangeNotifier {
     _realtimeFallbackTimer?.cancel();
     _realtimeFallbackTimer = null;
     await _socketService.disconnect();
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 
   ChatRoom? findRoomById(int roomId) {
@@ -949,8 +990,14 @@ class ChatController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
+    _roomLoadToken++;
     _sessionController.removeListener(_onSessionChanged);
-    unawaited(reset());
+    _realtimeFallbackTimer?.cancel();
+    for (final subscription in _subscriptions) {
+      unawaited(subscription.cancel());
+    }
+    _subscriptions.clear();
     super.dispose();
   }
 
@@ -1132,6 +1179,16 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _handlePinsUpdated(ChatPinsUpdate update) {
+    final room = _activeRoom;
+    if (room == null ||
+        (update.roomId != null && update.roomId != room.id) ||
+        _disposed) {
+      return;
+    }
+    _replacePinnedMessages(update.pins);
+  }
+
   void _handleMessageRecalled(Map<String, dynamic> payload) {
     final messageId = (payload['message_id'] as num?)?.toInt();
     if (messageId == null) return;
@@ -1246,6 +1303,20 @@ class ChatController extends ChangeNotifier {
   Future<void> syncOfflineNotifications() => _syncOfflineNotifications();
 
   Future<void> _onSessionChanged() async {
+    if (_disposed) return;
+    final nextSessionKey = _currentSessionKey();
+    if (nextSessionKey != _observedSessionKey) {
+      _observedSessionKey = nextSessionKey;
+      await reset();
+      if (_sessionController.isLoggedIn && !_disposed) {
+        await connectIfNeeded();
+        if (!_initializedForSession && !_disposed) {
+          await Future<void>.delayed(Duration.zero);
+          await connectIfNeeded();
+        }
+      }
+      return;
+    }
     if (_sessionController.isLoggedIn) {
       await connectIfNeeded();
     } else if (_initializedForSession ||
@@ -1253,6 +1324,12 @@ class ChatController extends ChangeNotifier {
         _messages.isNotEmpty) {
       await reset();
     }
+  }
+
+  String _currentSessionKey() {
+    final app = _sessionController.selectedApp;
+    return '${app?.uuid}|${app?.code}|${_sessionController.user?.id}|'
+        '${_sessionController.token}';
   }
 
   Future<List<ChatRoom>> _fetchRoomsViaApi() async {

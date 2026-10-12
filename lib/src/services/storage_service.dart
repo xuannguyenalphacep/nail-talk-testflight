@@ -35,18 +35,31 @@ class StorageService {
   }
 
   Future<void> saveUser(SessionUser user) async {
+    await _secureStorage.write(key: _keyUser, value: jsonEncode(user.toJson()));
+    // Remove the legacy plaintext copy after a successful secure write.
     final prefs = await _prefs;
-    await prefs.setString(_keyUser, jsonEncode(user.toJson()));
+    await prefs.remove(_keyUser);
   }
 
   Future<SessionUser?> loadUser() async {
+    final secureRaw = await _secureStorage.read(key: _keyUser);
+    if (secureRaw != null && secureRaw.isNotEmpty) {
+      return SessionUser.fromJson(
+        jsonDecode(secureRaw) as Map<String, dynamic>,
+      );
+    }
+
+    // One-time migration for installs that stored the profile in preferences.
     final prefs = await _prefs;
     final raw = prefs.getString(_keyUser);
     if (raw == null || raw.isEmpty) return null;
-    return SessionUser.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    final user = SessionUser.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    await saveUser(user);
+    return user;
   }
 
   Future<void> clearUser() async {
+    await _secureStorage.delete(key: _keyUser);
     final prefs = await _prefs;
     await prefs.remove(_keyUser);
   }
@@ -64,13 +77,20 @@ class StorageService {
   }
 
   Future<void> saveDeviceUuid(String uuid) async {
+    await _secureStorage.write(key: _keyDeviceUuid, value: uuid);
     final prefs = await _prefs;
-    await prefs.setString(_keyDeviceUuid, uuid);
+    await prefs.remove(_keyDeviceUuid);
   }
 
   Future<String?> loadDeviceUuid() async {
+    final secureUuid = await _secureStorage.read(key: _keyDeviceUuid);
+    if (secureUuid != null && secureUuid.isNotEmpty) return secureUuid;
+
     final prefs = await _prefs;
-    return prefs.getString(_keyDeviceUuid);
+    final legacyUuid = prefs.getString(_keyDeviceUuid);
+    if (legacyUuid == null || legacyUuid.isEmpty) return null;
+    await saveDeviceUuid(legacyUuid);
+    return legacyUuid;
   }
 
   Future<void> saveLanguageCode(String code) async {

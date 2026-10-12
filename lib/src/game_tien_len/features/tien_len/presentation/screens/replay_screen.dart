@@ -177,12 +177,12 @@ class _ReplayTimeline extends StatelessWidget {
                   ),
                   _ReplayEvent(
                     time: '00:31',
-                    player: 'Máy Trẻ',
+                    player: 'Minh Khang',
                     move: 'Đánh 6♠ 7♥ 8♣',
                   ),
                   _ReplayEvent(
                     time: '00:47',
-                    player: 'Máy Sấm',
+                    player: 'Lan Anh',
                     move: 'Bỏ lượt',
                   ),
                   _ReplayEvent(

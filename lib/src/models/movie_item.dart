@@ -55,8 +55,10 @@ class MovieItem {
       (youtubeVideoId.isNotEmpty ||
           youtubeEmbedUrl.isNotEmpty ||
           youtubeUrl.isNotEmpty);
+  bool get youtubePlaybackAvailable =>
+      AppConstants.youtubeEmbedPlaybackEnabled && isYoutubeEmbedReady;
   bool get isPlayableInThisBuild =>
-      isYoutubeEmbedReady ||
+      youtubePlaybackAvailable ||
       (AppConstants.hostedMoviePlaybackEnabled && isHosted);
   bool get isFree =>
       isYoutube ||
@@ -73,6 +75,7 @@ class MovieItem {
           accessType == 'subscription');
   String get playableUrl {
     if (isYoutube) {
+      if (!AppConstants.youtubeEmbedPlaybackEnabled) return '';
       return youtubeEmbedUrl.isNotEmpty ? youtubeEmbedUrl : youtubeUrl;
     }
     if (!AppConstants.hostedMoviePlaybackEnabled) {

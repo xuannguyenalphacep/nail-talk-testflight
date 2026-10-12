@@ -8,10 +8,22 @@ import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/session_user.dart';
 
+class ChatPinsUpdate {
+  const ChatPinsUpdate({required this.roomId, required this.pins});
+
+  final int? roomId;
+  final List<ChatPinnedMessage> pins;
+}
+
 class ChatSocketService {
   ChatSocketService();
 
   io.Socket? _socket;
+  Future<void>? _connectFuture;
+  String? _connectionFingerprint;
+  _TienLenJoinSession? _tienLenSession;
+  bool _restoringTienLenRoom = false;
+  int _tienLenSessionGeneration = 0;
 
   final StreamController<List<ChatRoom>> _roomsController =
       StreamController<List<ChatRoom>>.broadcast();
@@ -27,8 +39,8 @@ class ChatSocketService {
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<Map<String, dynamic>> _reactionUpdatedController =
       StreamController<Map<String, dynamic>>.broadcast();
-  final StreamController<List<ChatPinnedMessage>> _pinsUpdatedController =
-      StreamController<List<ChatPinnedMessage>>.broadcast();
+  final StreamController<ChatPinsUpdate> _pinsUpdatedController =
+      StreamController<ChatPinsUpdate>.broadcast();
   final StreamController<Map<String, dynamic>> _messageRecalledController =
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<bool> _connectionController =
@@ -47,8 +59,7 @@ class ChatSocketService {
       _readReceiptController.stream;
   Stream<Map<String, dynamic>> get reactionUpdatedStream =>
       _reactionUpdatedController.stream;
-  Stream<List<ChatPinnedMessage>> get pinsUpdatedStream =>
-      _pinsUpdatedController.stream;
+  Stream<ChatPinsUpdate> get pinsUpdatedStream => _pinsUpdatedController.stream;
   Stream<Map<String, dynamic>> get messageRecalledStream =>
       _messageRecalledController.stream;
   Stream<bool> get connectionStream => _connectionController.stream;
@@ -58,22 +69,72 @@ class ChatSocketService {
       _tienLenEventController.stream;
 
   bool get isConnected => _socket?.connected == true;
+  String? get activeTienLenRoomId => _tienLenSession?.roomId;
 
   Future<void> connect({
     required String socketUrl,
     required SessionUser user,
     required String notifyApiUrl,
+    required String accessToken,
+  }) {
+    final fingerprint = '$socketUrl|${user.id}|${user.companyId}|$accessToken';
+    if (isConnected && _connectionFingerprint == fingerprint) {
+      return Future<void>.value();
+    }
+
+    final pending = _connectFuture;
+    if (pending != null) {
+      return pending.then<void>((_) async {
+        if (isConnected && _connectionFingerprint == fingerprint) return;
+        await connect(
+          socketUrl: socketUrl,
+          user: user,
+          notifyApiUrl: notifyApiUrl,
+          accessToken: accessToken,
+        );
+      });
+    }
+
+    final preserveGameSession = _connectionFingerprint == fingerprint;
+    final future = _performConnect(
+      socketUrl: socketUrl,
+      user: user,
+      notifyApiUrl: notifyApiUrl,
+      accessToken: accessToken,
+      fingerprint: fingerprint,
+      preserveGameSession: preserveGameSession,
+    );
+    _connectFuture = future;
+    return future.whenComplete(() {
+      if (identical(_connectFuture, future)) _connectFuture = null;
+    });
+  }
+
+  Future<void> _performConnect({
+    required String socketUrl,
+    required SessionUser user,
+    required String notifyApiUrl,
+    required String accessToken,
+    required String fingerprint,
+    required bool preserveGameSession,
   }) async {
-    await disconnect();
+    await _disconnect(clearGameSession: !preserveGameSession);
+    _connectionFingerprint = fingerprint;
 
     final completer = Completer<void>();
-    Timer? connectFallbackTimer;
-
-    _socket = io.io(
+    final socket = io.io(
       socketUrl,
       io.OptionBuilder()
           .setPath('/socket.io')
           .setTransports(kIsWeb ? ['polling', 'websocket'] : ['websocket'])
+          .setAuth(<String, dynamic>{
+            'token': accessToken,
+            'access_token': accessToken,
+          })
+          .setExtraHeaders(<String, String>{
+            'Authorization': 'Bearer $accessToken',
+            'Accept': 'application/json',
+          })
           .setUpgrade(kIsWeb)
           .setRememberUpgrade(false)
           .enableForceNew()
@@ -85,52 +146,62 @@ class ChatSocketService {
           .setReconnectionDelay(1200)
           .build(),
     );
+    _socket = socket;
 
-    _socket!
+    socket
       ..onConnect((_) {
+        if (!identical(_socket, socket)) return;
         if (kDebugMode) {
           debugPrint('[ChatSocket] onConnect');
         }
         _connectionController.add(true);
-        var completed = false;
-
-        void completeReady() {
-          if (!completed && !completer.isCompleted) {
-            completed = true;
-            connectFallbackTimer?.cancel();
-            completer.complete();
-          }
-        }
-
-        _socket!.emitWithAck('chat-register', {
-          'user_id': user.id,
-          'company_id': user.companyId,
-          'notify_api_url': notifyApiUrl,
-        }, ack: (_) => completeReady());
-
-        Future<void>.delayed(const Duration(milliseconds: 350), completeReady);
+        socket.emitWithAck(
+          'chat-register',
+          {
+            'user_id': user.id,
+            'company_id': user.companyId,
+            'notify_api_url': notifyApiUrl,
+          },
+          ack: (response) {
+            if (!identical(_socket, socket)) return;
+            if (response is Map && response['ok'] == false) {
+              if (!completer.isCompleted) {
+                completer.completeError(
+                  Exception(
+                    (response['message'] ?? 'Socket registration failed')
+                        .toString(),
+                  ),
+                );
+              }
+              return;
+            }
+            if (!completer.isCompleted) completer.complete();
+            unawaited(_restoreTienLenRoom());
+          },
+        );
       })
       ..onDisconnect((payload) {
+        if (!identical(_socket, socket)) return;
         if (kDebugMode) {
           debugPrint('[ChatSocket] onDisconnect: $payload');
         }
         _connectionController.add(false);
       })
       ..onConnectError((payload) {
+        if (!identical(_socket, socket)) return;
         if (kDebugMode) {
           debugPrint('[ChatSocket] onConnectError: $payload');
         }
         if (!completer.isCompleted) {
-          connectFallbackTimer?.cancel();
           completer.completeError(Exception('Socket connect failed'));
         }
       })
       ..onError((payload) {
+        if (!identical(_socket, socket)) return;
         if (kDebugMode) {
           debugPrint('[ChatSocket] onError: $payload');
         }
         if (!completer.isCompleted) {
-          connectFallbackTimer?.cancel();
           completer.completeError(Exception('Socket error'));
         }
       })
@@ -175,6 +246,11 @@ class ChatSocketService {
       })
       ..on('chat-pins-updated', (payload) {
         final rawPins = payload is Map ? payload['pins'] : null;
+        final roomId = payload is Map
+            ? int.tryParse(
+                (payload['room_id'] ?? payload['roomId'] ?? '').toString(),
+              )
+            : null;
         final pins = (rawPins as List<dynamic>? ?? const <dynamic>[])
             .whereType<Map>()
             .map(
@@ -182,7 +258,7 @@ class ChatSocketService {
                   ChatPinnedMessage.fromJson(Map<String, dynamic>.from(item)),
             )
             .toList();
-        _pinsUpdatedController.add(pins);
+        _pinsUpdatedController.add(ChatPinsUpdate(roomId: roomId, pins: pins));
       })
       ..on('chat-message-recalled', (payload) {
         if (payload is Map<String, dynamic>) {
@@ -192,30 +268,34 @@ class ChatSocketService {
         }
       });
 
-    _registerTienLenListeners(_socket!);
+    _registerTienLenListeners(socket);
 
-    _socket!.connect();
-
-    connectFallbackTimer = Timer(const Duration(seconds: 4), () {
-      final socket = _socket;
-      if (!completer.isCompleted && socket?.connected == true) {
-        if (kDebugMode) {
-          debugPrint('[ChatSocket] fallback complete via connected=true');
-        }
-        completer.complete();
-      }
-    });
+    socket.connect();
 
     try {
       return await completer.future.timeout(const Duration(seconds: 12));
-    } finally {
-      connectFallbackTimer.cancel();
+    } catch (_) {
+      if (identical(_socket, socket)) {
+        socket.dispose();
+        _socket = null;
+        _connectionController.add(false);
+      }
+      rethrow;
     }
   }
 
   Future<void> disconnect() async {
+    await _disconnect(clearGameSession: true);
+  }
+
+  Future<void> _disconnect({required bool clearGameSession}) async {
     _socket?.dispose();
     _socket = null;
+    _connectionFingerprint = null;
+    if (clearGameSession) {
+      _tienLenSessionGeneration++;
+      _tienLenSession = null;
+    }
     _connectionController.add(false);
   }
 
@@ -253,8 +333,27 @@ class ChatSocketService {
       ..on('tien-len:round-started', (payload) {
         addEvent('round-started', payload);
       })
+      ..on(
+        'tien-len:turn-timeout',
+        (payload) => addEvent('turn-timeout', payload),
+      )
+      ..on(
+        'tien-len:round-settled',
+        (payload) => addEvent('round-settled', payload),
+      )
+      ..on('tien-len:session-replaced', (payload) {
+        _tienLenSessionGeneration++;
+        _tienLenSession = null;
+        addEvent('session-replaced', payload);
+      })
+      ..on(
+        'tien-len:feature-paused',
+        (payload) => addEvent('feature-paused', payload),
+      )
       ..on('tien-len:played', (payload) => addEvent('played', payload))
-      ..on('tien-len:passed', (payload) => addEvent('passed', payload));
+      ..on('tien-len:passed', (payload) => addEvent('passed', payload))
+      ..on('tien-len:room-chat', (payload) => addEvent('room-chat', payload))
+      ..on('tien-len:reaction', (payload) => addEvent('reaction', payload));
   }
 
   Future<List<TienLenRoomSummary>> listTienLenRooms() async {
@@ -279,8 +378,9 @@ class ChatSocketService {
     required int userId,
     required String name,
     required int coins,
-    int maxPlayers = 3,
+    int maxPlayers = 4,
   }) async {
+    final sessionGeneration = _tienLenSessionGeneration;
     final response = await _emitWithAck<Map<String, dynamic>>(
       'tien-len:create-room',
       <String, dynamic>{
@@ -294,9 +394,23 @@ class ChatSocketService {
         'coins': coins,
       },
     );
-    return TienLenRoomState.fromJson(
+    final state = TienLenRoomState.fromJson(
       Map<String, dynamic>.from(response['room'] as Map),
     );
+    if (sessionGeneration != _tienLenSessionGeneration) {
+      await _leaveCancelledTienLenJoin();
+      throw StateError('Tiến Lên room join was cancelled');
+    }
+    _tienLenSession = _TienLenJoinSession(
+      roomId: state.roomId,
+      title: title,
+      baseBet: baseBet,
+      maxPlayers: maxPlayers,
+      userId: userId,
+      name: name,
+      coins: state.viewerPlayer?.coins ?? coins,
+    );
+    return state;
   }
 
   Future<TienLenRoomState> joinTienLenRoom({
@@ -307,9 +421,10 @@ class ChatSocketService {
     String? title,
     int? baseBet,
   }) async {
+    final sessionGeneration = _tienLenSessionGeneration;
     final payload = <String, dynamic>{
       'roomId': roomId,
-      'maxPlayers': 3,
+      'maxPlayers': 4,
       'user_id': userId,
       'name': name,
       'coins': coins,
@@ -321,9 +436,23 @@ class ChatSocketService {
       'tien-len:join-room',
       payload,
     );
-    return TienLenRoomState.fromJson(
+    final state = TienLenRoomState.fromJson(
       Map<String, dynamic>.from(response['room'] as Map),
     );
+    if (sessionGeneration != _tienLenSessionGeneration) {
+      await _leaveCancelledTienLenJoin();
+      throw StateError('Tiến Lên room join was cancelled');
+    }
+    _tienLenSession = _TienLenJoinSession(
+      roomId: state.roomId,
+      title: title ?? state.title,
+      baseBet: baseBet ?? state.baseBet,
+      maxPlayers: state.maxPlayers,
+      userId: userId,
+      name: name,
+      coins: state.viewerPlayer?.coins ?? coins,
+    );
+    return state;
   }
 
   Future<TienLenRoomState> addTienLenBot() async {
@@ -346,6 +475,20 @@ class ChatSocketService {
     );
   }
 
+  Future<void> sendTienLenChat(String message) async {
+    await _emitWithAck<Map<String, dynamic>>(
+      'tien-len:room-chat',
+      <String, dynamic>{'message': message},
+    );
+  }
+
+  Future<void> sendTienLenReaction(String reaction) async {
+    await _emitWithAck<Map<String, dynamic>>(
+      'tien-len:reaction',
+      <String, dynamic>{'reaction': reaction},
+    );
+  }
+
   Future<TienLenRoomState> readyTienLen({bool ready = true}) async {
     final response = await _emitWithAck<Map<String, dynamic>>(
       'tien-len:ready',
@@ -356,10 +499,20 @@ class ChatSocketService {
     );
   }
 
-  Future<TienLenRoomState> startTienLenRoom() async {
+  Future<TienLenRoomState> startTienLenRoom({bool fillBots = false}) async {
     final response = await _emitWithAck<Map<String, dynamic>>(
       'tien-len:start',
-      <String, dynamic>{'fillBots': false},
+      <String, dynamic>{'fillBots': fillBots},
+    );
+    return TienLenRoomState.fromJson(
+      Map<String, dynamic>.from(response['room'] as Map),
+    );
+  }
+
+  Future<TienLenRoomState> retryTienLenSettlement() async {
+    final response = await _emitWithAck<Map<String, dynamic>>(
+      'tien-len:retry-settlement',
+      <String, dynamic>{},
     );
     return TienLenRoomState.fromJson(
       Map<String, dynamic>.from(response['room'] as Map),
@@ -405,10 +558,80 @@ class ChatSocketService {
   }
 
   Future<void> leaveTienLenRoom() async {
+    await _leaveTienLenRoom(forceServerLeave: false);
+  }
+
+  /// Clears a possibly half-created room after a create acknowledgement fails.
+  ///
+  /// In that case [_tienLenSession] was never assigned, but the server may
+  /// already have joined this socket to the room. A normal leave intentionally
+  /// avoids emitting without a known session; recovery must force the server
+  /// cleanup before attempting another fresh room ID.
+  Future<void> forceLeaveTienLenRoom() async {
+    await _leaveTienLenRoom(forceServerLeave: true);
+  }
+
+  Future<void> _leaveTienLenRoom({required bool forceServerLeave}) async {
+    final activeSession = _tienLenSession;
+    _tienLenSessionGeneration++;
+    _tienLenSession = null;
+    if (!isConnected || (activeSession == null && !forceServerLeave)) return;
     await _emitWithAck<Map<String, dynamic>>(
       'tien-len:leave-room',
       <String, dynamic>{},
     );
+  }
+
+  Future<void> _restoreTienLenRoom() async {
+    final session = _tienLenSession;
+    if (session == null || _restoringTienLenRoom || !isConnected) return;
+
+    _restoringTienLenRoom = true;
+    _tienLenEventController.add(<String, dynamic>{
+      'event': 'reconnecting',
+      'roomId': session.roomId,
+    });
+    try {
+      final response = await _emitWithAck<Map<String, dynamic>>(
+        'tien-len:join-room',
+        session.toPayload(),
+      );
+      final state = TienLenRoomState.fromJson(
+        Map<String, dynamic>.from(response['room'] as Map),
+      );
+      if (!identical(_tienLenSession, session)) {
+        if (_tienLenSession == null) await _leaveCancelledTienLenJoin();
+        return;
+      }
+      _tienLenSession = session.copyWith(
+        coins: state.viewerPlayer?.coins ?? session.coins,
+      );
+      _tienLenRoomStateController.add(state);
+      _tienLenEventController.add(<String, dynamic>{
+        'event': 'reconnected',
+        'roomId': session.roomId,
+      });
+    } catch (error) {
+      _tienLenEventController.add(<String, dynamic>{
+        'event': 'reconnect-failed',
+        'roomId': session.roomId,
+        'message': error.toString(),
+      });
+    } finally {
+      _restoringTienLenRoom = false;
+    }
+  }
+
+  Future<void> _leaveCancelledTienLenJoin() async {
+    if (!isConnected) return;
+    try {
+      await _emitWithAck<Map<String, dynamic>>(
+        'tien-len:leave-room',
+        <String, dynamic>{},
+      );
+    } catch (_) {
+      // The socket may already have disconnected or the room may be gone.
+    }
   }
 
   Future<List<ChatRoom>> fetchRooms() async {
@@ -482,7 +705,7 @@ class ChatSocketService {
           (item) => ChatPinnedMessage.fromJson(Map<String, dynamic>.from(item)),
         )
         .toList();
-    _pinsUpdatedController.add(pins);
+    _pinsUpdatedController.add(ChatPinsUpdate(roomId: roomId, pins: pins));
     return pins;
   }
 
@@ -524,13 +747,14 @@ class ChatSocketService {
 
   Future<T> _emitWithAck<T>(String event, [dynamic payload]) {
     final socket = _socket;
-    if (socket == null) {
-      return Future.error(StateError('Socket not initialized'));
+    if (socket == null || !socket.connected) {
+      return Future.error(StateError('Socket is not connected'));
     }
 
     final completer = Completer<T>();
 
     void callback(dynamic response) {
+      if (completer.isCompleted) return;
       if (response is Map && response['ok'] == false) {
         completer.completeError(
           Exception(
@@ -540,12 +764,23 @@ class ChatSocketService {
         return;
       }
 
-      completer.complete(response as T);
+      try {
+        completer.complete(response as T);
+      } catch (error, stackTrace) {
+        completer.completeError(error, stackTrace);
+      }
     }
 
     socket.emitWithAck(event, payload, ack: callback);
 
-    return completer.future.timeout(const Duration(seconds: 15));
+    final timeoutTimer = Timer(const Duration(seconds: 15), () {
+      if (!completer.isCompleted) {
+        completer.completeError(
+          TimeoutException('Socket ack timed out for $event'),
+        );
+      }
+    });
+    return completer.future.whenComplete(timeoutTimer.cancel);
   }
 
   Future<void> dispose() async {
@@ -562,5 +797,47 @@ class ChatSocketService {
     await _connectionController.close();
     await _tienLenRoomStateController.close();
     await _tienLenEventController.close();
+  }
+}
+
+class _TienLenJoinSession {
+  const _TienLenJoinSession({
+    required this.roomId,
+    required this.title,
+    required this.baseBet,
+    required this.maxPlayers,
+    required this.userId,
+    required this.name,
+    required this.coins,
+  });
+
+  final String roomId;
+  final String title;
+  final int baseBet;
+  final int maxPlayers;
+  final int userId;
+  final String name;
+  final int coins;
+
+  Map<String, dynamic> toPayload() => <String, dynamic>{
+    'roomId': roomId,
+    'title': title,
+    'baseBet': baseBet,
+    'maxPlayers': maxPlayers,
+    'user_id': userId,
+    'name': name,
+    'coins': coins,
+  };
+
+  _TienLenJoinSession copyWith({int? coins}) {
+    return _TienLenJoinSession(
+      roomId: roomId,
+      title: title,
+      baseBet: baseBet,
+      maxPlayers: maxPlayers,
+      userId: userId,
+      name: name,
+      coins: coins ?? this.coins,
+    );
   }
 }

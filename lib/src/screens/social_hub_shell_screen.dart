@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -21,6 +23,7 @@ class SocialHubShellScreen extends StatefulWidget {
 
 class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
   int _index = 0;
+  int _navigationRequest = 0;
 
   static const Color _navText = Color(0xFF2C3C74);
   static const Color _navMuted = Color(0xFF7A84A8);
@@ -28,11 +31,31 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
   static const Color _navShadow = Color(0x140F172A);
 
   void _goToTab(int value) {
-    final nextIndex =
-        context.read<SessionController>().hideVideoFeature && value == 1
-        ? 2
-        : value;
-    setState(() => _index = nextIndex.clamp(0, 4));
+    final request = ++_navigationRequest;
+    if (value == 1) {
+      unawaited(_openVideoTab(request));
+      return;
+    }
+    setState(() => _index = value.clamp(0, 4));
+  }
+
+  Future<void> _openVideoTab(int request) async {
+    final session = context.read<SessionController>();
+    await session.refreshFeatureFlags();
+    if (!mounted || request != _navigationRequest) return;
+
+    if (!session.videoFeatureEnabled) {
+      if (_index == 1) setState(() => _index = 2);
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Video đang được quản trị viên tắt.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _index = 1);
   }
 
   Future<void> _openJobs([String initialMode = 'looking_for_job']) {
@@ -84,7 +107,7 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
 
     final type = bookmarks.first.savableType.toLowerCase();
     if (type.contains('movie')) {
-      _goToTab(context.read<SessionController>().hideVideoFeature ? 2 : 1);
+      _goToTab(1);
       return;
     }
     if (type.contains('job')) {
@@ -173,6 +196,7 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
                     ),
                     if (!hideVideo)
                       _ShellNavItem(
+                        key: const ValueKey('bottom-navigation-video'),
                         icon: Icons.smart_display_outlined,
                         activeIcon: Icons.smart_display_rounded,
                         label: 'Videos',
@@ -218,6 +242,7 @@ class _ShellNavItem extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    super.key,
   });
 
   final IconData icon;

@@ -27,6 +27,7 @@ class SocialHubController extends ChangeNotifier {
     required ChatApiService apiService,
   }) : _sessionController = sessionController,
        _apiService = apiService {
+    _observedSessionKey = _currentSessionKey();
     _sessionController.addListener(_handleSessionChange);
   }
 
@@ -34,6 +35,8 @@ class SocialHubController extends ChangeNotifier {
   final ChatApiService _apiService;
 
   bool _initializedForSession = false;
+  late String _observedSessionKey;
+  int _sessionRevision = 0;
   bool _loadingHome = false;
   bool _loadingMovies = false;
   bool _loadingMoreMovies = false;
@@ -102,11 +105,8 @@ class SocialHubController extends ChangeNotifier {
   bool get _videoFeatureEnabled => _sessionController.videoFeatureEnabled;
 
   List<MovieItem> _safeVideoItems(List<MovieItem> movies) {
-    if (AppConstants.hostedMoviePlaybackEnabled) {
-      return movies;
-    }
     return movies
-        .where((movie) => movie.isYoutubeEmbedReady)
+        .where((movie) => movie.isPlayableInThisBuild)
         .toList(growable: false);
   }
 
@@ -126,6 +126,7 @@ class SocialHubController extends ChangeNotifier {
 
   Future<void> refreshHome() async {
     if (!_hasSelectedService) return;
+    final revision = _sessionRevision;
 
     _loadingHome = true;
     _error = null;
@@ -133,17 +134,25 @@ class SocialHubController extends ChangeNotifier {
 
     try {
       if (_isLoggedIn) {
-        _profile = await _apiService.fetchProfile();
-        _bookmarks = await _apiService.fetchBookmarks();
+        final results = await Future.wait<Object>([
+          _apiService.fetchProfile(),
+          _apiService.fetchBookmarks(),
+        ]);
+        if (!_isCurrentRevision(revision)) return;
+        _profile = results[0] as UserProfileModel;
+        _bookmarks = results[1] as List<SavedItemModel>;
       } else {
+        if (!_isCurrentRevision(revision)) return;
         _profile = null;
         _bookmarks = const [];
       }
     } catch (error) {
-      _error = error.toString();
+      if (_isCurrentRevision(revision)) _error = error.toString();
     } finally {
-      _loadingHome = false;
-      notifyListeners();
+      if (_isCurrentRevision(revision)) {
+        _loadingHome = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -259,24 +268,32 @@ class SocialHubController extends ChangeNotifier {
     String? search,
   }) async {
     if (!_hasSelectedService) return;
+    final revision = _sessionRevision;
 
     _loadingMarketplace = true;
     _error = null;
     notifyListeners();
 
     try {
-      _marketplaceCategories = await _apiService.fetchMarketplaceCategories();
-      _marketplaceItems = await _apiService.fetchMarketplace(
-        mine: _isLoggedIn && mine,
-        categoryId: categoryId,
-        state: state,
-        search: search,
-      );
+      final results = await Future.wait<Object>([
+        _apiService.fetchMarketplaceCategories(),
+        _apiService.fetchMarketplace(
+          mine: _isLoggedIn && mine,
+          categoryId: categoryId,
+          state: state,
+          search: search,
+        ),
+      ]);
+      if (!_isCurrentRevision(revision)) return;
+      _marketplaceCategories = results[0] as List<AppOption>;
+      _marketplaceItems = results[1] as List<MarketplaceItem>;
     } catch (error) {
-      _error = error.toString();
+      if (_isCurrentRevision(revision)) _error = error.toString();
     } finally {
-      _loadingMarketplace = false;
-      notifyListeners();
+      if (_isCurrentRevision(revision)) {
+        _loadingMarketplace = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -287,23 +304,28 @@ class SocialHubController extends ChangeNotifier {
     String? search,
   }) async {
     if (!_hasSelectedService) return;
+    final revision = _sessionRevision;
 
     _loadingJobs = true;
     _error = null;
     notifyListeners();
 
     try {
-      _jobItems = await _apiService.fetchJobs(
+      final items = await _apiService.fetchJobs(
         mine: _isLoggedIn && mine,
         mode: mode,
         state: state,
         search: search,
       );
+      if (!_isCurrentRevision(revision)) return;
+      _jobItems = items;
     } catch (error) {
-      _error = error.toString();
+      if (_isCurrentRevision(revision)) _error = error.toString();
     } finally {
-      _loadingJobs = false;
-      notifyListeners();
+      if (_isCurrentRevision(revision)) {
+        _loadingJobs = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -314,23 +336,28 @@ class SocialHubController extends ChangeNotifier {
     String? search,
   }) async {
     if (!_hasSelectedService) return;
+    final revision = _sessionRevision;
 
     _loadingProperties = true;
     _error = null;
     notifyListeners();
 
     try {
-      _propertyItems = await _apiService.fetchProperties(
+      final items = await _apiService.fetchProperties(
         mine: _isLoggedIn && mine,
         mode: mode,
         state: state,
         search: search,
       );
+      if (!_isCurrentRevision(revision)) return;
+      _propertyItems = items;
     } catch (error) {
-      _error = error.toString();
+      if (_isCurrentRevision(revision)) _error = error.toString();
     } finally {
-      _loadingProperties = false;
-      notifyListeners();
+      if (_isCurrentRevision(revision)) {
+        _loadingProperties = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -407,7 +434,7 @@ class SocialHubController extends ChangeNotifier {
     }
 
     if (!AppConstants.moviePaymentsEnabled) {
-      _error = AppConstants.noPaymentReviewNote;
+      _error = AppConstants.videoPaymentsUnavailableNote;
       notifyListeners();
       return;
     }
@@ -728,12 +755,17 @@ class SocialHubController extends ChangeNotifier {
   }
 
   void _handleSessionChange() {
+    final nextKey = _currentSessionKey();
+    if (nextKey == _observedSessionKey) return;
+    _observedSessionKey = nextKey;
+    _sessionRevision++;
     _initializedForSession = false;
     if (!_videoFeatureEnabled) {
       _clearMovieState();
     }
 
     if (_sessionController.isLoggedIn) {
+      notifyListeners();
       unawaited(initializeIfNeeded());
       return;
     }
@@ -763,6 +795,14 @@ class SocialHubController extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  String _currentSessionKey() {
+    final app = _sessionController.selectedApp;
+    return '${app?.uuid}|${_sessionController.user?.id}|'
+        '${_sessionController.token}|${app?.videoEnabled}|${app?.cardGameEnabled}';
+  }
+
+  bool _isCurrentRevision(int revision) => revision == _sessionRevision;
 
   void _clearMovieState() {
     _loadingMovies = false;

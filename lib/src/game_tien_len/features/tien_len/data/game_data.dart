@@ -30,14 +30,14 @@ class DemoRoom {
     required this.detail,
     required this.buttonAsset,
     required this.baseBet,
-  });
+  }) : assert(baseBet > 0, 'Every Tiến Lên room must have a positive stake');
 
   final String title;
   final String detail;
   final String buttonAsset;
   final int baseBet;
 
-  String get stakeLabel => baseBet == 0 ? 'Không tính xu' : '$baseBet xu';
+  String get stakeLabel => '$baseBet xu';
 }
 
 const List<DemoRoom> demoRooms = <DemoRoom>[
@@ -58,12 +58,6 @@ const List<DemoRoom> demoRooms = <DemoRoom>[
     detail: 'Mức cược 5.000 xu · 4 chỗ',
     buttonAsset: 'assets/game_tien_len/buttons/room_master_v2.png',
     baseBet: 5000,
-  ),
-  DemoRoom(
-    title: 'Phòng Solo',
-    detail: 'Đấu với máy · Mức cược 50 xu',
-    buttonAsset: 'assets/game_tien_len/buttons/room_solo_v2.png',
-    baseBet: 50,
   ),
 ];
 

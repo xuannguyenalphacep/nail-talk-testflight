@@ -1,6 +1,6 @@
 # Nails Talk Store Release Content
 
-Last prepared: 2026-10-07, Asia/Ho_Chi_Minh.
+Last prepared: 2026-10-12, Asia/Ho_Chi_Minh.
 
 Use this file as the copy/paste source for App Store Connect, TestFlight review notes, and Google Play Console. Do not commit real reviewer passwords, Apple keys, Google keys, or signing credentials into the repo.
 
@@ -42,7 +42,7 @@ Nails Talk là không gian cộng đồng dành cho người Việt trong ngành
 
 Bạn có thể đăng nhập một lần để theo dõi tin việc làm salon, tìm hoặc đăng phòng ở, mua bán đồ nghề, đặt lịch spa/beauty với đối tác tại Việt Nam và trò chuyện trực tiếp với cộng đồng.
 
-Bản hiện tại không thu tiền trong ứng dụng: không có in-app purchases, không có thuê bao, không có thanh toán ngoài app và không xử lý giao dịch mua bán. Bản iOS gửi App Review đã tạm ẩn toàn bộ phần phim/video và chỉ giữ dịch vụ spa/beauty, không cung cấp dịch vụ y tế.
+Bản hiện tại không thu tiền trong ứng dụng: không có in-app purchases, không có thuê bao, không có thanh toán ngoài app và không xử lý giao dịch mua bán. Danh mục dịch vụ chỉ gồm spa/beauty, không cung cấp dịch vụ y tế.
 
 Tính năng chính:
 
@@ -65,7 +65,7 @@ nail,tiệm nail,salon,người Việt,việc làm,phòng ở,chợ,spa,beauty,c
 What’s New:
 
 ```text
-Cập nhật bản App Review: ẩn phim/video trên iOS, đổi booking sang spa/beauty, thêm logout rõ trong Account, bổ sung report/block cho nội dung cộng đồng.
+Bổ sung Góp ý, Chính sách riêng tư và Giới thiệu ứng dụng trong mục Thêm; cải thiện liên kết Chia sẻ ứng dụng và Trung tâm trợ giúp; tăng độ ổn định của chat cộng đồng.
 ```
 
 Primary category:
@@ -105,7 +105,9 @@ Beta review notes:
 ```text
 The app requires a test account or a new registration. Testers can create a new member account from the Register tab after accepting the EULA/community safety rules, then open Chat, join a public group, and send a message. The app uses the live API and Socket.IO server at http://54.205.74.122.
 
-Important App Review clarification: the submitted iOS build enables the Video tab in YouTube-embed-only mode. Nails Talk does not host, upload, store, download, convert, cache, redistribute, sell, or unlock video files. The app displays public YouTube videos through the official embedded player only; hosted/private/direct video playback is disabled. The app has no in-app purchases, no subscriptions, no external checkout, no paid video unlocks, and no pay-per-view flow. Marketplace prices, job salary ranges, and room rent amounts are user listing information only; the app does not process those transactions. The former medical booking data has been removed; the service directory is limited to spa/beauty providers and is not a healthcare service.
+Current feature configuration (verified 2026-10-12): Video and the community card game are disabled for all Nails Talk users, including reviewers. Their app sections are hidden, and the backend rejects feature-protected requests. They are not enabled based on reviewer identity or review status. If this configuration changes before submission, update these notes, screenshots, description, and age rating to match. The app has no in-app purchases, subscriptions, external checkout, paid video unlocks, or pay-per-view flow. Marketplace prices, job salary ranges, and room rent amounts are user listing information only; the app does not process those transactions. The former medical booking data has been removed; the service directory is limited to spa/beauty providers and is not a healthcare service.
+
+This update adds working Feedback (email to support), Privacy Policy, and About App entries under More. Share App copies the public Nails Talk page link; Help Center opens the in-app FAQ.
 
 UGC moderation for review: the EULA/community safety card appears before sign-in/registration. Posts and chat text are filtered before posting. Users can report chat messages, marketplace listings, job listings, and housing listings. Users can also block abusive users from chat and listing detail screens; blocking removes that user’s content from the current feed and notifies the moderation team. Safety reports are reviewed within 24 hours.
 
@@ -117,8 +119,8 @@ Password: enter the reviewer password directly in App Store Connect; do not comm
 
 Main flows to review:
 1. Register or sign in.
-2. Open the feed tabs: Video, Marketplace, Work & Stay, Chat, Services, and More.
-3. Open Video > a video detail page > Watch now. Confirm the player is a YouTube embed and no download/payment/unlock flow is present.
+2. Open the feed tabs available in this configuration: Marketplace, Work & Stay, Chat, Services, and More. Video and the card game are disabled for all users.
+3. Open More > Feedback, Privacy Policy, and About App to review the new utilities.
 4. Join a public chat room and send a text message.
 5. Browse marketplace/job/housing listings, report a listing, and block the listing owner if needed.
 6. Open Account > Edit profile > Sign out to confirm logout.
@@ -196,7 +198,7 @@ Use the final production privacy policy as the source of truth. Current function
 - Tracking: no advertising tracking was implemented in the current app code.
 - Third-party login: not implemented in the current app code.
 - Payments: online payment is not implemented in the current app code.
-- Digital content purchases: not implemented. The iOS App Review build only shows free YouTube embedded videos and disables hosted/direct playback.
+- Digital content purchases: not implemented. When Video is enabled with the current playback capabilities, the app shows free YouTube embedded videos and disables hosted/direct playback.
 - External checkout: not implemented. No buttons or links send users outside the app to buy digital content.
 
 ## Pre-submission checklist
@@ -205,8 +207,9 @@ Use the final production privacy policy as the source of truth. Current function
 - Confirm Socket.IO handshake: `http://54.205.74.122/socket.io/?EIO=4&transport=polling`.
 - Confirm new member registration works.
 - Confirm new member can see public chat rooms, join one, and send a message.
-- Confirm the iOS build shows Video as YouTube-embed-only content.
-- For Apple review, keep `Enable Video tab` and `Enable Game bài / card game` off in `/admin/resources/chat-apps`; after approval, enable them from admin if the production app should show them.
+- Confirm the submitted configuration and store metadata agree on Video and card-game availability.
+- Change `Enable Video tab` and `Enable Game bài / card game` in `/admin/resources/chat-apps` only as part of a controlled rollout after content, age-rating, regional-policy, and operational checks. Do not change their state based on reviewer identity or review status.
+- Confirm reviewers and production users in the applicable app, account, and region receive the same configured state.
 - Confirm hosted/direct video playback stays disabled unless `HOSTED_MOVIE_PLAYBACK_ENABLED=true` is intentionally set.
 - Confirm services data only shows spa/beauty providers, not clinic/medical/healthcare providers.
 - Remove old movie/hosted-video screenshots and metadata from App Store Connect before resubmitting.

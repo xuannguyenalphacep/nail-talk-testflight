@@ -3,6 +3,8 @@
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
 
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class RemoteImage extends StatefulWidget {
@@ -14,6 +16,7 @@ class RemoteImage extends StatefulWidget {
     this.height,
     this.borderRadius,
     this.errorFallback,
+    this.headers = const <String, String>{},
   });
 
   final String url;
@@ -22,6 +25,7 @@ class RemoteImage extends StatefulWidget {
   final double? height;
   final BorderRadius? borderRadius;
   final Widget? errorFallback;
+  final Map<String, String> headers;
 
   @override
   State<RemoteImage> createState() => _RemoteImageState();
@@ -31,29 +35,101 @@ class _RemoteImageState extends State<RemoteImage> {
   static int _seed = 0;
 
   late final String _viewType;
+  late final html.ImageElement _imageElement;
   bool _hasError = false;
+  String? _objectUrl;
+  int _loadEpoch = 0;
 
   @override
   void initState() {
     super.initState();
     _viewType = 'remote-image-${_seed++}';
-    ui_web.platformViewRegistry.registerViewFactory(_viewType, (int viewId) {
-      final img = html.ImageElement()
-        ..src = widget.url
-        ..style.width = '100%'
-        ..style.height = '100%'
-        ..style.display = 'block'
-        ..style.objectFit = _cssObjectFit(widget.fit)
-        ..style.pointerEvents = 'none'
-        ..draggable = false;
+    _imageElement = html.ImageElement()
+      ..style.width = '100%'
+      ..style.height = '100%'
+      ..style.display = 'block'
+      ..style.objectFit = _cssObjectFit(widget.fit)
+      ..style.pointerEvents = 'none'
+      ..draggable = false;
 
-      img.onError.first.then((_) {
-        if (!mounted) return;
-        setState(() => _hasError = true);
-      });
-
-      return img;
+    _imageElement.onError.listen((_) {
+      if (!mounted) return;
+      setState(() => _hasError = true);
     });
+
+    ui_web.platformViewRegistry.registerViewFactory(_viewType, (int viewId) {
+      return _imageElement;
+    });
+    _loadImage();
+  }
+
+  @override
+  void didUpdateWidget(covariant RemoteImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.url != widget.url ||
+        !mapEquals(oldWidget.headers, widget.headers)) {
+      _loadImage();
+    }
+  }
+
+  Future<void> _loadImage() async {
+    final epoch = ++_loadEpoch;
+    if (mounted && _hasError) {
+      setState(() => _hasError = false);
+    }
+
+    if (widget.headers.isEmpty) {
+      _replaceImageSource(widget.url);
+      return;
+    }
+
+    // Never keep private bytes from a previous token/url visible while the
+    // replacement request is in flight (for example, during account switch).
+    _replaceImageSource('');
+    try {
+      final response = await Dio().get<List<int>>(
+        widget.url,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: widget.headers,
+          followRedirects: true,
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 30),
+        ),
+      );
+      if (!mounted || epoch != _loadEpoch) return;
+      final bytes = response.data;
+      if (bytes == null || bytes.isEmpty) {
+        throw StateError('Empty image response');
+      }
+      final blob = html.Blob(<Object>[Uint8List.fromList(bytes)]);
+      _replaceImageSource(html.Url.createObjectUrlFromBlob(blob));
+      if (_hasError) setState(() => _hasError = false);
+    } catch (_) {
+      if (!mounted || epoch != _loadEpoch) return;
+      setState(() => _hasError = true);
+    }
+  }
+
+  void _replaceImageSource(String source) {
+    final previousObjectUrl = _objectUrl;
+    _objectUrl = source.startsWith('blob:') ? source : null;
+    if (source.isEmpty) {
+      _imageElement.attributes.remove('src');
+    } else {
+      _imageElement.src = source;
+    }
+    if (previousObjectUrl != null && previousObjectUrl != _objectUrl) {
+      html.Url.revokeObjectUrl(previousObjectUrl);
+    }
+  }
+
+  @override
+  void dispose() {
+    _loadEpoch++;
+    final objectUrl = _objectUrl;
+    if (objectUrl != null) html.Url.revokeObjectUrl(objectUrl);
+    super.dispose();
   }
 
   @override

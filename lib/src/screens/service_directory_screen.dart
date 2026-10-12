@@ -292,7 +292,7 @@ class _ServiceCard extends StatelessWidget {
                       child: Align(
                         alignment: Alignment.topLeft,
                         child: _ServiceChip(
-                          label: _reviewSafeServiceText(
+                          label: _localizedServiceText(
                             context,
                             service.shortLabel.trim().isEmpty
                                 ? service.name
@@ -318,7 +318,7 @@ class _ServiceCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _reviewSafeServiceText(context, service.name),
+                          _localizedServiceText(context, service.name),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleMedium
@@ -330,7 +330,7 @@ class _ServiceCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          _reviewSafeServiceText(
+                          _localizedServiceText(
                             context,
                             service.displaySummary,
                           ),
@@ -500,7 +500,7 @@ class _CountPill extends StatelessWidget {
 IconData _serviceIcon(ServiceCategory service) {
   return switch (service.icon.trim().toLowerCase()) {
     'spa' || 'beauty' => Icons.spa_rounded,
-    'clinic' || 'hospital' || 'health' => Icons.spa_rounded,
+    'clinic' || 'hospital' || 'health' => Icons.local_hospital_rounded,
     'travel' => Icons.flight_takeoff_rounded,
     _ => Icons.room_service_rounded,
   };
@@ -515,26 +515,5 @@ Color _serviceColor(ServiceCategory service) {
   return service.slug == 'spa' ? _servicePink : _serviceTeal;
 }
 
-String _reviewSafeServiceText(BuildContext context, String raw) {
-  final translated = context.tr(raw);
-  return translated
-      .replaceAll(
-        RegExp(r'\bclinics?\b', caseSensitive: false),
-        'service partners',
-      )
-      .replaceAll(
-        RegExp(r'\bhospitals?\b', caseSensitive: false),
-        'beauty partners',
-      )
-      .replaceAll(
-        RegExp(r'\bhealthcare\b', caseSensitive: false),
-        'beauty services',
-      )
-      .replaceAll(
-        RegExp(r'phòng khám', caseSensitive: false),
-        'đối tác dịch vụ',
-      )
-      .replaceAll(RegExp(r'bệnh viện', caseSensitive: false), 'đối tác làm đẹp')
-      .replaceAll(RegExp(r'y tế', caseSensitive: false), 'dịch vụ làm đẹp')
-      .replaceAll(RegExp(r'chuyên khoa', caseSensitive: false), 'dịch vụ');
-}
+String _localizedServiceText(BuildContext context, String raw) =>
+    context.tr(raw);

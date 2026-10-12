@@ -252,6 +252,10 @@ class AppLocalizer {
     'Create account': 'Tạo tài khoản',
     'Your Nails Talk community is ready. Sign in to chat, watch, play, and connect in one place.':
         'Cộng đồng Nails Talk đã sẵn sàng. Đăng nhập để trò chuyện, xem phim, giải trí và kết nối trong cùng một nơi.',
+    'Your Nails Talk community is ready. Sign in to chat, watch, browse, and connect in one place.':
+        'Cộng đồng Nails Talk đã sẵn sàng. Đăng nhập để trò chuyện, xem video, xem tin và kết nối trong cùng một nơi.',
+    'Your Nails Talk community is ready. Sign in to chat, browse, play, and connect in one place.':
+        'Cộng đồng Nails Talk đã sẵn sàng. Đăng nhập để trò chuyện, xem tin, giải trí và kết nối trong cùng một nơi.',
     'Your Nails Talk community is ready. Sign in to chat, browse, post, and connect in one place.':
         'Cộng đồng Nails Talk đã sẵn sàng. Đăng nhập để trò chuyện, xem tin, đăng bài và kết nối trong cùng một nơi.',
     'Nails Talk is preparing your space. Tap retry and we will bring everything in shortly.':
@@ -465,18 +469,18 @@ class AppLocalizer {
         'Chạm nút liên hệ hoặc chat trên bất kỳ bài đăng nào và Nails Talk sẽ mở phòng chat riêng.',
     'Why are movies free in this version?':
         'Vì sao phim đang miễn phí trong phiên bản này?',
-    'All movie titles in this App Store review build are free community previews with no purchase flow.':
-        'Tất cả phim trong bản gửi App Store hiện tại là nội dung xem thử cộng đồng miễn phí, không có luồng mua hàng.',
+    'Movie titles currently offered as community previews have no purchase flow.':
+        'Các phim hiện được cung cấp dưới dạng xem thử cộng đồng không có luồng mua hàng.',
     'YouTube and hosted movie previews are available for community viewing without in-app purchase, subscription, or external checkout.':
         'Các phim xem thử từ YouTube và hosting được mở cho cộng đồng, không có mua trong ứng dụng, thuê bao hoặc thanh toán ngoài app.',
     'Does Nails Talk charge for movies?':
         'Nails Talk có thu tiền xem phim không?',
-    'No. This App Store review build has no in-app purchases, subscriptions, external checkout, or paid movie unlock. Movie content is free community preview content.':
-        'Không. Bản gửi App Store hiện tại không có mua trong ứng dụng, không có thuê bao, không có thanh toán ngoài app và không mở khóa phim thu phí. Nội dung phim đang là bản xem thử cộng đồng miễn phí.',
+    'No. This app configuration has no in-app purchases, subscriptions, external checkout, or paid movie unlocks. Available movie content depends on the app, account, and region.':
+        'Không. Cấu hình ứng dụng hiện tại không có mua trong ứng dụng, thuê bao, thanh toán bên ngoài hoặc mở khóa phim trả phí. Nội dung phim khả dụng phụ thuộc vào ứng dụng, tài khoản và khu vực.',
     'Does Nails Talk charge for videos?':
         'Nails Talk có thu tiền xem video không?',
-    'No. This App Store review build has no in-app purchases, subscriptions, external checkout, paid video unlock, or hosted/direct video playback. Videos are free YouTube embeds.':
-        'Không. Bản gửi App Store này không có mua trong ứng dụng, thuê bao, thanh toán bên ngoài, mở khóa video trả phí hoặc phát video hosting/trực tiếp. Video là YouTube nhúng miễn phí.',
+    'No. This app configuration has no in-app purchases, subscriptions, external checkout, or paid video unlocks. Available video sources depend on the app, account, region, and enabled playback capabilities.':
+        'Không. Cấu hình ứng dụng hiện tại không có mua trong ứng dụng, thuê bao, thanh toán bên ngoài hoặc mở khóa video trả phí. Nguồn video khả dụng phụ thuộc vào ứng dụng, tài khoản, khu vực và khả năng phát đang được bật.',
     'How do I join a group chat?': 'Tham gia chat nhóm như thế nào?',
     'Admin-created groups appear in the Chat tab. Tap a group to join and start reading or sending messages.':
         'Các nhóm do admin tạo sẽ xuất hiện ở tab Chat. Chạm vào nhóm để tham gia và bắt đầu đọc hoặc gửi tin nhắn.',
@@ -617,7 +621,7 @@ class AppLocalizer {
     'Tìm thợ nhanh': 'Tìm thợ nhanh',
     'Xem nhà cho thuê': 'Xem nhà cho thuê',
     'Community game preview': 'Game cộng đồng',
-    'Play with bot': 'Chơi với bot',
+    'Quick match': 'Đấu nhanh',
     'Play now': 'Chơi ngay',
     'Tiến Lên Miền Nam': 'Tiến Lên Miền Nam',
     'Game cộng đồng': 'Game cộng đồng',
@@ -748,19 +752,19 @@ class AppLocalizer {
     'Free preview': 'Xem thử miễn phí',
     'Free community preview': 'Xem thử cộng đồng miễn phí',
     'No payment in this app version': 'Không thanh toán trong phiên bản này',
-    'This App Store build does not include in-app purchases, subscriptions, or external checkout.':
-        'Bản gửi App Store này không có mua trong ứng dụng, thuê bao hoặc thanh toán bên ngoài.',
+    'This app configuration does not include in-app purchases, subscriptions, or external checkout.':
+        'Cấu hình ứng dụng hiện tại không có mua trong ứng dụng, thuê bao hoặc thanh toán bên ngoài.',
     'YouTube embed required': 'Cần video YouTube nhúng',
     'Only YouTube embedded videos are available':
         'Chỉ video YouTube nhúng được hỗ trợ',
-    'Hosted or direct video playback is disabled in this build. Use a public YouTube URL so the official YouTube embedded player can handle playback.':
-        'Bản này đã tắt phát video hosting hoặc link trực tiếp. Hãy dùng URL YouTube công khai để trình phát nhúng chính thức của YouTube xử lý phát video.',
-    'Movie access is free during review and community preview. Future paid features will use Apple-approved purchase flows.':
-        'Quyền xem phim đang miễn phí trong giai đoạn review và xem thử cộng đồng. Nếu có tính năng thu phí sau này, app sẽ dùng luồng mua hàng được Apple chấp thuận.',
-    'Video access is free during review and community preview. Future paid features will use Apple-approved purchase flows.':
-        'Quyền xem video đang miễn phí trong giai đoạn review và xem thử cộng đồng. Nếu có tính năng thu phí sau này, app sẽ dùng luồng mua hàng được Apple chấp thuận.',
-    'Admin video entries are filtered before publishing and must be YouTube embeds for this iOS build.':
-        'Các video do admin nhập được lọc trước khi đăng và phải là video YouTube nhúng cho bản iOS này.',
+    'Hosted or direct video playback is disabled by this app configuration. Use a supported public YouTube URL when YouTube embed playback is enabled.':
+        'Cấu hình ứng dụng hiện tại đã tắt phát video hosting hoặc liên kết trực tiếp. Hãy dùng URL YouTube công khai được hỗ trợ khi khả năng phát YouTube nhúng đang bật.',
+    'Movie access is currently free. Any future paid digital access must use the approved purchase flow for the user’s platform.':
+        'Quyền xem phim hiện đang miễn phí. Mọi quyền truy cập nội dung số trả phí trong tương lai phải dùng luồng mua hàng được phê duyệt cho nền tảng của người dùng.',
+    'Video access is currently free. Any future paid digital access must use the approved purchase flow for the user’s platform.':
+        'Quyền xem video hiện đang miễn phí. Mọi quyền truy cập nội dung số trả phí trong tương lai phải dùng luồng mua hàng được phê duyệt cho nền tảng của người dùng.',
+    'Admin video entries are filtered before publishing and must match the playback capabilities enabled for this app.':
+        'Các video do admin nhập được lọc trước khi đăng và phải phù hợp với các khả năng phát đang được bật cho ứng dụng này.',
     'Free YouTube': 'YouTube miễn phí',
     'YouTube free': 'YouTube miễn phí',
     'Community access': 'Quyền xem cộng đồng',
@@ -871,9 +875,16 @@ class AppLocalizer {
     'Suggested for you': 'Gợi ý cho bạn',
     'Personal': 'Cá nhân',
     'Other utilities': 'Tiện ích khác',
+    'Feedback': 'Góp ý',
     'Ads': 'Quảng cáo',
     'Help center': 'Trung tâm trợ giúp',
     'Share app': 'Chia sẻ ứng dụng',
+    'Privacy policy': 'Chính sách riêng tư',
+    'About app': 'Giới thiệu ứng dụng',
+    'Support email copied. Paste it into your email app.':
+        'Đã sao chép email hỗ trợ. Hãy dán vào ứng dụng email để gửi góp ý.',
+    'Nails Talk app link copied.':
+        'Đã sao chép liên kết giới thiệu Nails Talk.',
     'Customize menu': 'Tùy chỉnh menu',
     'Love connections': 'Kết nối yêu thương',
     'Nails Talk Plus': 'Nails Talk Plus',

@@ -9,11 +9,13 @@ class AttachmentPreviewScreen extends StatelessWidget {
     required this.url,
     required this.title,
     required this.isImage,
+    this.headers = const <String, String>{},
   });
 
   final String url;
   final String title;
   final bool isImage;
+  final Map<String, String> headers;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +38,7 @@ class AttachmentPreviewScreen extends StatelessWidget {
                   width: constraints.maxWidth,
                   height: constraints.maxHeight,
                   fit: BoxFit.contain,
+                  headers: headers,
                   errorFallback: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Text(

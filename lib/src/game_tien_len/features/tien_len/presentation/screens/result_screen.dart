@@ -276,9 +276,9 @@ class _ScoreBoard extends StatelessWidget {
             highlight: true,
           ),
           SizedBox(height: 8),
-          _RankRow(rank: '2', name: 'Máy Trẻ', result: 'Còn 2 lá'),
+          _RankRow(rank: '2', name: 'Minh Khang', result: 'Còn 2 lá'),
           SizedBox(height: 8),
-          _RankRow(rank: '3', name: 'Máy Sấm', result: 'Còn 5 lá'),
+          _RankRow(rank: '3', name: 'Lan Anh', result: 'Còn 5 lá'),
         ],
       ),
     );

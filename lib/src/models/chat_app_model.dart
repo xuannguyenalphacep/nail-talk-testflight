@@ -21,6 +21,20 @@ class ChatAppModel {
   final bool videoEnabled;
   final bool cardGameEnabled;
 
+  ChatAppModel copyWith({bool? videoEnabled, bool? cardGameEnabled}) {
+    return ChatAppModel(
+      uuid: uuid,
+      code: code,
+      name: name,
+      logoUrl: logoUrl,
+      appUrl: appUrl,
+      apiBaseUrl: apiBaseUrl,
+      socketUrl: socketUrl,
+      videoEnabled: videoEnabled ?? this.videoEnabled,
+      cardGameEnabled: cardGameEnabled ?? this.cardGameEnabled,
+    );
+  }
+
   factory ChatAppModel.fromJson(Map<String, dynamic> json) {
     final featureFlags = json['feature_flags'];
     final featureMap = featureFlags is Map<String, dynamic>

@@ -34,6 +34,8 @@ class SessionController extends ChangeNotifier {
   bool _submitting = false;
   String? _error;
   DeviceIdentity? _deviceIdentity;
+  Future<void>? _featureRefreshFuture;
+  String? _featureRefreshAppKey;
 
   List<ChatAppModel> get apps => _apps;
   ChatAppModel? get selectedApp => _selectedApp;
@@ -45,11 +47,7 @@ class SessionController extends ChangeNotifier {
   bool get hasChosenApp => _selectedApp != null;
   bool get isLoggedIn =>
       _selectedApp != null && _token != null && _user != null;
-  bool get videoFeatureEnabled {
-    if (AppConstants.forceShowAppleVideoFeature) return true;
-    if (AppConstants.hideVideoForAppleReview) return false;
-    return _selectedApp?.videoEnabled ?? false;
-  }
+  bool get videoFeatureEnabled => _selectedApp?.videoEnabled ?? false;
 
   bool get hideVideoFeature => !videoFeatureEnabled;
   bool get cardGameFeatureEnabled => _selectedApp?.cardGameEnabled ?? false;
@@ -71,7 +69,9 @@ class SessionController extends ChangeNotifier {
       _apiService.setDeviceUuid(_deviceIdentity?.uuid);
       final storedApp = await _storageService.loadSelectedApp();
       final storedToken = await _storageService.loadToken();
-      final storedUser = await _storageService.loadUser();
+      // Trigger the one-time secure-storage migration, but never trust a
+      // cached profile without a token that the server has just validated.
+      await _storageService.loadUser();
       try {
         _apps = await _apiService.fetchApps(AppConstants.bootstrapApiBase);
       } catch (_) {
@@ -107,6 +107,7 @@ class SessionController extends ChangeNotifier {
 
       if (_selectedApp != null) {
         _apiService.setContext(app: _selectedApp!, accessToken: storedToken);
+        await refreshFeatureFlags(notify: false);
       }
 
       if (_selectedApp != null &&
@@ -120,12 +121,16 @@ class SessionController extends ChangeNotifier {
           await _registerCurrentDevice();
         } catch (_) {
           _token = null;
-          _user = storedUser;
+          _user = null;
           _apiService.setContext(app: _selectedApp!);
           await _storageService.clearSession();
         }
       } else {
-        _user = storedUser;
+        _token = null;
+        _user = null;
+        if (storedToken != null && storedToken.isNotEmpty) {
+          await _storageService.clearSession();
+        }
       }
     } catch (error) {
       _error = AppLocalizer.current.tr(
@@ -138,6 +143,107 @@ class SessionController extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshFeatureFlags({bool notify = true}) async {
+    final selected = _selectedApp;
+    if (selected == null) return;
+    final appKey = '${selected.uuid}|${selected.code}';
+    final pending = _featureRefreshFuture;
+    if (pending != null && _featureRefreshAppKey == appKey) return pending;
+
+    final future = _performFeatureFlagRefresh(notify: notify);
+    _featureRefreshFuture = future;
+    _featureRefreshAppKey = appKey;
+    try {
+      await future;
+    } finally {
+      if (identical(_featureRefreshFuture, future)) {
+        _featureRefreshFuture = null;
+        _featureRefreshAppKey = null;
+      }
+    }
+  }
+
+  Future<void> _performFeatureFlagRefresh({required bool notify}) async {
+    final currentApp = _selectedApp;
+    if (currentApp == null) return;
+
+    try {
+      final confirmed = await _apiService.fetchAppFeatures();
+      if (!_isSelectedApp(currentApp)) return;
+      if (confirmed.uuid != currentApp.uuid ||
+          confirmed.code != currentApp.code) {
+        throw StateError('Feature response belongs to another app');
+      }
+      await _commitFeatureFlags(
+        currentApp,
+        videoEnabled: confirmed.videoEnabled,
+        cardGameEnabled: confirmed.cardGameEnabled,
+        notify: notify,
+      );
+    } catch (_) {
+      if (!_isSelectedApp(currentApp)) return;
+      await _commitFeatureFlags(
+        currentApp,
+        videoEnabled: false,
+        cardGameEnabled: false,
+        notify: notify,
+      );
+    }
+  }
+
+  bool _isSelectedApp(ChatAppModel app) {
+    return _selectedApp?.uuid == app.uuid && _selectedApp?.code == app.code;
+  }
+
+  Future<void> _commitFeatureFlags(
+    ChatAppModel base, {
+    required bool videoEnabled,
+    required bool cardGameEnabled,
+    required bool notify,
+  }) async {
+    if (!_isSelectedApp(base)) return;
+    final refreshed = base.copyWith(
+      videoEnabled: videoEnabled,
+      cardGameEnabled: cardGameEnabled,
+    );
+    _selectedApp = refreshed;
+    _apps = _apps
+        .map(
+          (app) => app.uuid == base.uuid || app.code == base.code
+              ? app.copyWith(
+                  videoEnabled: videoEnabled,
+                  cardGameEnabled: cardGameEnabled,
+                )
+              : app,
+        )
+        .toList(growable: false);
+    try {
+      await _storageService.saveSelectedApp(refreshed);
+    } catch (_) {
+      // Runtime enforcement still uses the confirmed in-memory values.
+    }
+    if (notify) notifyListeners();
+  }
+
+  Future<SessionUser?> refreshCurrentUser({bool notify = true}) async {
+    final app = _selectedApp;
+    final token = _token;
+    final user = _user;
+    if (app == null || token == null || user == null) return null;
+
+    final freshUser = await _apiService.me();
+    if (_selectedApp?.uuid != app.uuid ||
+        _token != token ||
+        _user?.id != user.id) {
+      return _user;
+    }
+
+    _user = freshUser;
+    await _storageService.saveUser(freshUser);
+    if (notify) notifyListeners();
+    return freshUser;
+  }
+
   Future<void> chooseApp(ChatAppModel app) async {
     _selectedApp = app;
     _user = null;
@@ -146,6 +252,7 @@ class SessionController extends ChangeNotifier {
     _apiService.setContext(app: app);
     await _storageService.saveSelectedApp(app);
     await _storageService.clearSession();
+    await refreshFeatureFlags(notify: false);
     notifyListeners();
   }
 
@@ -174,6 +281,7 @@ class SessionController extends ChangeNotifier {
       _apiService.setContext(app: _selectedApp!);
       final result = await _apiService.login(
         appCode: _selectedApp!.code,
+        appUuid: _selectedApp!.uuid,
         username: username,
         password: password,
         deviceName: deviceIdentity.deviceName,
@@ -188,6 +296,7 @@ class SessionController extends ChangeNotifier {
       await _storageService.saveToken(result.token);
       await _storageService.saveUser(result.user);
 
+      await refreshFeatureFlags(notify: false);
       await _registerCurrentDevice();
     } catch (error) {
       _error = _readableError(error);
@@ -225,6 +334,8 @@ class SessionController extends ChangeNotifier {
 
       _apiService.setContext(app: _selectedApp!);
       final result = await _apiService.register(
+        appCode: _selectedApp!.code,
+        appUuid: _selectedApp!.uuid,
         name: name,
         username: username,
         email: email,
@@ -232,14 +343,16 @@ class SessionController extends ChangeNotifier {
         password: password,
       );
 
+      _selectedApp = result.app;
       _token = result.token;
       _user = result.user;
-      _apiService.setContext(app: _selectedApp!, accessToken: result.token);
+      _apiService.setContext(app: result.app, accessToken: result.token);
 
-      await _storageService.saveSelectedApp(_selectedApp!);
+      await _storageService.saveSelectedApp(result.app);
       await _storageService.saveToken(result.token);
       await _storageService.saveUser(result.user);
 
+      await refreshFeatureFlags(notify: false);
       await _registerCurrentDevice();
     } catch (error) {
       _error = _readableError(error, registering: true);
@@ -312,8 +425,7 @@ class SessionController extends ChangeNotifier {
 
     try {
       _apiService.setContext(app: _selectedApp!, accessToken: _token);
-      final uploaded = await _apiService.uploadFile(file);
-      return uploaded.filePath;
+      return await _apiService.uploadPublicImage(file);
     } catch (error) {
       _error = AppLocalizer.current.tr('Could not upload the selected image.');
       notifyListeners();

@@ -35,9 +35,7 @@ class ChatUserOption {
     );
   }
 
-  ChatUserOption copyWith({
-    String? avatarUrl,
-  }) {
+  ChatUserOption copyWith({String? avatarUrl}) {
     return ChatUserOption(
       id: id,
       name: name,

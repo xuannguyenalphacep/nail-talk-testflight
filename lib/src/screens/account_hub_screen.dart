@@ -423,7 +423,7 @@ class _AccountHubScreenState extends State<AccountHubScreen> {
                   if (!hideVideo)
                     (
                       'Does Nails Talk charge for videos?',
-                      'No. This App Store review build has no in-app purchases, subscriptions, external checkout, paid video unlock, or hosted/direct video playback. Videos are free YouTube embeds.',
+                      'No. This app configuration has no in-app purchases, subscriptions, external checkout, or paid video unlocks. Available video sources depend on the app, account, region, and enabled playback capabilities.',
                     ),
                   (
                     'How do I join a group chat?',

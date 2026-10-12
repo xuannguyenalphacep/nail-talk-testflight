@@ -1409,7 +1409,19 @@ class _ServiceBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hideVideo = context.watch<SessionController>().hideVideoFeature;
+    final session = context.watch<SessionController>();
+    final videoEnabled = session.videoFeatureEnabled;
+    final gameEnabled = session.cardGameFeatureEnabled;
+    final readyMessage = switch ((videoEnabled, gameEnabled)) {
+      (true, true) =>
+        'Your Nails Talk community is ready. Sign in to chat, watch, play, and connect in one place.',
+      (true, false) =>
+        'Your Nails Talk community is ready. Sign in to chat, watch, browse, and connect in one place.',
+      (false, true) =>
+        'Your Nails Talk community is ready. Sign in to chat, browse, play, and connect in one place.',
+      (false, false) =>
+        'Your Nails Talk community is ready. Sign in to chat, browse, post, and connect in one place.',
+    };
     if (ready) {
       return Container(
         width: double.infinity,
@@ -1425,11 +1437,7 @@ class _ServiceBanner extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                context.tr(
-                  hideVideo
-                      ? 'Your Nails Talk community is ready. Sign in to chat, browse, post, and connect in one place.'
-                      : 'Your Nails Talk community is ready. Sign in to chat, watch, play, and connect in one place.',
-                ),
+                context.tr(readyMessage),
                 style: const TextStyle(
                   color: _authInk,
                   fontWeight: FontWeight.w700,

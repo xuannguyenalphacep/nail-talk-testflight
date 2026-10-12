@@ -7,11 +7,7 @@ void main() {
   testWidgets('AppLogo renders in widget tree', (WidgetTester tester) async {
     await tester.pumpWidget(
       const MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: AppLogo(),
-          ),
-        ),
+        home: Scaffold(body: Center(child: AppLogo())),
       ),
     );
 

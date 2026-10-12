@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -5,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../controllers/session_controller.dart';
 import '../game_tien_len/core/audio/game_audio.dart';
 import '../game_tien_len/core/theme/game_theme.dart';
+import '../game_tien_len/features/tien_len/data/realtime_game_models.dart';
 import '../game_tien_len/features/tien_len/presentation/screens/home_screen.dart';
 import '../services/chat_socket_service.dart';
 import 'login_screen.dart';
@@ -20,6 +23,11 @@ class _TienLenGameScreenState extends State<TienLenGameScreen> {
   final GlobalKey<NavigatorState> _gameNavigatorKey =
       GlobalKey<NavigatorState>();
   bool _prepared = false;
+  bool _closing = false;
+  bool _featureCleanupScheduled = false;
+  ChatSocketService? _socketService;
+  StreamSubscription<TienLenRoomState>? _roomStateSubscription;
+  TienLenRoomState? _latestRoomState;
 
   @override
   void initState() {
@@ -34,6 +42,36 @@ class _TienLenGameScreenState extends State<TienLenGameScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final socketService = context.read<ChatSocketService>();
+    if (identical(_socketService, socketService)) return;
+
+    unawaited(_roomStateSubscription?.cancel());
+    _socketService = socketService;
+    _roomStateSubscription = socketService.tienLenRoomStateStream.listen((
+      state,
+    ) {
+      if (!mounted) return;
+      final wasDraining = _mustDrainDisabledFeature;
+      _latestRoomState = state;
+
+      // Room snapshots can arrive in the same frame that the nested game
+      // navigator pushes the realtime table. Rebuilding the whole shell for
+      // every turn used to make Flutter reparent/deactivate inherited widgets
+      // around that navigator unnecessarily. The shell only consumes room
+      // state while a remotely-disabled game is draining its current round.
+      final featureEnabled = context
+          .read<SessionController>()
+          .cardGameFeatureEnabled;
+      final isDraining = _mustDrainDisabledFeature;
+      if (!featureEnabled && wasDraining != isDraining) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
   void dispose() {
     SystemChrome.setPreferredOrientations(const [
       DeviceOrientation.portraitUp,
@@ -41,7 +79,24 @@ class _TienLenGameScreenState extends State<TienLenGameScreen> {
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     GameAudio.stopLobbyMusic();
+    unawaited(_roomStateSubscription?.cancel());
+    unawaited(_leaveSilently());
     super.dispose();
+  }
+
+  bool get _mustDrainDisabledFeature {
+    final state = _latestRoomState;
+    final activeRoomId = _socketService?.activeTienLenRoomId;
+    return state != null &&
+        activeRoomId != null &&
+        state.roomId == activeRoomId &&
+        state.mustDrainWhenFeatureDisabled;
+  }
+
+  Future<void> _leaveSilently() async {
+    try {
+      await _socketService?.leaveTienLenRoom();
+    } catch (_) {}
   }
 
   Future<void> _handleBack() async {
@@ -50,18 +105,25 @@ class _TienLenGameScreenState extends State<TienLenGameScreen> {
       return;
     }
     if (mounted) {
-      Navigator.of(context).pop();
+      await _leaveAndClose();
     }
   }
 
+  Future<void> _leaveAndClose() async {
+    if (_closing) return;
+    _closing = true;
+    await _leaveSilently();
+    if (mounted) Navigator.of(context).pop();
+  }
+
   void _closeGame() {
-    Navigator.of(context).pop();
+    unawaited(_leaveAndClose());
   }
 
   Future<void> _prepareGame() async {
     if (_prepared || !mounted) return;
     final session = context.read<SessionController>();
-    if (!session.isLoggedIn) return;
+    if (!session.isLoggedIn || !session.cardGameFeatureEnabled) return;
     _prepared = true;
 
     try {
@@ -87,6 +149,7 @@ class _TienLenGameScreenState extends State<TienLenGameScreen> {
             socketUrl: app.socketUrl,
             user: user,
             notifyApiUrl: session.notifyApiUrl,
+            accessToken: session.token!,
           );
         }
       }
@@ -101,7 +164,29 @@ class _TienLenGameScreenState extends State<TienLenGameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final session = context.watch<SessionController>();
+    final sessionState = context
+        .select<SessionController, ({bool isLoggedIn, bool featureEnabled})>(
+          (session) => (
+            isLoggedIn: session.isLoggedIn,
+            featureEnabled: session.cardGameFeatureEnabled,
+          ),
+        );
+    final featureEnabled = sessionState.featureEnabled;
+    final drainingDisabledFeature =
+        !featureEnabled && _mustDrainDisabledFeature;
+    final canShowGame = featureEnabled || drainingDisabledFeature;
+    if (sessionState.isLoggedIn && featureEnabled && !_prepared) {
+      _featureCleanupScheduled = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _prepareGame());
+    }
+    if (drainingDisabledFeature) {
+      _featureCleanupScheduled = false;
+    } else if (!featureEnabled && !_featureCleanupScheduled) {
+      _featureCleanupScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _leaveSilently();
+      });
+    }
     return PopScope<void>(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -112,26 +197,203 @@ class _TienLenGameScreenState extends State<TienLenGameScreen> {
       child: Theme(
         data: GameTheme.theme,
         child: Scaffold(
-          body: Stack(
-            children: [
-              Positioned.fill(
-                child: session.isLoggedIn
-                    ? Navigator(
-                        key: _gameNavigatorKey,
-                        onGenerateRoute: (_) {
-                          return MaterialPageRoute<void>(
-                            builder: (_) => const HomeScreen(),
-                          );
-                        },
-                      )
-                    : _GameLoginRequired(onClose: _closeGame),
+          backgroundColor: const Color(0xFF031622),
+          body: SafeArea(
+            child: _GameShellLayout(
+              onClose: _closeGame,
+              notice: drainingDisabledFeature ? const _GameDrainNotice() : null,
+              child: !canShowGame
+                  ? _GameFeatureUnavailable(onClose: _closeGame)
+                  : sessionState.isLoggedIn
+                  ? Navigator(
+                      key: _gameNavigatorKey,
+                      onGenerateRoute: (_) {
+                        return MaterialPageRoute<void>(
+                          builder: (_) => const HomeScreen(),
+                        );
+                      },
+                    )
+                  : _GameLoginRequired(onClose: _closeGame),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GameShellLayout extends StatelessWidget {
+  const _GameShellLayout({
+    required this.onClose,
+    required this.child,
+    this.notice,
+  });
+
+  final VoidCallback onClose;
+  final Widget child;
+  final Widget? notice;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool useSideRail = constraints.maxWidth >= constraints.maxHeight;
+        final Widget viewport = _GameViewport(notice: notice, child: child);
+
+        // Keep one element hierarchy while Android transitions from portrait
+        // to the game's forced landscape mode. Switching Row <-> Column moved
+        // the GlobalKey-backed Navigator between two parents and could leave a
+        // Theme/MediaQuery dependent attached during deactivation.
+        return Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            Positioned(
+              left: useSideRail ? _GameCloseSlot.slotExtent : 0,
+              top: useSideRail ? 0 : _GameCloseSlot.slotExtent,
+              right: 0,
+              bottom: 0,
+              child: KeyedSubtree(
+                key: const ValueKey<String>('tien-len-game-viewport'),
+                child: viewport,
               ),
-              Positioned(
-                top: MediaQuery.paddingOf(context).top + 10,
-                left: 12,
-                child: _GameCloseButton(onPressed: _closeGame),
+            ),
+            Positioned(
+              left: 0,
+              top: 0,
+              right: useSideRail ? null : 0,
+              bottom: useSideRail ? 0 : null,
+              width: useSideRail ? _GameCloseSlot.slotExtent : null,
+              height: useSideRail ? null : _GameCloseSlot.slotExtent,
+              child: _GameCloseSlot(onClose: onClose, sideRail: useSideRail),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _GameViewport extends StatelessWidget {
+  const _GameViewport({required this.child, this.notice});
+
+  final Widget child;
+  final Widget? notice;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        child,
+        if (notice != null) Positioned(top: 10, right: 12, child: notice!),
+      ],
+    );
+  }
+}
+
+class _GameCloseSlot extends StatelessWidget {
+  const _GameCloseSlot({required this.onClose, required this.sideRail});
+
+  static const double slotExtent = 68;
+
+  final VoidCallback onClose;
+  final bool sideRail;
+
+  @override
+  Widget build(BuildContext context) {
+    final BorderSide divider = BorderSide(
+      color: GameTheme.gold.withValues(alpha: 0.48),
+    );
+
+    return Container(
+      key: const ValueKey<String>('tien-len-close-slot'),
+      width: sideRail ? slotExtent : null,
+      height: sideRail ? null : slotExtent,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: sideRail ? Alignment.topCenter : Alignment.centerLeft,
+          end: sideRail ? Alignment.bottomCenter : Alignment.centerRight,
+          colors: const <Color>[Color(0xFF0A302A), Color(0xFF071E22)],
+        ),
+        border: Border(
+          right: sideRail ? divider : BorderSide.none,
+          bottom: sideRail ? BorderSide.none : divider,
+        ),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(color: Color(0x66000000), blurRadius: 16),
+        ],
+      ),
+      child: Align(
+        alignment: sideRail ? Alignment.topCenter : Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: _GameCloseButton(
+            key: const ValueKey<String>('tien-len-close-button'),
+            onPressed: onClose,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GameDrainNotice extends StatelessWidget {
+  const _GameDrainNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xE61A2523),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0x66FFFFFF)),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        child: Text(
+          'Game đã tắt cho lượt mới · ván hiện tại tiếp tục đến khi quyết toán',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+}
+
+class _GameFeatureUnavailable extends StatelessWidget {
+  const _GameFeatureUnavailable({required this.onClose});
+
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: const Color(0xFF092E2A),
+      child: Center(
+        child: SizedBox(
+          width: 520,
+          child: Card(
+            color: const Color(0xFF0A2C27),
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.videogame_asset_off, size: 52),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Game bài đang tạm ẩn',
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Tính năng này hiện được quản trị viên tắt.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton(onPressed: onClose, child: const Text('Đóng')),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -225,29 +487,33 @@ class _GameLoginRequired extends StatelessWidget {
 }
 
 class _GameCloseButton extends StatelessWidget {
-  const _GameCloseButton({required this.onPressed});
+  const _GameCloseButton({required this.onPressed, super.key});
 
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x55000000),
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: IconButton(
-        tooltip: 'Đóng game',
-        onPressed: onPressed,
-        icon: const Icon(Icons.close_rounded, color: Colors.white),
+    return SizedBox.square(
+      dimension: 52,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xE60B2C28),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: GameTheme.gold.withValues(alpha: 0.72)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x77000000),
+              blurRadius: 18,
+              offset: Offset(0, 8),
+            ),
+            BoxShadow(color: Color(0x4438DFFF), blurRadius: 14),
+          ],
+        ),
+        child: IconButton(
+          tooltip: 'Đóng game',
+          onPressed: onPressed,
+          icon: const Icon(Icons.close_rounded, color: GameTheme.ivory),
+        ),
       ),
     );
   }

@@ -9,6 +9,7 @@ class RemoteImage extends StatelessWidget {
     this.height,
     this.borderRadius,
     this.errorFallback,
+    this.headers = const <String, String>{},
   });
 
   final String url;
@@ -17,6 +18,7 @@ class RemoteImage extends StatelessWidget {
   final double? height;
   final BorderRadius? borderRadius;
   final Widget? errorFallback;
+  final Map<String, String> headers;
 
   static const Map<String, String> _headers = {
     'User-Agent':
@@ -28,7 +30,7 @@ class RemoteImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final image = Image.network(
       url,
-      headers: _headers,
+      headers: <String, String>{..._headers, ...headers},
       fit: fit,
       width: width,
       height: height,

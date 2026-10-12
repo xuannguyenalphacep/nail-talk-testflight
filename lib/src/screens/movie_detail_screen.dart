@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ import '../core/utils/app_date_utils.dart';
 import '../core/utils/movie_showcase_utils.dart';
 import '../models/movie_item.dart';
 import '../models/movie_plan_model.dart';
+import '../widgets/feature_unavailable_screen.dart';
 import '../widgets/metro_ui.dart';
 
 class MovieDetailScreen extends StatefulWidget {
@@ -39,6 +41,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
   bool _loadingDetail = false;
   bool _requestedPlayback = false;
   String? _videoError;
+  bool _featureCleanupScheduled = false;
+  bool _featureCheckComplete = false;
   late MovieItem _movie;
   final GlobalKey _playerSectionKey = GlobalKey();
   final GlobalKey _lockedSectionKey = GlobalKey();
@@ -50,13 +54,22 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
     _movie = widget.movie;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (context.read<SessionController>().hideVideoFeature) return;
-      _refreshMovieDetail();
+      unawaited(_confirmFeatureAndRefresh());
     });
   }
 
+  Future<void> _confirmFeatureAndRefresh() async {
+    final session = context.read<SessionController>();
+    await session.refreshFeatureFlags();
+    if (!mounted) return;
+
+    setState(() => _featureCheckComplete = true);
+    if (!session.videoFeatureEnabled) return;
+    await _refreshMovieDetail();
+  }
+
   bool _canWatch(SocialHubController controller) {
-    if (_movie.isYoutubeEmbedReady) return true;
+    if (_movie.youtubePlaybackAvailable) return true;
     if (!AppConstants.hostedMoviePlaybackEnabled) return false;
 
     return !AppConstants.moviePaymentsEnabled ||
@@ -264,12 +277,36 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (context.watch<SessionController>().hideVideoFeature) {
-      return const SizedBox.shrink();
+    final session = context.watch<SessionController>();
+    if (!_featureCheckComplete) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F7FC),
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
+    final hideVideo = session.hideVideoFeature;
+    if (hideVideo) {
+      if (!_featureCleanupScheduled) {
+        _featureCleanupScheduled = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!mounted || !context.read<SessionController>().hideVideoFeature) {
+            return;
+          }
+          await _resetVideoPlayer();
+        });
+      }
+      return const FeatureUnavailableScreen(
+        title: 'Video đang tạm ẩn',
+        message: 'Tính năng này hiện được quản trị viên tắt.',
+        icon: Icons.smart_display_outlined,
+        showBackButton: true,
+      );
+    }
+    _featureCleanupScheduled = false;
     final social = context.watch<SocialHubController>();
     final youtubeOnlyBlocked =
-        !_movie.isYoutubeEmbedReady && !AppConstants.hostedMoviePlaybackEnabled;
+        !_movie.youtubePlaybackAvailable &&
+        !AppConstants.hostedMoviePlaybackEnabled;
     final unlocked = _canWatch(social);
     final activePlan = social.activeSubscription;
 
@@ -1809,7 +1846,8 @@ class _MovieLockedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final youtubeOnlyBlocked =
-        !movie.isYoutubeEmbedReady && !AppConstants.hostedMoviePlaybackEnabled;
+        !movie.youtubePlaybackAvailable &&
+        !AppConstants.hostedMoviePlaybackEnabled;
     final priceLabel = youtubeOnlyBlocked
         ? context.tr('YouTube embed required')
         : AppConstants.moviePaymentsEnabled && movie.price > 0
@@ -1866,8 +1904,8 @@ class _MovieLockedCard extends StatelessWidget {
                     Text(
                       context.tr(
                         youtubeOnlyBlocked
-                            ? 'Hosted or direct video playback is disabled in this build. Use a public YouTube URL so the official YouTube embedded player can handle playback.'
-                            : 'This App Store build does not include in-app purchases, subscriptions, or external checkout.',
+                            ? 'Hosted or direct video playback is disabled by this app configuration. Use a supported public YouTube URL when YouTube embed playback is enabled.'
+                            : 'This app configuration does not include in-app purchases, subscriptions, or external checkout.',
                       ),
                       style: Theme.of(
                         context,
@@ -1914,8 +1952,8 @@ class _MovieLockedCard extends StatelessWidget {
                       Text(
                         context.tr(
                           youtubeOnlyBlocked
-                              ? 'Admin video entries are filtered before publishing and must be YouTube embeds for this iOS build.'
-                              : 'Video access is free during review and community preview. Future paid features will use Apple-approved purchase flows.',
+                              ? 'Admin video entries are filtered before publishing and must match the playback capabilities enabled for this app.'
+                              : 'Video access is currently free. Any future paid digital access must use the approved purchase flow for the user’s platform.',
                         ),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: kMetroMuted,

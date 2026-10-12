@@ -15,7 +15,7 @@ If you need help with the app, include:
 
 ### Does Nails Talk charge money in the app?
 
-No. The current App Store review build has no in-app purchases, subscriptions, external checkout, or paid digital content unlock.
+No. The current app configuration has no in-app purchases, subscriptions, external checkout, or paid digital content unlocks. Feature availability may depend on the app, account, region, and controlled rollout configuration.
 
 ### Does Nails Talk process marketplace payments?
 

@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 Future<void> openAttachmentExternally({
   required String url,
   required String fileName,
+  Map<String, String> headers = const <String, String>{},
 }) async {
   final directory = await getTemporaryDirectory();
   final sanitized = _sanitizeFileName(fileName);
@@ -18,6 +19,7 @@ Future<void> openAttachmentExternally({
     target.path,
     options: Options(
       responseType: ResponseType.bytes,
+      headers: headers,
       followRedirects: true,
       receiveTimeout: const Duration(seconds: 30),
       sendTimeout: const Duration(seconds: 30),

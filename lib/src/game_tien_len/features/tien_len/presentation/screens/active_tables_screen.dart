@@ -1,66 +1,199 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../../../../controllers/session_controller.dart';
+import '../../../../../services/chat_socket_service.dart';
 import '../../../../core/audio/game_audio.dart';
 import '../../../../core/theme/game_theme.dart';
 import '../../../../core/widgets/game_stage.dart';
 import '../../../../core/widgets/gpt_button.dart';
 import '../../../../core/widgets/profile_chip.dart';
 import '../../data/game_data.dart';
+import '../../data/realtime_game_models.dart';
 import 'home_screen.dart';
 import 'lobby_screen.dart';
+import 'table_screen.dart';
 import 'waiting_room_screen.dart';
 
-class ActiveTablesScreen extends StatelessWidget {
+class ActiveTablesScreen extends StatefulWidget {
   const ActiveTablesScreen({super.key});
 
-  static const List<ActiveDemoTable> _tables = <ActiveDemoTable>[
-    ActiveDemoTable(
-      name: 'Bàn 01',
-      roomIndex: 2,
-      currentPlayers: 3,
-      maxPlayers: 4,
-      wager: '5.000 - 10.000 xu',
-      host: 'Hắc Long',
-      state: 'Đang chơi',
-    ),
-    ActiveDemoTable(
-      name: 'Bàn 07',
-      roomIndex: 1,
-      currentPlayers: 4,
-      maxPlayers: 4,
-      wager: '1.000 xu',
-      host: 'Ngọc Lan',
-      state: 'Đang chơi',
-    ),
-    ActiveDemoTable(
-      name: 'Bàn 12',
-      roomIndex: 0,
-      currentPlayers: 2,
-      maxPlayers: 4,
-      wager: '100 xu',
-      host: 'Tây Bích 88',
-      state: 'Chờ người chơi',
-    ),
-  ];
+  @override
+  State<ActiveTablesScreen> createState() => _ActiveTablesScreenState();
+}
 
-  void _openTable(BuildContext context, ActiveDemoTable table) {
-    if (table.isFull) {
+class _ActiveTablesScreenState extends State<ActiveTablesScreen> {
+  List<ActiveDemoTable> _tables = const <ActiveDemoTable>[];
+  bool _loading = true;
+  String? _loadError;
+  bool _loadedOnce = false;
+  bool _openingTable = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_loadedOnce) return;
+    _loadedOnce = true;
+    unawaited(_refreshTables());
+  }
+
+  Future<void> _refreshTables() async {
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _loadError = null;
+      });
+    }
+    try {
+      final socket = context.read<ChatSocketService>();
+      final session = context.read<SessionController>();
+      final app = session.selectedApp;
+      final user = session.user;
+      final token = session.token;
+      if (!socket.isConnected && app != null && user != null && token != null) {
+        await socket.connect(
+          socketUrl: app.socketUrl,
+          user: user,
+          notifyApiUrl: session.notifyApiUrl,
+          accessToken: token,
+        );
+      }
+      final rooms = await socket.listTienLenRooms();
+      if (!mounted) return;
+      setState(() {
+        _tables = rooms
+            .where((room) => _roomIndexForBaseBet(room.baseBet) != null)
+            .map(_tableFromSummary)
+            .toList(growable: false);
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _loadError = error.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
+
+  ActiveDemoTable _tableFromSummary(TienLenRoomSummary room) {
+    final roomIndex = _roomIndexForBaseBet(room.baseBet)!;
+    return ActiveDemoTable(
+      roomId: room.roomId,
+      name: room.title.isEmpty ? room.roomId : room.title,
+      roomIndex: roomIndex,
+      currentPlayers: room.playerCount,
+      activePlayers: room.activePlayerCount,
+      waitingPlayers: room.waitingPlayerCount,
+      maxPlayers: room.maxPlayers,
+      wager: '${room.baseBet} xu',
+      host: 'Phòng ${room.roomId}',
+      state: switch (room.phase) {
+        'waiting' => 'Chờ người chơi',
+        'round-ended' => 'Đang chờ ván mới',
+        _ when room.waitingPlayerCount > 0 =>
+          'Đang chơi · ${room.waitingPlayerCount} chờ ván sau',
+        _ => 'Đang chơi · Có thể vào xem',
+      },
+      phase: room.phase,
+    );
+  }
+
+  int? _roomIndexForBaseBet(int baseBet) {
+    if (baseBet <= 0) return null;
+    final index = demoRooms.indexWhere((room) => room.baseBet == baseBet);
+    return index < 0 ? null : index;
+  }
+
+  Future<void> _openTable(BuildContext context, ActiveDemoTable table) async {
+    if (_openingTable) return;
+    if (!table.canJoin) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${table.name} đã đủ ${table.playersLabel}.')),
+        SnackBar(
+          content: Text(
+            table.isFull
+                ? '${table.name} đã đủ ${table.playersLabel}.'
+                : '${table.name} hiện chưa thể nhận thêm người chơi.',
+          ),
+        ),
       );
       return;
     }
-    GameAudio.enterRoom();
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => WaitingRoomScreen(
-          room: demoRooms[table.roomIndex],
-          initialOpponentCount: table.currentPlayers.clamp(0, 3).toInt(),
-          hostName: table.host,
-          entryLabel: '${table.name} · ${table.state}',
-        ),
-      ),
-    );
+    setState(() => _openingTable = true);
+    try {
+      final room = demoRooms[table.roomIndex];
+      if (table.joinsAsSpectator) {
+        final session = context.read<SessionController>();
+        final socket = context.read<ChatSocketService>();
+        final user = session.user;
+        final app = session.selectedApp;
+        final token = session.token;
+        if (user == null || app == null || token == null) {
+          throw StateError('Bạn cần đăng nhập để vào bàn.');
+        }
+        if (!socket.isConnected) {
+          await socket.connect(
+            socketUrl: app.socketUrl,
+            user: user,
+            notifyApiUrl: session.notifyApiUrl,
+            accessToken: token,
+          );
+        }
+        final state = await socket.joinTienLenRoom(
+          roomId: table.roomId,
+          title: table.name,
+          baseBet: room.baseBet,
+          userId: user.id,
+          name: user.name.trim().isNotEmpty ? user.name : user.username,
+          coins: user.gameCoins,
+        );
+        if (!context.mounted) return;
+        GameAudio.enterRoom();
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                RealtimeTableScreen(room: room, initialState: state),
+          ),
+        );
+      } else {
+        GameAudio.enterRoom();
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => WaitingRoomScreen(
+              room: room,
+              initialOpponentCount: table.currentPlayers.clamp(0, 3).toInt(),
+              hostName: table.host,
+              entryLabel: '${table.name} · ${table.state}',
+              roomId: table.roomId,
+            ),
+          ),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không vào được bàn: ${_joinError(error)}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _openingTable = false);
+        unawaited(_refreshTables());
+      }
+    }
+  }
+
+  String _joinError(Object error) {
+    final raw = error.toString().toLowerCase();
+    if (raw.contains('room-full')) return 'phòng đã đủ người';
+    if (raw.contains('room-not-found')) return 'phòng không còn tồn tại';
+    if (raw.contains('round-start-pending')) {
+      return 'ván mới đang bắt đầu, vui lòng thử lại';
+    }
+    if (raw.contains('unauthorized')) return 'phiên đăng nhập đã hết hạn';
+    return 'kết nối bàn chưa sẵn sàng, vui lòng thử lại';
   }
 
   void _openRoomList(BuildContext context) {
@@ -181,8 +314,72 @@ class ActiveTablesScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildTableList() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_loadError != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Không tải được danh sách bàn: $_loadError',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              onPressed: _refreshTables,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Thử lại'),
+            ),
+          ],
+        ),
+      );
+    }
+    if (_tables.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Chưa có bàn mở. Hãy chọn phòng để tạo bàn mới.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: _refreshTables,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Làm mới'),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView.separated(
+      itemCount: _tables.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 9),
+      itemBuilder: (context, index) {
+        final table = _tables[index];
+        return SizedBox(
+          height: 105,
+          child: _ActiveTableRow(
+            table: table,
+            onEnter: () => _openTable(context, table),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionController>();
+    final playerName = session.user?.name.trim().isNotEmpty == true
+        ? session.user!.name
+        : 'Người chơi';
+    final playerCoins = session.user?.gameCoins ?? 0;
     return GameStage(
       backgroundAsset:
           'assets/game_tien_len/backgrounds/login_stage_clean_v2.png',
@@ -196,7 +393,7 @@ class ActiveTablesScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const ProfileChip(name: 'Tây Bích 88', balance: 12500),
+                ProfileChip(name: playerName, balance: playerCoins),
                 SizedBox(
                   width: 355,
                   height: 100,
@@ -262,14 +459,14 @@ class ActiveTablesScreen extends StatelessWidget {
                                 color: GameTheme.mint.withValues(alpha: 0.5),
                               ),
                             ),
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
                                 horizontal: 13,
                                 vertical: 7,
                               ),
                               child: Text(
-                                '3 bàn đang mở',
-                                style: TextStyle(
+                                '${_tables.length} bàn đang mở',
+                                style: const TextStyle(
                                   color: GameTheme.ivory,
                                   fontWeight: FontWeight.w800,
                                 ),
@@ -279,23 +476,7 @@ class ActiveTablesScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      Expanded(
-                        child: Column(
-                          children: _tables
-                              .map(
-                                (ActiveDemoTable table) => Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(bottom: 9),
-                                    child: _ActiveTableRow(
-                                      table: table,
-                                      onEnter: () => _openTable(context, table),
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                      ),
+                      Expanded(child: _buildTableList()),
                     ],
                   ),
                 ),
@@ -344,25 +525,37 @@ class ActiveTablesScreen extends StatelessWidget {
 
 class ActiveDemoTable {
   const ActiveDemoTable({
+    required this.roomId,
     required this.name,
     required this.roomIndex,
     required this.currentPlayers,
+    required this.activePlayers,
+    required this.waitingPlayers,
     required this.maxPlayers,
     required this.wager,
     required this.host,
     required this.state,
+    required this.phase,
   });
 
+  final String roomId;
   final String name;
   final int roomIndex;
   final int currentPlayers;
+  final int activePlayers;
+  final int waitingPlayers;
   final int maxPlayers;
   final String wager;
   final String host;
   final String state;
+  final String phase;
 
   bool get isFull => currentPlayers >= maxPlayers;
+  bool get canJoin =>
+      const <String>{'waiting', 'playing', 'round-ended'}.contains(phase) &&
+      !isFull;
   String get playersLabel => '$currentPlayers/$maxPlayers người chơi';
+  bool get joinsAsSpectator => phase == 'playing' || phase == 'round-ended';
 }
 
 class _JoinRoomIdButton extends StatelessWidget {
@@ -429,7 +622,7 @@ class _ActiveTableRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isWaiting = table.state == 'Chờ người chơi';
+    final bool isWaiting = table.phase == 'waiting';
     final bool isFull = table.isFull;
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -455,6 +648,8 @@ class _ActiveTableRow extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     table.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: GameTheme.ivory,
                       fontSize: 21,
@@ -463,6 +658,8 @@ class _ActiveTableRow extends StatelessWidget {
                   ),
                   Text(
                     isFull ? 'Bàn đã đủ người' : table.state,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isFull
                           ? const Color(0xFFFF8F7B)
@@ -506,10 +703,37 @@ class _ActiveTableRow extends StatelessWidget {
                 children: <Widget>[
                   GptButton(
                     assetPath: 'assets/game_tien_len/buttons/enter_table.png',
-                    semanticLabel: 'Vào bàn ${table.name}',
-                    onPressed: isFull ? null : onEnter,
+                    semanticLabel: table.joinsAsSpectator
+                        ? 'Xem bàn ${table.name} và chờ ván sau'
+                        : 'Vào bàn ${table.name}',
+                    onPressed: table.canJoin ? onEnter : null,
                   ),
-                  if (isFull)
+                  if (table.canJoin && table.joinsAsSpectator)
+                    Positioned(
+                      bottom: 4,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: const Color(0xE2073B36),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: GameTheme.mint),
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 3,
+                          ),
+                          child: Text(
+                            'XEM · CHỜ VÁN SAU',
+                            style: TextStyle(
+                              color: Color(0xFFD8FFF8),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (!table.canJoin)
                     Positioned(
                       bottom: 4,
                       child: DecoratedBox(
@@ -518,14 +742,16 @@ class _ActiveTableRow extends StatelessWidget {
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(color: const Color(0xFFFFB199)),
                         ),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
                             horizontal: 9,
                             vertical: 3,
                           ),
                           child: Text(
-                            'ĐÃ ĐỦ 4/4',
-                            style: TextStyle(
+                            isFull
+                                ? 'ĐÃ ĐỦ ${table.playersLabel}'
+                                : 'ĐANG CHƠI',
+                            style: const TextStyle(
                               color: Color(0xFFFFD2C6),
                               fontSize: 10,
                               fontWeight: FontWeight.w900,

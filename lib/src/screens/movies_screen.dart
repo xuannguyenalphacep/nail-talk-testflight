@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -10,6 +12,7 @@ import '../core/utils/movie_showcase_utils.dart';
 import '../models/app_option.dart';
 import '../models/movie_item.dart';
 import '../widgets/language_switch_button.dart';
+import '../widgets/feature_unavailable_screen.dart';
 import '../widgets/metro_ui.dart';
 import 'chat_home_screen.dart';
 import 'movie_detail_screen.dart';
@@ -31,17 +34,27 @@ class _MoviesScreenState extends State<MoviesScreen> {
   final ScrollController _scrollController = ScrollController();
 
   int _heroIndex = 0;
+  bool _featureCheckComplete = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (context.read<SessionController>().hideVideoFeature) return;
-      context.read<SocialHubController>().refreshMovies();
+      unawaited(_confirmFeatureAndRefresh());
     });
     _searchController.addListener(_handleSearchChanged);
     _scrollController.addListener(_handleScroll);
+  }
+
+  Future<void> _confirmFeatureAndRefresh() async {
+    final session = context.read<SessionController>();
+    await session.refreshFeatureFlags();
+    if (!mounted) return;
+
+    setState(() => _featureCheckComplete = true);
+    if (!session.videoFeatureEnabled) return;
+    await context.read<SocialHubController>().refreshMovies();
   }
 
   @override
@@ -169,8 +182,16 @@ class _MoviesScreenState extends State<MoviesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (context.watch<SessionController>().hideVideoFeature) {
-      return const SizedBox.shrink();
+    final session = context.watch<SessionController>();
+    if (!_featureCheckComplete) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (session.hideVideoFeature) {
+      return const FeatureUnavailableScreen(
+        title: 'Video đang tạm ẩn',
+        message: 'Tính năng này hiện được quản trị viên tắt.',
+        icon: Icons.smart_display_outlined,
+      );
     }
     final controller = context.watch<SocialHubController>();
     final unreadCount = context.watch<ChatController>().visibleRooms.fold<int>(
@@ -1233,6 +1254,14 @@ class _MovieBrowseScreenState extends State<_MovieBrowseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (context.watch<SessionController>().hideVideoFeature) {
+      return const FeatureUnavailableScreen(
+        title: 'Video đang tạm ẩn',
+        message: 'Tính năng này hiện được quản trị viên tắt.',
+        icon: Icons.smart_display_outlined,
+        showBackButton: true,
+      );
+    }
     final controller = context.watch<SocialHubController>();
     final hasActivePlan = controller.activeSubscription?.isActive == true;
     final library =
@@ -1476,6 +1505,14 @@ class _MovieCategoryHubScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (context.watch<SessionController>().hideVideoFeature) {
+      return const FeatureUnavailableScreen(
+        title: 'Video đang tạm ẩn',
+        message: 'Tính năng này hiện được quản trị viên tắt.',
+        icon: Icons.smart_display_outlined,
+        showBackButton: true,
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: MetroPageBackground(

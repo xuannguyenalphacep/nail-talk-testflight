@@ -7,15 +7,19 @@ class AppConstants {
     'BOOTSTRAP_API_BASE',
     defaultValue: 'http://54.205.74.122/api',
   );
-  static const String chatCallBaseUrl = String.fromEnvironment(
+  // Keep the raw value separate so runtime normalization can distinguish an
+  // explicit development override from the production fallback.
+  static const String chatCallBaseUrlOverride = String.fromEnvironment(
     'CHAT_CALL_BASE_URL',
-    defaultValue: 'http://54.205.74.122',
   );
+  static const String chatCallBaseUrl = chatCallBaseUrlOverride == ''
+      ? 'http://54.205.74.122'
+      : chatCallBaseUrlOverride;
   static const bool moviePaymentsEnabled = bool.fromEnvironment(
     'MOVIE_PAYMENTS_ENABLED',
     defaultValue: false,
   );
-  static const bool youtubeVideoFeatureEnabled = bool.fromEnvironment(
+  static const bool youtubeEmbedPlaybackEnabled = bool.fromEnvironment(
     'YOUTUBE_VIDEO_FEATURE_ENABLED',
     defaultValue: true,
   );
@@ -23,14 +27,8 @@ class AppConstants {
     'HOSTED_MOVIE_PLAYBACK_ENABLED',
     defaultValue: false,
   );
-  static const bool forceShowAppleVideoFeature = bool.fromEnvironment(
-    'FORCE_SHOW_APPLE_VIDEO_FEATURE',
-    defaultValue: false,
-  );
-  static bool get hideVideoForAppleReview =>
-      !youtubeVideoFeatureEnabled && !forceShowAppleVideoFeature;
-  static const String noPaymentReviewNote =
-      'Current App Store review build has no in-app purchases, subscriptions, external checkout, paid video unlock, or hosted/direct video playback. Video content shown in the app is limited to free YouTube embeds.';
+  static const String videoPaymentsUnavailableNote =
+      'Video purchases are not available in this app configuration. There are no in-app purchases, subscriptions, external checkout, or paid video unlocks.';
 
   static const Duration connectTimeout = Duration(seconds: 20);
   static const Duration receiveTimeout = Duration(seconds: 30);

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -68,6 +70,9 @@ class _ChatMobileAppState extends State<ChatMobileApp>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_sessionController.refreshFeatureFlags());
+    }
     if (_sessionController.isLoggedIn) {
       _sessionController.updatePresence(
         state == AppLifecycleState.resumed ||

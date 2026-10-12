@@ -20,7 +20,7 @@ Nails Talk is a community app for Vietnamese nail and beauty professionals in th
 
 ## Payments and transactions
 
-The current App Store review build does not include in-app purchases, subscriptions, external checkout, paid video unlock, or hosted/direct video playback. Video content shown in the app is limited to free YouTube embeds.
+The current app configuration does not include in-app purchases, subscriptions, external checkout, or paid video unlocks. Available video content is controlled by server-side app availability and enabled playback capabilities; when YouTube playback is enabled, videos use public YouTube embeds.
 
 Marketplace prices, job salary ranges, and room or rental amounts are listing information provided by members. Nails Talk does not process payments or transactions for those listings.
 

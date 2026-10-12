@@ -7,7 +7,9 @@ abstract final class GameTheme {
   static const Color gold = Color(0xFFE8B84D);
   static const Color ivory = Color(0xFFFFF2CF);
 
-  static ThemeData get theme {
+  static final ThemeData theme = _buildTheme();
+
+  static ThemeData _buildTheme() {
     final ColorScheme scheme = ColorScheme.fromSeed(
       seedColor: jade,
       brightness: Brightness.dark,

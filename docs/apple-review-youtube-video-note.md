@@ -1,31 +1,27 @@
-# Apple Review note - YouTube-only video mode
+# App Review note - controlled Video availability
 
-Use this note in App Store Connect Review Notes or as a reply to App Review when reopening the Video tab.
+Use this note in App Store Connect Review Notes or as a reply to App Review. Before submission, make sure the note and store metadata describe the actual server-side configuration for the submitted app, account, and region.
 
-If the admin `Enable Video tab` toggle is off for review, use the shorter clarification below instead:
+The `Enable Video tab` and `Enable Game bài / card game` settings are controlled-rollout and compliance controls. They must not vary based on reviewer identity or review status. Reviewers and production users in the same rollout scope receive the same feature state.
 
-Hello App Review Team,
-
-This build keeps the Video tab and community card-game preview disabled through our server-side admin feature settings while the app is under review. The visible app experience includes community feed, marketplace, jobs/housing, spa/beauty service directory, account safety, reporting/blocking, and chat. No in-app purchases, subscriptions, paid video unlocks, external checkout, hosted/direct movie playback, gambling, real-money gaming, prizes, or betting flows are available in this review build.
-
-## Suggested reply to Apple
+## Suggested reply when Video is enabled
 
 Hello App Review Team,
 
-This update re-enables the Video tab in a limited YouTube-embed-only mode.
+The submitted configuration enables the Video tab in a limited YouTube-embed-only mode for all users in its rollout scope.
 
 Copyright / third-party content clarification:
 
 - Nails Talk does not host, upload, store, download, convert, cache, redistribute, sell, or unlock video files.
-- The iOS build only displays public YouTube videos through the official YouTube embedded player inside a WebView.
-- Hosted/private/direct video playback is disabled in this iOS build.
+- This app configuration only displays public YouTube videos through the official YouTube embedded player inside a WebView.
+- Hosted/private/direct video playback is disabled in this configuration.
 - The app does not bypass YouTube playback, branding, ads, availability, region limits, age restrictions, takedowns, or copyright enforcement.
 - If YouTube or a rights holder removes, restricts, blocks, or disables embedding for a video, it will not play in Nails Talk.
-- Video access is free. There are no in-app purchases, subscriptions, external checkout, paid video unlocks, or pay-per-view flows in this build.
+- Video access is currently free. There are no in-app purchases, subscriptions, external checkout, paid video unlocks, or pay-per-view flows in this configuration.
 
 Moderation and data-filtering clarification:
 
-- Admin video entries are reviewed before publishing and must use YouTube URLs only for this iOS build.
+- Admin video entries are reviewed before publishing and must match the playback capabilities enabled for this app.
 - Community posts, listings, and chat text are filtered before being posted.
 - Users can report objectionable content and block abusive users.
 - Blocking removes that user's content from the current feed/chat view, and safety reports are reviewed by the moderation team within 24 hours.
@@ -38,6 +34,10 @@ Review steps:
 4. Tap Watch now.
 5. Confirm playback uses a YouTube embedded player and that no download, payment, subscription, or external purchase flow is present.
 6. Open community feed/chat/listing screens to confirm report, block, and content-filtering behavior.
+
+## Suggested reply when Video or the card game is disabled
+
+State which feature is disabled and the rollout scope that receives that same state. Explain that the feature is unavailable to reviewers and production users alike in that scope, and make sure screenshots, descriptions, age rating, and Review Notes all match. Do not tie future enablement to a store-review outcome; enable it only through a documented rollout after content, age-rating, regional-policy, and operational checks are complete.
 
 ## Implementation notes
 

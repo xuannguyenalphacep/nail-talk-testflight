@@ -1,6 +1,6 @@
 # Live Environment Notes
 
-Last checked: 2026-10-07, Asia/Ho_Chi_Minh.
+Last checked: 2026-10-12, Asia/Ho_Chi_Minh.
 
 This note is the quick source of truth before changing Flutter API URLs or building for Store/TestFlight.
 
@@ -58,6 +58,24 @@ Confirmed on 2026-09-16:
 - Web stack: nginx + PHP 8.4 FPM + local MySQL.
 
 No matching private SSH key was found on the local Mac during the 2026-09-16 check. Access was done through AWS CloudShell + EC2 Instance Connect, then a temporary local SSH key was used only for the deployment session.
+
+## 2026-10-12 backend and feature-flag deploy
+
+Verified EC2 `nail-talk-demo` in `us-east-1`, instance `i-0d40575496d1426d9`, with API, socket, nginx, PHP 8.4 FPM and MySQL active. The local backend archive was uploaded through AWS CloudShell, SHA-256-checked on CloudShell and EC2, then overlaid onto `/var/www/nail-talk` without deleting server `.env`, Laravel `vendor/`/storage, socket `node_modules/`, uploads or recordings. No local SQL dump was imported.
+
+Before changing code or DB, server backups were written to `/home/ubuntu/backups/20261012-pre-game-rollout/`: `code-before.tgz` and `db-before.sql.gz` (the latter passed `gzip -t`). The code backup contains server `.env`, so keep it restricted to the server. The temporary EC2 Instance Connect SSH key used for transfer was removed from CloudShell after transfer.
+
+Ran the pending migrations through `2026_10_11_000007`, including `video_enabled` and `card_game_enabled` in `em_chat_apps`, cleared Laravel caches, and restarted `php8.4-fpm`, `nginx`, and `nail-talk-socket`. The `social-hub` record has both flags set to `0` for all users; no reviewer-specific switch was configured. The socket log showed startup and MySQL heartbeat without errors.
+
+Live smoke test: `/api/app/features` returned HTTP 200 with both flags `false`; `/api/mobile-chat/apps` returned the same flags; `/api/movies` returned HTTP 403 `feature_disabled`; `/socket.io/?EIO=4&transport=polling` returned HTTP 200. Card-game activation still needs a coordinated game-service secret/configuration and end-to-end live testing before enabling the flag.
+
+App Store security debt: the current Flutter production defaults still target `http://54.205.74.122` for API and Socket.IO. Move these endpoints to a domain with valid HTTPS/WSS and test on a real iOS build. Do not add a blanket insecure-network exception as a substitute for transport security.
+
+## 2026-10-12 full DB resync and iOS build check
+
+Later on 2026-10-12, the project owner explicitly chose to replace the live database with the local `social_hub_local` dump. The live DB and code were backed up first under `/home/ubuntu/backups/20261012-before-resync/`. The local dump imported successfully into an AWS test database before it replaced the live DB. The imported live DB contains 13 users and 69 game-coin transactions; the prior live DB backup contains the previous 11 users and 11 transactions. The AWS API/socket URLs were restored in `em_chat_apps`, and `video_enabled=0`, `card_game_enabled=0` for all users. The local `social_hub_local.em_chat_apps` row was also set to `0/0` so a future full DB sync does not reactivate either feature. The temporary test DB and plaintext AWS dump copies were removed; the pre-import backup remains.
+
+The API and socket source archive was SHA-256-checked, transferred to EC2 and overlaid onto the live code while preserving server `.env` and runtime dependencies. Socket started before PHP-FPM/API. The public `/api/app/features` and Socket.IO handshake both returned HTTP 200, and the feature API returned both flags as `false`.
 
 ## 2026-09-16 manual live sync
 
@@ -156,25 +174,40 @@ curl "http://54.205.74.122/api/movies"
 curl "http://54.205.74.122/socket.io/?EIO=4&transport=polling"
 ```
 
-4. For local API/socket testing, override the defaults with `--dart-define=BOOTSTRAP_API_BASE=http://127.0.0.1:8010/api` and `--dart-define=CHAT_CALL_BASE_URL=http://127.0.0.1:3000`.
+4. For local API/socket testing, keep the tracked production defaults unchanged
+   and pass endpoint overrides when launching Flutter. Windows desktop and web
+   use the loopback host:
 
-## iOS App Review YouTube-only video mode
+```bash
+flutter run -d chrome --dart-define=BOOTSTRAP_API_BASE=http://127.0.0.1:8010/api --dart-define=CHAT_CALL_BASE_URL=http://127.0.0.1:3000
+```
 
-As of 2026-10-08, the Flutter app shows the Video section on iOS, but defaults to YouTube-embed-only playback for Apple review.
+   An Android emulator reaches the Windows host through `10.0.2.2`:
+
+```bash
+flutter run -d emulator-5554 --dart-define=BOOTSTRAP_API_BASE=http://10.0.2.2:8010/api --dart-define=CHAT_CALL_BASE_URL=http://10.0.2.2:3000
+```
+
+   A physical device must use the Windows machine's current LAN IPv4 address
+   and the firewall must allow ports `8010` and `3000`.
+
+## Video playback capabilities
+
+As of 2026-10-08, the Flutter app supports independently configured YouTube-embed and hosted-video playback capabilities. Server-side app availability remains the primary control for whether the Video section is shown.
 
 - Flag location: `flutter-app/lib/src/core/constants/app_constants.dart`
 - Default behavior: `YOUTUBE_VIDEO_FEATURE_ENABLED=true`, `MOVIE_PAYMENTS_ENABLED=false`, and `HOSTED_MOVIE_PLAYBACK_ENABLED=false`.
 - Flutter filters video data to YouTube embeds unless hosted playback is intentionally enabled.
 - The Laravel API also filters `/api/movies` to published YouTube entries only while `HOSTED_MOVIE_PLAYBACK_ENABLED=false`.
 
-## Admin feature toggles for App Review
+## Admin controlled feature rollout
 
 As of 2026-10-09, the code supports hiding or showing the Video and community card-game areas from the Laravel admin dashboard without rebuilding the mobile app. The live server must have the latest `admin-api/` code deployed and `php artisan migrate --force` run before the admin fields appear.
 
 - Admin location: `/admin/resources/chat-apps` → edit the `social-hub` / `Nails Talk` chat app.
-- `Enable Video tab` controls the mobile Video tab and the `/api/movies` API. When off, the app hides Video and the API returns no movie records / 404 for movie detail.
+- `Enable Video tab` controls the mobile Video tab and the `/api/movies` API. When off, the app hides Video and feature-protected API routes return HTTP 403 `feature_disabled`.
 - `Enable Game bài / card game` controls the community card-game preview/banner in the app.
-- Both toggles default to off for Apple review safety. After Apple approval, turn on only the features that should be visible in production.
+- Both toggles default to off and must be enabled only after content, age-rating, regional-policy, and operational checks are complete. The configured state must apply equally to reviewers and production users in the applicable rollout scope, and store metadata must describe that state accurately.
 - Hosted/direct movie playback remains separately blocked unless `HOSTED_MOVIE_PLAYBACK_ENABLED=true` is intentionally set on the server.
 
 ## Smoke test result

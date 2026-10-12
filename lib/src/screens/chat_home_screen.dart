@@ -2417,6 +2417,11 @@ class _MessageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionController>();
+    final attachmentHeaders = _attachmentHeaders(
+      session,
+      message.filePath ?? '',
+    );
     if (message.isImage && (message.filePath?.isNotEmpty ?? false)) {
       return InkWell(
         onTap: () => _openPreview(
@@ -2424,6 +2429,7 @@ class _MessageContent extends StatelessWidget {
           url: message.filePath!,
           title: _attachmentTitle(),
           isImage: true,
+          headers: attachmentHeaders,
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
@@ -2435,6 +2441,7 @@ class _MessageContent extends StatelessWidget {
               width: 220,
               height: 220,
               fit: BoxFit.cover,
+              headers: attachmentHeaders,
               errorFallback: Text(
                 plainText,
                 style: TextStyle(color: foregroundColor, height: 1.45),
@@ -2494,6 +2501,10 @@ class _MessageContent extends StatelessWidget {
       await openAttachmentExternally(
         url: message.filePath!,
         fileName: _attachmentTitle(),
+        headers: _attachmentHeaders(
+          context.read<SessionController>(),
+          message.filePath!,
+        ),
       );
     } catch (_) {
       messenger?.hideCurrentSnackBar();
@@ -2515,13 +2526,46 @@ class _MessageContent extends StatelessWidget {
     required String url,
     required String title,
     required bool isImage,
+    required Map<String, String> headers,
   }) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) =>
-            AttachmentPreviewScreen(url: url, title: title, isImage: isImage),
+        builder: (_) => AttachmentPreviewScreen(
+          url: url,
+          title: title,
+          isImage: isImage,
+          headers: headers,
+        ),
       ),
     );
+  }
+
+  static Map<String, String> _attachmentHeaders(
+    SessionController session,
+    String url,
+  ) {
+    final uri = Uri.tryParse(url);
+    if (uri == null || !uri.path.startsWith('/api/realtime/chat/files/')) {
+      return const <String, String>{};
+    }
+
+    final allowedOrigins = <String>[
+      session.selectedApp?.appUrl ?? '',
+      session.selectedApp?.apiBaseUrl ?? '',
+    ].map(Uri.tryParse).whereType<Uri>();
+    final sameOrigin =
+        !uri.hasAuthority ||
+        allowedOrigins.any((allowed) {
+          return allowed.scheme == uri.scheme &&
+              allowed.host == uri.host &&
+              allowed.port == uri.port;
+        });
+    if (!sameOrigin) return const <String, String>{};
+
+    final token = session.token;
+    return token == null || token.isEmpty
+        ? const <String, String>{}
+        : <String, String>{'Authorization': 'Bearer $token'};
   }
 }
 

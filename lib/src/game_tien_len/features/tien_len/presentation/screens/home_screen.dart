@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../../controllers/session_controller.dart';
+import '../../../../../services/chat_socket_service.dart';
 import '../../../../core/audio/game_audio.dart';
 import '../../../../core/widgets/card_view.dart';
 import '../../../../core/widgets/game_stage.dart';
 import '../../../../core/widgets/profile_chip.dart';
 import '../../data/game_data.dart';
+import '../../data/realtime_game_models.dart';
 import 'active_tables_screen.dart';
 import 'waiting_room_screen.dart';
 
@@ -15,24 +17,70 @@ const String _lobbySparkleGif =
 const String _titleLogoAsset =
     'assets/game_tien_len/branding/title_tien_len_gold.png';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   static const String _stageBackground =
       'assets/game_tien_len/backgrounds/home_stage_premium.jpg';
 
-  void _openQuickPlay(BuildContext context) {
-    Navigator.of(context).push(
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _openingDestination = false;
+
+  Future<void> _openQuickPlay(BuildContext context) async {
+    if (_openingDestination) return;
+    setState(() => _openingDestination = true);
+    TienLenRoomSummary? match;
+    try {
+      final rooms = await context.read<ChatSocketService>().listTienLenRooms();
+      for (final room in rooms) {
+        if (room.phase == 'waiting' &&
+            room.playerCount < room.maxPlayers &&
+            _demoRoomFor(room.baseBet) != null) {
+          match = room;
+          break;
+        }
+      }
+    } catch (_) {
+      // WaitingRoom will reconnect and create a wager room below.
+    }
+    if (!context.mounted) return;
+
+    final selectedRoom = match == null
+        ? demoRooms.first
+        : _demoRoomFor(match.baseBet)!;
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => WaitingRoomScreen(room: demoRooms.first),
+        builder: (_) => WaitingRoomScreen(
+          room: selectedRoom,
+          roomId: match?.roomId,
+          initialOpponentCount: match == null ? 0 : match.playerCount - 1,
+          hostName: match == null ? 'Bạn' : 'Chủ bàn ${match.roomId}',
+          entryLabel: match == null ? 'Chơi nhanh · Cược 100 xu' : 'Ghép nhanh',
+        ),
       ),
     );
+    if (mounted) setState(() => _openingDestination = false);
   }
 
-  void _openActiveTables(BuildContext context) {
-    Navigator.of(
+  DemoRoom? _demoRoomFor(int baseBet) {
+    if (baseBet <= 0) return null;
+    for (final room in demoRooms) {
+      if (room.baseBet == baseBet) return room;
+    }
+    return null;
+  }
+
+  Future<void> _openActiveTables(BuildContext context) async {
+    if (_openingDestination) return;
+    setState(() => _openingDestination = true);
+    await Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => const ActiveTablesScreen()));
+    if (mounted) setState(() => _openingDestination = false);
   }
 
   @override
@@ -43,7 +91,7 @@ class HomeScreen extends StatelessWidget {
         : 'Tây Bích 88';
     final playerCoins = session.user?.gameCoins ?? 0;
     return GameStage(
-      backgroundAsset: _stageBackground,
+      backgroundAsset: HomeScreen._stageBackground,
       stageWidth: 1672,
       stageHeight: 941,
       child: Padding(
@@ -79,7 +127,9 @@ class HomeScreen extends StatelessWidget {
                     Positioned(
                       bottom: 56,
                       child: _MainPlayButton(
-                        onPressed: () => _openQuickPlay(context),
+                        onPressed: _openingDestination
+                            ? null
+                            : () => _openQuickPlay(context),
                       ),
                     ),
                   ],
@@ -100,7 +150,9 @@ class HomeScreen extends StatelessWidget {
                         label: 'Bàn đang chơi',
                         subtitle: 'Xem phòng đang mở',
                         icon: Icons.groups_2_rounded,
-                        onPressed: () => _openActiveTables(context),
+                        onPressed: _openingDestination
+                            ? () {}
+                            : () => _openActiveTables(context),
                       ),
                     ),
                     const Spacer(flex: 5),
@@ -545,7 +597,7 @@ class _ChipStack extends StatelessWidget {
 class _MainPlayButton extends StatefulWidget {
   const _MainPlayButton({required this.onPressed});
 
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   State<_MainPlayButton> createState() => _MainPlayButtonState();
@@ -575,148 +627,160 @@ class _MainPlayButtonState extends State<_MainPlayButton>
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
+      enabled: widget.onPressed != null,
       label: 'Chơi ngay',
-      child: GestureDetector(
-        onTap: () {
-          GameAudio.tap();
-          widget.onPressed();
-        },
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTapUp: (_) => setState(() => _pressed = false),
-        child: AnimatedBuilder(
-          animation: _pulseController,
-          builder: (context, child) {
-            return AnimatedScale(
-              scale: _pressed ? 0.965 : 1 + (_pulseController.value * 0.018),
-              duration: const Duration(milliseconds: 110),
-              curve: Curves.easeOutBack,
-              child: child,
-            );
-          },
-          child: SizedBox(
-            width: 610,
-            height: 154,
-            child: Stack(
-              alignment: Alignment.center,
-              clipBehavior: Clip.none,
-              children: <Widget>[
-                Positioned(
-                  left: 58,
-                  right: 58,
-                  bottom: 10,
-                  height: 38,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      boxShadow: const <BoxShadow>[
-                        BoxShadow(
-                          color: Color(0xAA000000),
-                          blurRadius: 36,
-                          offset: Offset(0, 14),
-                        ),
-                        BoxShadow(
-                          color: Color(0xCCFEC04D),
-                          blurRadius: 34,
-                          spreadRadius: -8,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  top: 28,
-                  height: 104,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: <Color>[
-                          Color(0xFFFFF7A8),
-                          Color(0xFFFFC43E),
-                          Color(0xFFE77514),
+      child: Opacity(
+        opacity: widget.onPressed == null ? 0.68 : 1,
+        child: GestureDetector(
+          onTap: widget.onPressed == null
+              ? null
+              : () {
+                  GameAudio.tap();
+                  widget.onPressed!();
+                },
+          onTapDown: widget.onPressed == null
+              ? null
+              : (_) => setState(() => _pressed = true),
+          onTapCancel: widget.onPressed == null
+              ? null
+              : () => setState(() => _pressed = false),
+          onTapUp: widget.onPressed == null
+              ? null
+              : (_) => setState(() => _pressed = false),
+          child: AnimatedBuilder(
+            animation: _pulseController,
+            builder: (context, child) {
+              return AnimatedScale(
+                scale: _pressed ? 0.965 : 1 + (_pulseController.value * 0.018),
+                duration: const Duration(milliseconds: 110),
+                curve: Curves.easeOutBack,
+                child: child,
+              );
+            },
+            child: SizedBox(
+              width: 610,
+              height: 154,
+              child: Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
+                children: <Widget>[
+                  Positioned(
+                    left: 58,
+                    right: 58,
+                    bottom: 10,
+                    height: 38,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        boxShadow: const <BoxShadow>[
+                          BoxShadow(
+                            color: Color(0xAA000000),
+                            blurRadius: 36,
+                            offset: Offset(0, 14),
+                          ),
+                          BoxShadow(
+                            color: Color(0xCCFEC04D),
+                            blurRadius: 34,
+                            spreadRadius: -8,
+                          ),
                         ],
-                        stops: <double>[0, 0.48, 1],
                       ),
-                      border: Border.all(
-                        color: const Color(0xFFFFF0B6),
-                        width: 5,
-                      ),
-                      boxShadow: const <BoxShadow>[
-                        BoxShadow(
-                          color: Color(0x99000000),
-                          blurRadius: 26,
-                          offset: Offset(0, 15),
+                    ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 28,
+                    height: 104,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: <Color>[
+                            Color(0xFFFFF7A8),
+                            Color(0xFFFFC43E),
+                            Color(0xFFE77514),
+                          ],
+                          stops: <double>[0, 0.48, 1],
                         ),
-                        BoxShadow(
-                          color: Color(0x99FFCF55),
-                          blurRadius: 36,
-                          spreadRadius: 3,
+                        border: Border.all(
+                          color: const Color(0xFFFFF0B6),
+                          width: 5,
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 25,
-                  right: 25,
-                  top: 43,
-                  height: 72,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: <Color>[Color(0xFFFFF9D7), Color(0xFFFFB320)],
-                      ),
-                      border: Border.all(
-                        color: const Color(0xFF9D4E02),
-                        width: 3,
+                        boxShadow: const <BoxShadow>[
+                          BoxShadow(
+                            color: Color(0x99000000),
+                            blurRadius: 26,
+                            offset: Offset(0, 15),
+                          ),
+                          BoxShadow(
+                            color: Color(0x99FFCF55),
+                            blurRadius: 36,
+                            spreadRadius: 3,
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-                Positioned(
-                  left: 54,
-                  right: 54,
-                  top: 54,
-                  height: 18,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      color: Colors.white.withValues(alpha: 0.58),
+                  Positioned(
+                    left: 25,
+                    right: 25,
+                    top: 43,
+                    height: 72,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: <Color>[Color(0xFFFFF9D7), Color(0xFFFFB320)],
+                        ),
+                        border: Border.all(
+                          color: const Color(0xFF9D4E02),
+                          width: 3,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                Positioned(
-                  left: -8,
-                  child: _ButtonMedallion(
-                    icon: Icons.auto_awesome_rounded,
-                    color: const Color(0xFFFFDF6F),
+                  Positioned(
+                    left: 54,
+                    right: 54,
+                    top: 54,
+                    height: 18,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        color: Colors.white.withValues(alpha: 0.58),
+                      ),
+                    ),
                   ),
-                ),
-                Positioned(
-                  right: -8,
-                  child: _ButtonMedallion(
-                    icon: Icons.play_arrow_rounded,
-                    color: const Color(0xFFFF6E91),
+                  Positioned(
+                    left: -8,
+                    child: _ButtonMedallion(
+                      icon: Icons.auto_awesome_rounded,
+                      color: const Color(0xFFFFDF6F),
+                    ),
                   ),
-                ),
-                const Positioned(
-                  top: 54,
-                  child: _CasinoButtonText(
-                    text: 'CHƠI NGAY',
-                    fontSize: 48,
-                    letterSpacing: 1.4,
-                    strokeWidth: 6.5,
+                  Positioned(
+                    right: -8,
+                    child: _ButtonMedallion(
+                      icon: Icons.play_arrow_rounded,
+                      color: const Color(0xFFFF6E91),
+                    ),
                   ),
-                ),
-              ],
+                  const Positioned(
+                    top: 54,
+                    child: _CasinoButtonText(
+                      text: 'CHƠI NGAY',
+                      fontSize: 48,
+                      letterSpacing: 1.4,
+                      strokeWidth: 6.5,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

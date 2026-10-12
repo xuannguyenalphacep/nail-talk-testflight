@@ -74,25 +74,31 @@ class TienLenRealtimePlayer {
     required this.id,
     required this.seatIndex,
     required this.name,
-    required this.isBot,
+    required this.isSystemOpponent,
     required this.connected,
     required this.ready,
     required this.coins,
     required this.handCount,
     required this.hand,
     required this.finished,
+    this.waitingForNextRound = false,
+    this.eligibleForNextRound = true,
+    this.waitingReason,
   });
 
   final String id;
   final int seatIndex;
   final String name;
-  final bool isBot;
+  final bool isSystemOpponent;
   final bool connected;
   final bool ready;
   final int coins;
   final int handCount;
   final List<TienLenRealtimeCard> hand;
   final bool finished;
+  final bool waitingForNextRound;
+  final bool eligibleForNextRound;
+  final String? waitingReason;
 
   factory TienLenRealtimePlayer.fromJson(Map<String, dynamic> json) {
     final rawHand = json['hand'] as List<dynamic>? ?? const <dynamic>[];
@@ -100,7 +106,8 @@ class TienLenRealtimePlayer {
       id: (json['id'] ?? '').toString(),
       seatIndex: (json['seatIndex'] as num?)?.toInt() ?? 0,
       name: (json['name'] ?? '').toString(),
-      isBot: json['isBot'] == true,
+      isSystemOpponent:
+          json['isSystemOpponent'] == true || json['isBot'] == true,
       connected: json['connected'] != false,
       ready: json['ready'] == true,
       coins: (json['coins'] as num?)?.toInt() ?? 0,
@@ -113,6 +120,34 @@ class TienLenRealtimePlayer {
           )
           .toList(),
       finished: json['finished'] == true,
+      waitingForNextRound: json['waitingForNextRound'] == true,
+      eligibleForNextRound: json['eligibleForNextRound'] != false,
+      waitingReason: (json['waitingReason'] ?? '').toString().trim().isEmpty
+          ? null
+          : (json['waitingReason'] ?? '').toString().trim(),
+    );
+  }
+}
+
+class TienLenMoneyEvent {
+  const TienLenMoneyEvent({
+    required this.fromId,
+    required this.toId,
+    required this.gross,
+    required this.net,
+  });
+
+  final String fromId;
+  final String toId;
+  final int gross;
+  final int net;
+
+  factory TienLenMoneyEvent.fromJson(Map<String, dynamic> json) {
+    return TienLenMoneyEvent(
+      fromId: (json['fromId'] ?? '').toString(),
+      toId: (json['toId'] ?? '').toString(),
+      gross: (json['gross'] as num?)?.toInt() ?? 0,
+      net: (json['net'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -128,6 +163,8 @@ class TienLenRoomSummary {
     required this.humanCount,
     required this.botCount,
     required this.roundNumber,
+    required this.activePlayerCount,
+    required this.waitingPlayerCount,
   });
 
   final String roomId;
@@ -139,6 +176,8 @@ class TienLenRoomSummary {
   final int humanCount;
   final int botCount;
   final int roundNumber;
+  final int activePlayerCount;
+  final int waitingPlayerCount;
 
   bool get isFull => playerCount >= maxPlayers;
 
@@ -148,11 +187,16 @@ class TienLenRoomSummary {
       title: (json['title'] ?? '').toString(),
       phase: (json['phase'] ?? '').toString(),
       baseBet: (json['baseBet'] as num?)?.toInt() ?? 0,
-      maxPlayers: (json['maxPlayers'] as num?)?.toInt() ?? 3,
+      maxPlayers: (json['maxPlayers'] as num?)?.toInt() ?? 4,
       playerCount: (json['playerCount'] as num?)?.toInt() ?? 0,
       humanCount: (json['humanCount'] as num?)?.toInt() ?? 0,
       botCount: (json['botCount'] as num?)?.toInt() ?? 0,
       roundNumber: (json['roundNumber'] as num?)?.toInt() ?? 0,
+      activePlayerCount:
+          (json['activePlayerCount'] as num?)?.toInt() ??
+          (json['playerCount'] as num?)?.toInt() ??
+          0,
+      waitingPlayerCount: (json['waitingPlayerCount'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -168,7 +212,14 @@ class TienLenRoomState extends TienLenRoomSummary {
     required super.humanCount,
     required super.botCount,
     required super.roundNumber,
+    required super.activePlayerCount,
+    required super.waitingPlayerCount,
+    required this.roundId,
+    required this.settlementStatus,
+    required this.settlementError,
     required this.viewerId,
+    required this.viewerRole,
+    required this.viewerWaitingForNextRound,
     required this.hostId,
     required this.currentTurnPlayerId,
     required this.lastActorId,
@@ -179,13 +230,23 @@ class TienLenRoomState extends TienLenRoomSummary {
     required this.passedPlayerIds,
     required this.finishedOrder,
     required this.turnLogs,
+    this.chatMessages = const <Map<String, dynamic>>[],
     required this.players,
+    required this.spectators,
+    this.moneyEvents = const <TienLenMoneyEvent>[],
     required this.turnStartedAt,
     required this.turnDeadlineAt,
     required this.turnDurationSeconds,
+    required this.autoBotJoinDueAt,
+    required this.nextRoundAllowedAt,
   });
 
+  final String roundId;
+  final String settlementStatus;
+  final String? settlementError;
   final String viewerId;
+  final String viewerRole;
+  final bool viewerWaitingForNextRound;
   final String hostId;
   final String currentTurnPlayerId;
   final String lastActorId;
@@ -196,16 +257,34 @@ class TienLenRoomState extends TienLenRoomSummary {
   final Set<String> passedPlayerIds;
   final List<String> finishedOrder;
   final List<String> turnLogs;
+  final List<Map<String, dynamic>> chatMessages;
   final List<TienLenRealtimePlayer> players;
+  final List<TienLenRealtimePlayer> spectators;
+  final List<TienLenMoneyEvent> moneyEvents;
   final DateTime? turnStartedAt;
   final DateTime? turnDeadlineAt;
   final int turnDurationSeconds;
+  final DateTime? autoBotJoinDueAt;
+  final DateTime? nextRoundAllowedAt;
 
   bool get isHost => viewerId == hostId;
+  bool get isSpectator =>
+      viewerRole == 'spectator' || viewerWaitingForNextRound;
   bool get isPlaying => phase == 'playing';
   bool get isWaiting => phase == 'waiting';
   bool get isRoundEnded => phase == 'round-ended';
-  bool get isViewerTurn => currentTurnPlayerId == viewerId && isPlaying;
+  bool get isViewerTurn =>
+      !isSpectator && currentTurnPlayerId == viewerId && isPlaying;
+  bool get isSettlementPending => settlementStatus == 'pending';
+  bool get isSettlementSettled => settlementStatus == 'settled';
+  bool get isSettlementFailed => settlementStatus == 'failed';
+  bool get mustDrainWhenFeatureDisabled =>
+      isPlaying || (isRoundEnded && baseBet > 0 && !isSettlementSettled);
+  bool get canStartNextRound =>
+      isRoundEnded && !isSettlementPending && !isSettlementFailed;
+
+  bool canStartNextRoundAt(DateTime now) =>
+      canStartNextRound && remainingNextRoundSeconds(now) == 0;
 
   TienLenRealtimePlayer? get viewerPlayer {
     for (final player in players) {
@@ -214,6 +293,16 @@ class TienLenRoomState extends TienLenRoomSummary {
     return null;
   }
 
+  TienLenRealtimePlayer? get viewerSpectator {
+    for (final spectator in spectators) {
+      if (spectator.id == viewerId) return spectator;
+    }
+    return null;
+  }
+
+  TienLenRealtimePlayer? get viewerParticipant =>
+      viewerPlayer ?? viewerSpectator;
+
   TienLenRealtimePlayer? get currentTurnPlayer {
     for (final player in players) {
       if (player.id == currentTurnPlayerId) return player;
@@ -221,34 +310,87 @@ class TienLenRoomState extends TienLenRoomSummary {
     return null;
   }
 
+  int get viewerRoundCoinDelta {
+    return moneyEvents.fold<int>(0, (int total, TienLenMoneyEvent event) {
+      final int received = event.toId == viewerId ? event.net : 0;
+      final int paid = event.fromId == viewerId ? event.gross : 0;
+      return total + received - paid;
+    });
+  }
+
   int remainingTurnSeconds(DateTime now) {
     final deadline = turnDeadlineAt;
     if (deadline == null || !isPlaying) return 0;
-    final seconds = deadline.difference(now).inSeconds;
-    return seconds < 0 ? 0 : seconds;
+    final remaining = deadline.difference(now);
+    if (remaining <= Duration.zero) return 0;
+
+    // Duration.inSeconds truncates, which used to display 0 and disable the
+    // player's controls for almost a full second before the server deadline.
+    // Keep any positive fraction visible/actionable until it actually expires.
+    final milliseconds = remaining.inMilliseconds;
+    if (milliseconds == 0) return 1;
+    return (milliseconds + Duration.millisecondsPerSecond - 1) ~/
+        Duration.millisecondsPerSecond;
+  }
+
+  int remainingAutoMatchSeconds(DateTime now) {
+    if (!isWaiting || playerCount > 2) return 0;
+    return _remainingSeconds(autoBotJoinDueAt, now);
+  }
+
+  int remainingNextRoundSeconds(DateTime now) {
+    if (!isRoundEnded) return 0;
+    return _remainingSeconds(nextRoundAllowedAt, now);
+  }
+
+  static int _remainingSeconds(DateTime? deadline, DateTime now) {
+    if (deadline == null) return 0;
+    final remaining = deadline.difference(now);
+    if (remaining <= Duration.zero) return 0;
+    final milliseconds = remaining.inMilliseconds;
+    return (milliseconds + Duration.millisecondsPerSecond - 1) ~/
+        Duration.millisecondsPerSecond;
   }
 
   factory TienLenRoomState.fromJson(Map<String, dynamic> json) {
     final rawCards = json['tableCards'] as List<dynamic>? ?? const <dynamic>[];
     final rawPlayers = json['players'] as List<dynamic>? ?? const <dynamic>[];
+    final rawSpectators =
+        json['spectators'] as List<dynamic>? ?? const <dynamic>[];
     final rawPassed =
         json['passedPlayerIds'] as List<dynamic>? ?? const <dynamic>[];
     final rawFinished =
         json['finishedOrder'] as List<dynamic>? ?? const <dynamic>[];
     final rawLogs = json['turnLogs'] as List<dynamic>? ?? const <dynamic>[];
+    final rawChatMessages =
+        json['chatMessages'] as List<dynamic>? ?? const <dynamic>[];
+    final rawMoneyEvents =
+        json['moneyEvents'] as List<dynamic>? ?? const <dynamic>[];
     final rawLastPlay = json['lastPlay'];
+    final settlementError = (json['settlementError'] ?? '').toString().trim();
 
     return TienLenRoomState(
       roomId: (json['roomId'] ?? '').toString(),
       title: (json['title'] ?? '').toString(),
       phase: (json['phase'] ?? '').toString(),
       baseBet: (json['baseBet'] as num?)?.toInt() ?? 0,
-      maxPlayers: (json['maxPlayers'] as num?)?.toInt() ?? 3,
+      maxPlayers: (json['maxPlayers'] as num?)?.toInt() ?? 4,
       playerCount: (json['playerCount'] as num?)?.toInt() ?? 0,
       humanCount: (json['humanCount'] as num?)?.toInt() ?? 0,
       botCount: (json['botCount'] as num?)?.toInt() ?? 0,
       roundNumber: (json['roundNumber'] as num?)?.toInt() ?? 0,
+      activePlayerCount:
+          (json['activePlayerCount'] as num?)?.toInt() ?? rawPlayers.length,
+      waitingPlayerCount:
+          (json['waitingPlayerCount'] as num?)?.toInt() ?? rawSpectators.length,
+      roundId: (json['roundId'] ?? '').toString(),
+      settlementStatus: (json['settlementStatus'] ?? 'idle')
+          .toString()
+          .toLowerCase(),
+      settlementError: settlementError.isEmpty ? null : settlementError,
       viewerId: (json['viewerId'] ?? '').toString(),
+      viewerRole: (json['viewerRole'] ?? 'player').toString(),
+      viewerWaitingForNextRound: json['viewerWaitingForNextRound'] == true,
       hostId: (json['hostId'] ?? '').toString(),
       currentTurnPlayerId: (json['currentTurnPlayerId'] ?? '').toString(),
       lastActorId: (json['lastActorId'] ?? '').toString(),
@@ -268,11 +410,29 @@ class TienLenRoomState extends TienLenRoomSummary {
       passedPlayerIds: rawPassed.map((item) => item.toString()).toSet(),
       finishedOrder: rawFinished.map((item) => item.toString()).toList(),
       turnLogs: rawLogs.map((item) => item.toString()).toList(),
+      chatMessages: rawChatMessages
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList(),
       players: rawPlayers
           .whereType<Map>()
           .map(
             (item) =>
                 TienLenRealtimePlayer.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList(),
+      spectators: rawSpectators
+          .whereType<Map>()
+          .map(
+            (item) =>
+                TienLenRealtimePlayer.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList(),
+      moneyEvents: rawMoneyEvents
+          .whereType<Map>()
+          .map(
+            (item) =>
+                TienLenMoneyEvent.fromJson(Map<String, dynamic>.from(item)),
           )
           .toList(),
       turnStartedAt: DateTime.tryParse(
@@ -282,6 +442,12 @@ class TienLenRoomState extends TienLenRoomSummary {
         (json['turnDeadlineAt'] ?? '').toString(),
       ),
       turnDurationSeconds: (json['turnDurationSeconds'] as num?)?.toInt() ?? 15,
+      autoBotJoinDueAt: DateTime.tryParse(
+        (json['autoBotJoinDueAt'] ?? '').toString(),
+      ),
+      nextRoundAllowedAt: DateTime.tryParse(
+        (json['nextRoundAllowedAt'] ?? '').toString(),
+      ),
     );
   }
 }

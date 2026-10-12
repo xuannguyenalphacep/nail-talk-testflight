@@ -15,6 +15,13 @@ import '../../data/game_data.dart';
 import '../../data/realtime_game_models.dart';
 import 'table_screen.dart';
 
+String _formatMatchCountdown(int seconds) {
+  if (seconds < 60) return '$seconds giây';
+  final minutes = seconds ~/ 60;
+  final remainingSeconds = seconds % 60;
+  return '$minutes phút ${remainingSeconds.toString().padLeft(2, '0')} giây';
+}
+
 class WaitingRoomScreen extends StatefulWidget {
   const WaitingRoomScreen({
     required this.room,
@@ -22,6 +29,7 @@ class WaitingRoomScreen extends StatefulWidget {
     this.hostName = 'Tây Bích 88',
     this.entryLabel,
     this.roomId,
+    this.roomIdGenerator,
     super.key,
   });
 
@@ -30,6 +38,7 @@ class WaitingRoomScreen extends StatefulWidget {
   final String hostName;
   final String? entryLabel;
   final String? roomId;
+  final String Function()? roomIdGenerator;
 
   @override
   State<WaitingRoomScreen> createState() => _WaitingRoomScreenState();
@@ -37,20 +46,28 @@ class WaitingRoomScreen extends StatefulWidget {
 
 class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
   static const int _autoStartDelaySeconds = 15;
-  static const int _maxBotOpponents = 2;
+  static const int _maxBotOpponents = 3;
   static const int _minOpponentsToStart = 1;
-  static const List<int> _joinMilestones = <int>[4, 9];
+  static const int _maxRoomCreationAttempts = 4;
+  static const String _roomIdAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
   Timer? _autoStartTimer;
   StreamSubscription<TienLenRoomState>? _roomStateSubscription;
   StreamSubscription<Map<String, dynamic>>? _eventSubscription;
+  StreamSubscription<bool>? _connectionSubscription;
+  Timer? _retryTimer;
   bool _isReady = false;
   bool _joinedRealtime = false;
+  bool _openingTable = false;
+  bool _tableOpenScheduled = false;
+  bool _leaving = false;
+  bool _allowPop = false;
+  bool _actionInFlight = false;
+  bool _recoveringLostRoom = false;
+  ChatSocketService? _socketService;
   late int _joinedOpponents;
-  late int _autoFillLimit;
-  late final String _roomId;
-  int _opponentJoinRemaining = _joinMilestones.first;
-  int _autoStartRemaining = _autoStartDelaySeconds;
+  late String _roomId;
+  int _opponentJoinRemaining = _autoStartDelaySeconds;
   late String _status;
   TienLenRoomState? _roomState;
 
@@ -61,14 +78,14 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     _joinedOpponents = widget.initialOpponentCount
         .clamp(0, _maxBotOpponents)
         .toInt();
-    _autoFillLimit = _maxBotOpponents;
-    _opponentJoinRemaining = _secondsUntilNextJoin(_autoStartRemaining);
-    _status = _countdownStatus();
+    _opponentJoinRemaining = _autoStartDelaySeconds;
+    _status = _waitingForReadyStatus();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _socketService ??= context.read<ChatSocketService>();
     _joinRealtimeRoomOnce();
   }
 
@@ -77,17 +94,65 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     _autoStartTimer?.cancel();
     _roomStateSubscription?.cancel();
     _eventSubscription?.cancel();
+    _connectionSubscription?.cancel();
+    _retryTimer?.cancel();
+    if (!_openingTable && !_leaving) {
+      unawaited(_leaveSilently());
+    }
     super.dispose();
   }
 
+  Future<void> _leaveSilently({bool forceServerLeave = false}) async {
+    try {
+      final socket = _socketService;
+      if (forceServerLeave) {
+        await socket?.forceLeaveTienLenRoom();
+      } else {
+        await socket?.leaveTienLenRoom();
+      }
+    } catch (_) {}
+  }
+
   String _generateRoomId() {
-    final int suffix = DateTime.now().millisecondsSinceEpoch % 90000 + 10000;
+    final customId = widget.roomIdGenerator?.call().trim();
+    if (customId != null && customId.isNotEmpty) return customId;
+
+    final random = math.Random.secure();
+    final suffix = List<String>.generate(
+      16,
+      (_) => _roomIdAlphabet[random.nextInt(_roomIdAlphabet.length)],
+      growable: false,
+    ).join();
     return 'NT$suffix';
   }
 
   bool get _isHostedByUser => widget.hostName == 'Tây Bích 88';
 
   bool get _isRemoteHost => _roomState?.isHost ?? _isHostedByUser;
+
+  bool get _canAutoMatchBot {
+    final state = _roomState;
+    return !_leaving &&
+        !_openingTable &&
+        state != null &&
+        state.isWaiting &&
+        state.isHost &&
+        state.playerCount <= 2 &&
+        state.autoBotJoinDueAt != null;
+  }
+
+  bool get _allConnectedHumansReady {
+    final state = _roomState;
+    if (state == null) return _isReady;
+    return _connectedHumansReady(state);
+  }
+
+  bool _connectedHumansReady(TienLenRoomState state) {
+    final humans = state.players.where(
+      (player) => !player.isSystemOpponent && player.connected,
+    );
+    return humans.isNotEmpty && humans.every((player) => player.ready);
+  }
 
   int get _remoteOpponentCount {
     final state = _roomState;
@@ -115,22 +180,47 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     final user = session.user;
     final app = session.selectedApp;
     if (user == null || app == null) {
+      _joinedRealtime = false;
       setState(() => _status = 'Bạn cần đăng nhập để vào phòng realtime.');
       return;
     }
 
-    final socket = context.read<ChatSocketService>();
-    _roomStateSubscription = socket.tienLenRoomStateStream.listen((state) {
+    final socket = _socketService ?? context.read<ChatSocketService>();
+    _roomStateSubscription ??= socket.tienLenRoomStateStream.listen((state) {
       if (!mounted || state.roomId != _roomId) return;
       _applyRemoteState(state);
     });
-    _eventSubscription = socket.tienLenEventStream.listen((event) {
+    _eventSubscription ??= socket.tienLenEventStream.listen((event) {
       if (!mounted || event['roomId']?.toString() != _roomId) return;
       if (event['event'] == 'kicked') {
         ScaffoldMessenger.maybeOf(context)?.showSnackBar(
           const SnackBar(content: Text('Bạn đã bị mời ra khỏi phòng.')),
         );
-        Navigator.of(context).maybePop();
+        unawaited(_leaveAndPop());
+      } else if (event['event'] == 'session-replaced') {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          const SnackBar(
+            content: Text('Bàn chơi đã được mở trên một thiết bị khác.'),
+          ),
+        );
+        unawaited(_leaveAndPop());
+      } else if (event['event'] == 'feature-paused') {
+        unawaited(_handleFeaturePaused());
+      } else if (event['event'] == 'reconnecting') {
+        setState(() => _status = 'Mất kết nối · đang vào lại bàn...');
+      } else if (event['event'] == 'reconnect-failed') {
+        final message = (event['message'] ?? '').toString();
+        if (message.contains('room-not-found')) {
+          unawaited(_recoverLostWaitingRoom());
+        } else {
+          setState(() => _status = 'Đang thử khôi phục kết nối bàn chơi...');
+        }
+      }
+    });
+    _connectionSubscription ??= socket.connectionStream.listen((connected) {
+      if (!mounted || _openingTable) return;
+      if (!connected) {
+        setState(() => _status = 'Mất kết nối · đang kết nối lại...');
       }
     });
 
@@ -140,54 +230,157 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
           socketUrl: app.socketUrl,
           user: user,
           notifyApiUrl: session.notifyApiUrl,
+          accessToken: session.token!,
         );
       }
 
-      final state = widget.roomId == null
-          ? await socket.createTienLenRoom(
-              roomId: _roomId,
-              title: widget.room.title,
-              baseBet: widget.room.baseBet,
-              userId: user.id,
-              name: _playerName,
-              coins: _playerCoins,
-              maxPlayers: 3,
-            )
-          : await socket.joinTienLenRoom(
-              roomId: _roomId,
-              title: widget.room.title,
-              baseBet: widget.room.baseBet,
-              userId: user.id,
-              name: _playerName,
-              coins: _playerCoins,
-            );
+      late TienLenRoomState state;
+      final createsOwnRoom = widget.roomId == null;
+      if (createsOwnRoom) {
+        state = await _createOwnRealtimeRoom(socket, user.id);
+      } else {
+        state = await socket.joinTienLenRoom(
+          roomId: _roomId,
+          title: widget.room.title,
+          baseBet: widget.room.baseBet,
+          userId: user.id,
+          name: _playerName,
+          coins: _playerCoins,
+        );
+      }
       _applyRemoteState(state);
       _startAutoStartTimer();
     } catch (error) {
       if (!mounted) return;
+      _joinedRealtime = false;
+      if (widget.roomId == null) {
+        // A failed create acknowledgement is ambiguous: the server may have
+        // created and joined the old room. Explicitly leave it and use a new
+        // unguessable ID on the next create. Never fall through to join,
+        // because that could put this player in somebody else's room.
+        await _leaveSilently(forceServerLeave: true);
+        if (!mounted) return;
+        setState(() {
+          _roomId = _generateRoomId();
+          _roomState = null;
+          _isReady = false;
+          _joinedOpponents = widget.initialOpponentCount
+              .clamp(0, _maxBotOpponents)
+              .toInt();
+          _opponentJoinRemaining = _autoStartDelaySeconds;
+        });
+      }
       setState(() {
         _status = 'Không vào được phòng realtime: ${_shortError(error)}';
+      });
+      _retryTimer?.cancel();
+      _retryTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted && !_openingTable && !_leaving) {
+          unawaited(_joinRealtimeRoomOnce());
+        }
       });
     }
   }
 
+  Future<TienLenRoomState> _createOwnRealtimeRoom(
+    ChatSocketService socket,
+    int userId,
+  ) async {
+    Object? lastError;
+    for (var attempt = 0; attempt < _maxRoomCreationAttempts; attempt++) {
+      try {
+        return await socket.createTienLenRoom(
+          roomId: _roomId,
+          title: widget.room.title,
+          baseBet: widget.room.baseBet,
+          userId: userId,
+          name: _playerName,
+          coins: _playerCoins,
+          maxPlayers: 4,
+        );
+      } catch (error) {
+        lastError = error;
+        final isCollision = error.toString().contains('room-already-exists');
+        if (!isCollision || attempt == _maxRoomCreationAttempts - 1) {
+          rethrow;
+        }
+        if (!mounted) rethrow;
+        setState(() {
+          _roomId = _generateRoomId();
+          _status = 'ID phòng vừa trùng · đang tạo phòng mới...';
+        });
+      }
+    }
+    throw StateError('room-create-failed: $lastError');
+  }
+
+  Future<void> _recoverLostWaitingRoom() async {
+    if (_recoveringLostRoom || _leaving || _openingTable) return;
+    _recoveringLostRoom = true;
+    _autoStartTimer?.cancel();
+
+    if (widget.roomId != null) {
+      if (mounted) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Phòng này đã kết thúc. Đang quay lại danh sách bàn.',
+            ),
+          ),
+        );
+      }
+      await _leaveAndPop();
+      _recoveringLostRoom = false;
+      return;
+    }
+
+    if (mounted) {
+      setState(() => _status = 'Kết nối đã trở lại · đang tạo lại phòng...');
+    }
+    await _leaveSilently(forceServerLeave: true);
+    if (!mounted) return;
+
+    setState(() {
+      _roomId = _generateRoomId();
+      _roomState = null;
+      _joinedRealtime = false;
+      _isReady = false;
+      _joinedOpponents = 0;
+      _opponentJoinRemaining = _autoStartDelaySeconds;
+      _status = 'Đang tạo lại phòng...';
+    });
+    _recoveringLostRoom = false;
+    await _joinRealtimeRoomOnce();
+  }
+
   String _shortError(Object error) {
     final raw = error.toString().replaceFirst('Exception: ', '');
+    final normalized = raw.toLowerCase();
     if (raw.contains('room-already-started')) return 'bàn đã bắt đầu';
     if (raw.contains('room-full')) return 'phòng đã đủ người';
+    if (normalized.contains('bot-matchmaking-pending')) {
+      return 'đang ghép người chơi, vui lòng chờ trong giây lát';
+    }
+    if (normalized.contains('bot') ||
+        normalized.contains('bankroll') ||
+        normalized.contains('system-opponent')) {
+      return 'chưa thể ghép đối thủ lúc này';
+    }
     return raw;
   }
 
   void _applyRemoteState(TienLenRoomState state) {
+    if (!mounted || _openingTable) return;
     setState(() {
       _roomState = state;
       _joinedOpponents = _remoteOpponentCount.clamp(0, _maxBotOpponents);
       _isReady = state.viewerPlayer?.ready ?? _isReady;
+      _opponentJoinRemaining = state.remainingAutoMatchSeconds(DateTime.now());
       _status = _remoteStatus(state);
     });
 
-    if (state.isPlaying) {
-      _openRealtimeTable(state);
+    if (state.isPlaying || state.isRoundEnded || state.isSpectator) {
+      _scheduleOpenRealtimeTable(state);
     }
   }
 
@@ -199,17 +392,31 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     if (state.isRoundEnded) {
       return 'Ván đã kết thúc · chờ chủ phòng chia ván mới';
     }
-    final canStart = _remoteOpponentCount >= _minOpponentsToStart;
     final label = widget.entryLabel == null ? '' : '${widget.entryLabel} · ';
+    if (state.viewerPlayer?.ready != true) {
+      if (_remoteOpponentCount == 0) {
+        return '$label'
+            'Tự ghép đối thủ sau ${_formatMatchCountdown(_opponentJoinRemaining)} · Bấm Sẵn sàng khi bạn đã sẵn sàng';
+      }
+      return '$label'
+          'Đối thủ đang chờ · Bấm Sẵn sàng để bắt đầu';
+    }
+    if (!_connectedHumansReady(state)) {
+      return '$label'
+          'Bạn đã sẵn sàng · đang chờ người chơi khác';
+    }
+    final canStart = _remoteOpponentCount >= _minOpponentsToStart;
     if (canStart) {
       return '$labelĐủ người · Chủ phòng có thể bắt đầu';
     }
-    return '$labelĐang chờ thêm người hoặc thêm bot';
+    return '$labelĐang chờ ghép đối thủ · còn ${_formatMatchCountdown(_opponentJoinRemaining)}';
   }
 
   void _openRealtimeTable(TienLenRoomState state) {
     _autoStartTimer?.cancel();
-    if (!mounted) return;
+    _retryTimer?.cancel();
+    if (!mounted || _openingTable) return;
+    _openingTable = true;
     GameAudio.enterRoom();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
@@ -219,125 +426,116 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     );
   }
 
-  int _secondsUntilNextJoin(int remainingSeconds) {
-    if (_joinedOpponents >= _autoFillLimit) {
-      return 0;
-    }
-    final int elapsedSeconds = _autoStartDelaySeconds - remainingSeconds;
-    final int nextMilestone = _joinMilestones[_joinedOpponents];
-    return math.max(1, nextMilestone - elapsedSeconds);
+  void _scheduleOpenRealtimeTable(TienLenRoomState state) {
+    if (_openingTable || _tableOpenScheduled || !mounted) return;
+    _tableOpenScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _tableOpenScheduled = false;
+      if (!mounted || _openingTable || _leaving) return;
+      _openRealtimeTable(state);
+    });
   }
 
-  int _matchedOpponentsForRemaining(int remainingSeconds) {
-    final int elapsedSeconds = _autoStartDelaySeconds - remainingSeconds;
-    int matchedOpponents = widget.initialOpponentCount
-        .clamp(0, _maxBotOpponents)
-        .toInt();
-    for (
-      int index = matchedOpponents;
-      index < _joinMilestones.length && index < _autoFillLimit;
-      index++
-    ) {
-      if (elapsedSeconds >= _joinMilestones[index]) {
-        matchedOpponents = index + 1;
-      }
+  Future<void> _leaveAndPop() async {
+    if (_leaving || _openingTable) return;
+    setState(() => _leaving = true);
+    _autoStartTimer?.cancel();
+    _retryTimer?.cancel();
+    await _leaveSilently();
+    if (!mounted) return;
+
+    setState(() => _allowPop = true);
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+    final didPop = await Navigator.of(context).maybePop();
+    if (!didPop && mounted) {
+      setState(() {
+        _allowPop = false;
+        _leaving = false;
+      });
     }
-    return matchedOpponents.clamp(0, _autoFillLimit).toInt();
   }
 
-  String _countdownStatus() {
-    final bool canStart = _joinedOpponents >= _minOpponentsToStart;
-    final String prefix = _joinedOpponents >= _maxBotOpponents
-        ? 'Đủ bot hỗ trợ'
-        : canStart
-        ? 'Đủ 2 người · Có thể bắt đầu'
-        : 'Đang ghép người chơi thứ 2';
-    final String tableLabel = widget.entryLabel == null
+  Future<void> _handleFeaturePaused() async {
+    if (_leaving) return;
+    await context.read<SessionController>().refreshFeatureFlags();
+    if (!mounted) return;
+    if (_roomState?.mustDrainWhenFeatureDisabled == true) {
+      setState(() {
+        _status =
+            'Game đã tắt cho lượt mới · ván hiện tại tiếp tục đến khi quyết toán';
+      });
+      return;
+    }
+    setState(() {
+      _status = 'Game bài đã được quản trị viên tắt · đang rời bàn...';
+    });
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      const SnackBar(content: Text('Game bài đã được quản trị viên tắt.')),
+    );
+    if (mounted) await _leaveAndPop();
+  }
+
+  String _waitingForReadyStatus() {
+    final tableLabel = widget.entryLabel == null
         ? ''
         : '${widget.entryLabel} · ';
-    return '$tableLabel$prefix · Chủ phòng ${widget.hostName} sẽ start sau $_autoStartRemaining giây';
+    if (_joinedOpponents == 0) {
+      return '$tableLabel'
+          'Đối thủ sẽ tự vào sau ${_formatMatchCountdown(_opponentJoinRemaining)} · Bấm Sẵn sàng khi bạn đã sẵn sàng';
+    }
+    return '$tableLabel'
+        'Đối thủ đang chờ · Bấm Sẵn sàng để bắt đầu';
   }
 
   void _startAutoStartTimer() {
     _autoStartTimer?.cancel();
     _autoStartTimer = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
       if (!mounted) {
-        return;
-      }
-      if (_autoStartRemaining <= 1) {
         timer.cancel();
-        setState(() {
-          if (_joinedOpponents < _minOpponentsToStart) {
-            _autoStartRemaining = 0;
-            _opponentJoinRemaining = 0;
-            _status =
-                'Phòng $_roomId đang thiếu người · Chủ phòng mời thêm rồi start lại';
-            return;
-          }
-          _opponentJoinRemaining = 0;
-          _autoStartRemaining = 0;
-          _status = 'Đủ 2 người · Chủ phòng ${widget.hostName} đang start';
-        });
-        if (_joinedOpponents < _minOpponentsToStart) {
-          return;
-        }
-        if (_isRemoteHost) {
-          _startGame(autoStart: true);
-        }
         return;
       }
+      final state = _roomState;
+      if (state == null || !state.isWaiting) return;
+      final remaining = state.remainingAutoMatchSeconds(DateTime.now());
       setState(() {
-        _autoStartRemaining--;
-        if (_roomState == null) {
-          _joinedOpponents = _matchedOpponentsForRemaining(_autoStartRemaining);
-        }
-        _opponentJoinRemaining = _secondsUntilNextJoin(_autoStartRemaining);
-        _status = _roomState == null
-            ? _countdownStatus()
-            : _remoteStatus(_roomState!);
+        _opponentJoinRemaining = remaining;
+        _status = _remoteStatus(state);
       });
     });
   }
 
   Future<void> _toggleReady() async {
+    if (_actionInFlight) return;
+    final previousReady = _isReady;
     setState(() {
+      _actionInFlight = true;
       _isReady = !_isReady;
       _status = _isReady
-          ? 'Bạn đã sẵn sàng · Chủ phòng ${widget.hostName} sẽ start sau $_autoStartRemaining giây'
-          : _countdownStatus();
+          ? _joinedOpponents >= _minOpponentsToStart
+                ? 'Bạn đã sẵn sàng · Có thể bắt đầu ván'
+                : 'Bạn đã sẵn sàng · Đang chờ đối thủ tự vào sau ${_formatMatchCountdown(_opponentJoinRemaining)}'
+          : _waitingForReadyStatus();
     });
     try {
       final state = await context.read<ChatSocketService>().readyTienLen(
         ready: _isReady,
       );
-      _applyRemoteState(state);
-    } catch (_) {
-      // Local ready state is enough for display if ack is slow.
-    }
-  }
-
-  Future<void> _inviteFriend() async {
-    final socket = context.read<ChatSocketService>();
-    if (!_isRemoteHost) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chỉ chủ phòng được thêm bot.')),
-      );
-      return;
-    }
-    try {
-      final state = await socket.addTienLenBot();
       if (!mounted) return;
       _applyRemoteState(state);
-      return;
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Không thêm bot được: ${_shortError(error)}')),
-      );
+      setState(() {
+        _isReady = previousReady;
+        _status = 'Không cập nhật được sẵn sàng: ${_shortError(error)}';
+      });
+    } finally {
+      if (mounted) setState(() => _actionInFlight = false);
     }
   }
 
   Future<void> _kickOpponent(int seatNumber) async {
+    if (_actionInFlight) return;
     final socket = context.read<ChatSocketService>();
     final state = _roomState;
     if (!_isRemoteHost || state == null) {
@@ -347,6 +545,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
         .where((player) => player.id != state.viewerId)
         .toList();
     if (seatNumber < 1 || seatNumber > opponents.length) return;
+    setState(() => _actionInFlight = true);
     try {
       final nextState = await socket.kickTienLenPlayer(
         opponents[seatNumber - 1].id,
@@ -358,14 +557,26 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Không đá được: ${_shortError(error)}')),
       );
+    } finally {
+      if (mounted) setState(() => _actionInFlight = false);
     }
   }
 
-  Future<void> _startGame({bool autoStart = false}) async {
+  Future<void> _startGame() async {
+    if (_actionInFlight || _openingTable) return;
     final socket = context.read<ChatSocketService>();
+    if (!_allConnectedHumansReady) {
+      setState(() {
+        _status = _isReady
+            ? 'Đang chờ tất cả người chơi bấm Sẵn sàng.'
+            : _waitingForReadyStatus();
+      });
+      return;
+    }
     if (_joinedOpponents < _minOpponentsToStart) {
       setState(
-        () => _status = 'Cần ít nhất 2 người · Đang ghép thêm người chơi',
+        () => _status =
+            'Cần ít nhất 2 người · Đối thủ sẽ tự vào sau ${_formatMatchCountdown(_opponentJoinRemaining)}',
       );
       return;
     }
@@ -373,6 +584,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
       setState(() => _status = 'Chờ chủ phòng bấm bắt đầu.');
       return;
     }
+    setState(() => _actionInFlight = true);
     try {
       final state = await socket.startTienLenRoom();
       if (!mounted) return;
@@ -380,6 +592,10 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _status = 'Chưa bắt đầu được: ${_shortError(error)}');
+    } finally {
+      if (mounted && !_openingTable) {
+        setState(() => _actionInFlight = false);
+      }
     }
   }
 
@@ -390,106 +606,113 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
         ? session.user!.name
         : 'Tây Bích 88';
     final playerCoins = session.user?.gameCoins ?? 0;
-    return GameStage(
-      backgroundAsset: 'assets/game_tien_len/backgrounds/lobby_stage.png',
-      stageWidth: 1672,
-      stageHeight: 941,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(44, 24, 44, 28),
-        child: Column(
-          children: <Widget>[
-            SizedBox(
-              height: 104,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  ProfileChip(name: playerName, balance: playerCoins),
-                  Expanded(
-                    child: Center(
-                      child: SizedBox(
-                        width: 330,
-                        height: 104,
-                        child: Image.asset(
-                          'assets/game_tien_len/branding/title.png',
-                          fit: BoxFit.contain,
+    return PopScope<void>(
+      canPop: _allowPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) unawaited(_leaveAndPop());
+      },
+      child: GameStage(
+        backgroundAsset: 'assets/game_tien_len/backgrounds/lobby_stage.png',
+        stageWidth: 1672,
+        stageHeight: 941,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(44, 24, 44, 28),
+          child: Column(
+            children: <Widget>[
+              SizedBox(
+                height: 104,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    ProfileChip(name: playerName, balance: playerCoins),
+                    Expanded(
+                      child: Center(
+                        child: SizedBox(
+                          width: 330,
+                          height: 104,
+                          child: Image.asset(
+                            'assets/game_tien_len/branding/title.png',
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  SizedBox(
-                    width: 250,
-                    child: Align(
-                      alignment: Alignment.topRight,
-                      child: _RoomBadge(room: widget.room),
+                    SizedBox(
+                      width: 250,
+                      child: Align(
+                        alignment: Alignment.topRight,
+                        child: _RoomBadge(room: widget.room),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: _WaitingPanel(
-                room: widget.room,
-                isReady: _isReady,
-                joinedOpponents: _joinedOpponents,
-                opponentJoinRemaining: _opponentJoinRemaining,
-                autoStartRemaining: _autoStartRemaining,
-                status: _status,
-                hostName: widget.hostName,
-                roomId: _roomId,
-                roomState: _roomState,
-                canKick: _isRemoteHost,
-                onKickOpponent: _kickOpponent,
+              const SizedBox(height: 10),
+              Expanded(
+                child: _WaitingPanel(
+                  room: widget.room,
+                  playerName: playerName,
+                  isReady: _isReady,
+                  joinedOpponents: _joinedOpponents,
+                  opponentJoinRemaining: _opponentJoinRemaining,
+                  status: _status,
+                  hostName: widget.hostName,
+                  roomId: _roomId,
+                  roomState: _roomState,
+                  autoMatchingBots: _canAutoMatchBot,
+                  canKick: _isRemoteHost,
+                  onKickOpponent: _kickOpponent,
+                ),
               ),
-            ),
-            const SizedBox(height: 14),
-            SizedBox(
-              height: 94,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  Expanded(
-                    child: GptButton(
-                      assetPath: _isReady
-                          ? 'assets/game_tien_len/buttons/cancel_ready.png'
-                          : 'assets/game_tien_len/buttons/ready.png',
-                      semanticLabel: _isReady ? 'Hủy sẵn sàng' : 'Sẵn sàng',
-                      onPressed: _toggleReady,
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 94,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    Expanded(
+                      child: GptButton(
+                        key: const ValueKey<String>('ready-room-button'),
+                        assetPath: _isReady
+                            ? 'assets/game_tien_len/buttons/cancel_ready.png'
+                            : 'assets/game_tien_len/buttons/ready.png',
+                        semanticLabel: _isReady ? 'Hủy sẵn sàng' : 'Sẵn sàng',
+                        onPressed: _actionInFlight ? null : _toggleReady,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: GptButton(
-                      assetPath:
-                          'assets/game_tien_len/buttons/invite_friend.png',
-                      semanticLabel: 'Mời bạn',
-                      onPressed: _inviteFriend,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: GptButton(
+                        key: const ValueKey<String>('leave-room-button'),
+                        assetPath:
+                            'assets/game_tien_len/buttons/leave_room.png',
+                        semanticLabel: 'Rời phòng',
+                        onPressed: _leaving
+                            ? null
+                            : () => unawaited(_leaveAndPop()),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: GptButton(
-                      assetPath: 'assets/game_tien_len/buttons/leave_room.png',
-                      semanticLabel: 'Rời phòng',
-                      onPressed: () => Navigator.of(context).pop(),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: GptButton(
+                        key: const ValueKey<String>('start-room-button'),
+                        assetPath:
+                            'assets/game_tien_len/buttons/start_game.png',
+                        semanticLabel: 'Bắt đầu chơi',
+                        onPressed:
+                            !_actionInFlight &&
+                                _isRemoteHost &&
+                                _allConnectedHumansReady &&
+                                _joinedOpponents >= _minOpponentsToStart
+                            ? () => _startGame()
+                            : null,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: GptButton(
-                      assetPath: 'assets/game_tien_len/buttons/start_game.png',
-                      semanticLabel: 'Bắt đầu chơi',
-                      onPressed:
-                          _isRemoteHost &&
-                              _joinedOpponents >= _minOpponentsToStart
-                          ? () => _startGame()
-                          : null,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -540,31 +763,33 @@ class _RoomBadge extends StatelessWidget {
 class _WaitingPanel extends StatelessWidget {
   const _WaitingPanel({
     required this.room,
+    required this.playerName,
     required this.isReady,
     required this.joinedOpponents,
     required this.opponentJoinRemaining,
-    required this.autoStartRemaining,
     required this.status,
     required this.hostName,
     required this.roomId,
     required this.roomState,
+    required this.autoMatchingBots,
     required this.canKick,
     required this.onKickOpponent,
   });
 
   final DemoRoom room;
+  final String playerName;
   final bool isReady;
   final int joinedOpponents;
   final int opponentJoinRemaining;
-  final int autoStartRemaining;
   final String status;
   final String hostName;
   final String roomId;
   final TienLenRoomState? roomState;
+  final bool autoMatchingBots;
   final bool canKick;
   final ValueChanged<int> onKickOpponent;
 
-  bool get _isHostedByUser => hostName == 'Tây Bích 88';
+  bool get _isHostedByUser => roomState?.isHost ?? hostName == 'Tây Bích 88';
 
   List<TienLenRealtimePlayer> get _opponents {
     final state = roomState;
@@ -597,14 +822,28 @@ class _WaitingPanel extends StatelessWidget {
     final int index = seatNumber - 1;
     if (index >= 0 && index < _opponents.length) {
       final player = _opponents[index];
-      if (player.isBot) return 'Bot · Sẵn sàng';
-      if (player.id == roomState?.hostId) return 'Chủ phòng · Sẵn sàng';
+      if (player.isSystemOpponent) {
+        return player.ready ? 'Đã sẵn sàng' : 'Đang chuẩn bị';
+      }
+      if (player.id == roomState?.hostId) {
+        return player.ready
+            ? 'Chủ phòng · Đã sẵn sàng'
+            : 'Chủ phòng · Chưa sẵn sàng';
+      }
       return player.ready ? 'Đã sẵn sàng' : 'Đang chuẩn bị';
     }
     if (!_isHostedByUser && seatNumber == 1) {
-      return 'Chủ phòng · Sẵn sàng';
+      return 'Chủ phòng · Đang chuẩn bị';
     }
-    return 'Đã vào · Sẵn sàng';
+    return 'Đã vào · Đang chuẩn bị';
+  }
+
+  bool _seatIsReady(int seatNumber) {
+    final int index = seatNumber - 1;
+    if (index >= 0 && index < _opponents.length) {
+      return _opponents[index].ready;
+    }
+    return false;
   }
 
   @override
@@ -646,7 +885,8 @@ class _WaitingPanel extends StatelessWidget {
                 _CounterBadge(
                   joinedOpponents: joinedOpponents,
                   opponentJoinRemaining: opponentJoinRemaining,
-                  autoStartRemaining: autoStartRemaining,
+                  autoMatchingBots: autoMatchingBots,
+                  canStart: _allConnectedHumansReady,
                 ),
               ],
             ),
@@ -657,12 +897,12 @@ class _WaitingPanel extends StatelessWidget {
                 children: <Widget>[
                   Expanded(
                     child: _SeatCard(
-                      name: 'Tây Bích 88',
+                      name: playerName,
                       detail: isReady
                           ? 'Bạn · Đã sẵn sàng'
                           : _isHostedByUser
-                          ? 'Bạn · Chủ bàn'
-                          : 'Bạn · Khách vào bàn',
+                          ? 'Bạn · Chủ bàn · Chưa sẵn sàng'
+                          : 'Bạn · Chưa sẵn sàng',
                       icon: Icons.person,
                       isReady: isReady,
                       isPlayer: true,
@@ -671,16 +911,17 @@ class _WaitingPanel extends StatelessWidget {
                   const SizedBox(width: 14),
                   Expanded(
                     child: _SeatCard(
+                      key: const ValueKey<String>('waiting-opponent-seat-1'),
                       name: joinedOpponents >= 1
                           ? _seatName(1)
                           : 'Đang tìm người',
                       detail: joinedOpponents >= 1
                           ? _seatDetail(1)
-                          : 'Ghép sau ${opponentJoinRemaining}s',
+                          : 'Ghép đối thủ sau ${_formatMatchCountdown(opponentJoinRemaining)}',
                       icon: joinedOpponents >= 1
                           ? Icons.person
                           : Icons.hourglass_top,
-                      isReady: joinedOpponents >= 1,
+                      isReady: _seatIsReady(1),
                       muted: joinedOpponents < 1,
                       onKick: canKick && joinedOpponents >= 1
                           ? () => onKickOpponent(1)
@@ -690,14 +931,15 @@ class _WaitingPanel extends StatelessWidget {
                   const SizedBox(width: 14),
                   Expanded(
                     child: _SeatCard(
+                      key: const ValueKey<String>('waiting-opponent-seat-2'),
                       name: joinedOpponents >= 2 ? _seatName(2) : 'Chỗ trống',
                       detail: joinedOpponents >= 2
                           ? _seatDetail(2)
-                          : 'Người chơi thực',
+                          : 'Đang chờ đối thủ',
                       icon: joinedOpponents >= 2
                           ? Icons.person
                           : Icons.person_add_alt_1,
-                      isReady: joinedOpponents >= 2,
+                      isReady: _seatIsReady(2),
                       muted: joinedOpponents < 2,
                       onKick: canKick && joinedOpponents >= 2
                           ? () => onKickOpponent(2)
@@ -707,11 +949,19 @@ class _WaitingPanel extends StatelessWidget {
                   const SizedBox(width: 14),
                   Expanded(
                     child: _SeatCard(
-                      name: 'Chỗ trống',
-                      detail: 'Không tự thêm bot',
-                      icon: Icons.block,
-                      isReady: false,
-                      muted: true,
+                      key: const ValueKey<String>('waiting-opponent-seat-3'),
+                      name: joinedOpponents >= 3 ? _seatName(3) : 'Chỗ trống',
+                      detail: joinedOpponents >= 3
+                          ? _seatDetail(3)
+                          : 'Đang chờ đối thủ',
+                      icon: joinedOpponents >= 3
+                          ? Icons.person
+                          : Icons.person_add_alt_1,
+                      isReady: _seatIsReady(3),
+                      muted: joinedOpponents < 3,
+                      onKick: canKick && joinedOpponents >= 3
+                          ? () => onKickOpponent(3)
+                          : null,
                     ),
                   ),
                 ],
@@ -731,27 +981,49 @@ class _WaitingPanel extends StatelessWidget {
                   horizontal: 18,
                   vertical: 10,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Icon(
-                      joinedOpponents >= 1
-                          ? Icons.play_circle_fill
-                          : Icons.search,
-                      color: joinedOpponents >= 1
-                          ? GameTheme.mint
-                          : GameTheme.gold,
-                      size: 20,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Icon(
+                          joinedOpponents >= 1
+                              ? Icons.play_circle_fill
+                              : Icons.search,
+                          color: joinedOpponents >= 1
+                              ? GameTheme.mint
+                              : GameTheme.gold,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 9),
+                        Flexible(
+                          child: Text(
+                            '$status · Cược ${room.stakeLabel}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 9),
-                    Flexible(
-                      child: Text(
-                        '$status · Cược ${room.stakeLabel}',
-                        maxLines: 1,
+                    if (_waitingForReadinessNotice case final notice?) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        notice,
+                        key: const ValueKey<String>(
+                          'waiting-wager-safety-notice',
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
+                        style: const TextStyle(
+                          color: GameTheme.gold,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -761,18 +1033,48 @@ class _WaitingPanel extends StatelessWidget {
       ),
     );
   }
+
+  bool get _allConnectedHumansReady {
+    final state = roomState;
+    if (state == null) return isReady;
+    final humans = state.players.where(
+      (player) => !player.isSystemOpponent && player.connected,
+    );
+    return humans.isNotEmpty && humans.every((player) => player.ready);
+  }
+
+  bool get _hostIsReady {
+    final state = roomState;
+    if (state == null) return !_isHostedByUser || isReady;
+    for (final player in state.players) {
+      if (player.id == state.hostId) return player.ready;
+    }
+    return false;
+  }
+
+  String? get _waitingForReadinessNotice {
+    if (joinedOpponents < 1 || _allConnectedHumansReady) return null;
+    if (!_hostIsReady) {
+      return 'Đối thủ đang chờ chủ phòng bấm Sẵn sàng · '
+          'Ván chưa bắt đầu, chưa trừ xu';
+    }
+    return 'Đang chờ người chơi khác bấm Sẵn sàng · '
+        'Ván chưa bắt đầu, chưa trừ xu';
+  }
 }
 
 class _CounterBadge extends StatelessWidget {
   const _CounterBadge({
     required this.joinedOpponents,
     required this.opponentJoinRemaining,
-    required this.autoStartRemaining,
+    required this.autoMatchingBots,
+    required this.canStart,
   });
 
   final int joinedOpponents;
   final int opponentJoinRemaining;
-  final int autoStartRemaining;
+  final bool autoMatchingBots;
+  final bool canStart;
 
   @override
   Widget build(BuildContext context) {
@@ -785,11 +1087,11 @@ class _CounterBadge extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
         child: Text(
-          joinedOpponents >= 2
-              ? '3/3 người chơi · Chủ phòng start sau ${autoStartRemaining}s'
+          joinedOpponents >= 3
+              ? '4/4 người chơi · ${canStart ? 'Có thể bắt đầu' : 'Chờ Sẵn sàng'}'
               : joinedOpponents >= 1
-              ? '${joinedOpponents + 1}/3 người chơi · Có thể bắt đầu · ${joinedOpponents >= 2 ? 'Tối đa 2 bot' : 'Ghép thêm sau ${opponentJoinRemaining}s'}'
-              : '1/3 người chơi · Cần 2 người · Ghép sau ${opponentJoinRemaining}s',
+              ? '${joinedOpponents + 1}/4 người chơi · ${canStart ? 'Có thể bắt đầu' : 'Chờ Sẵn sàng'} · ${autoMatchingBots ? 'Ghép đối thủ sau ${_formatMatchCountdown(opponentJoinRemaining)}' : 'Chờ thêm người chơi'}'
+              : '1/4 người chơi · Cần 2 người · ${autoMatchingBots ? 'Ghép đối thủ sau ${_formatMatchCountdown(opponentJoinRemaining)}' : 'Chờ thêm người chơi'}',
           style: const TextStyle(
             color: GameTheme.ivory,
             fontSize: 13,
@@ -810,6 +1112,7 @@ class _SeatCard extends StatelessWidget {
     this.isPlayer = false,
     this.muted = false,
     this.onKick,
+    super.key,
   });
 
   final String name;

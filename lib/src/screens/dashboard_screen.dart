@@ -60,9 +60,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  Future<void> _refreshFeed(SocialHubController social) {
+  Future<void> _refreshFeed(SocialHubController social) async {
     final session = context.read<SessionController>();
-    return Future.wait([
+    await session.refreshFeatureFlags();
+    if (!mounted) return;
+    await Future.wait([
       social.refreshHome(),
       if (session.videoFeatureEnabled) social.refreshMovies(),
       social.refreshMarketplace(),
@@ -81,8 +83,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Future<void> _openTienLenGame() {
-    return Navigator.of(
+  Future<void> _openTienLenGame() async {
+    final session = context.read<SessionController>();
+    await session.refreshFeatureFlags();
+    if (!mounted) return;
+    if (!session.cardGameFeatureEnabled) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text('Game bài hiện đang được quản trị viên tắt.'),
+        ),
+      );
+      return;
+    }
+    await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const TienLenGameScreen()));
   }
@@ -574,7 +587,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 10),
                 if (showCardGame) ...[
-                  _TienLenComingSoonBanner(onTap: _openTienLenGame),
+                  _TienLenComingSoonBanner(
+                    key: const ValueKey('home-feature-card-game'),
+                    onTap: _openTienLenGame,
+                  ),
                   const SizedBox(height: 14),
                 ],
                 _ServicesHomeBanner(onTap: widget.onOpenServices),
@@ -591,6 +607,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   itemBuilder: (context, index) {
                     return _HomeFeatureCard(
+                      key: ValueKey(
+                        exploreCards[index].title == 'YouTube videos'
+                            ? 'home-feature-card-video'
+                            : 'home-feature-card-${exploreCards[index].title}',
+                      ),
                       data: exploreCards[index],
                       compact: true,
                     );
@@ -720,7 +741,7 @@ class _SearchBar extends StatelessWidget {
             color: _homeMuted.withValues(alpha: 0.95),
           ),
           suffixIcon: SizedBox(
-            width: hasValue ? 92 : 52,
+            width: hasValue ? 104 : 52,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
@@ -1218,7 +1239,7 @@ class _CardChipData {
 }
 
 class _HomeFeatureCard extends StatelessWidget {
-  const _HomeFeatureCard({required this.data, this.compact = false});
+  const _HomeFeatureCard({required this.data, this.compact = false, super.key});
 
   final _HomeCardData data;
   final bool compact;
@@ -1458,7 +1479,7 @@ class _CardBadge extends StatelessWidget {
 }
 
 class _TienLenComingSoonBanner extends StatelessWidget {
-  const _TienLenComingSoonBanner({required this.onTap});
+  const _TienLenComingSoonBanner({required this.onTap, super.key});
 
   final VoidCallback onTap;
 
@@ -1517,7 +1538,7 @@ class _TienLenComingSoonBanner extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _CardChip(
-                        label: 'Play with bot',
+                        label: 'Quick match',
                         backgroundColor: Colors.white,
                         foregroundColor: _homeText,
                         padding: const EdgeInsets.symmetric(

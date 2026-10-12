@@ -103,8 +103,21 @@ class ChatApiService {
   }
 
   Future<List<ChatAppModel>> fetchApps(String bootstrapBase) async {
-    setBootstrapBase(bootstrapBase);
-    final response = await _dio.get('/mobile-chat/apps');
+    // Feature flags are refreshed while an authenticated session can be using
+    // the main client. Keep bootstrap discovery isolated so it cannot briefly
+    // remove that client's bearer token or redirect concurrent API requests.
+    final bootstrapHeaders = <String, String>{'Accept': 'application/json'};
+    final deviceUuid = _deviceUuid;
+    if (deviceUuid != null) bootstrapHeaders['X-Device-Uuid'] = deviceUuid;
+    final bootstrapDio = Dio(
+      BaseOptions(
+        baseUrl: _normalizeBaseUrl(bootstrapBase),
+        connectTimeout: AppConstants.connectTimeout,
+        receiveTimeout: AppConstants.receiveTimeout,
+        headers: bootstrapHeaders,
+      ),
+    );
+    final response = await bootstrapDio.get('/mobile-chat/apps');
     final payload = response.data as Map<String, dynamic>;
     final bootstrapRoot = _inferAppUrl(bootstrapBase);
     final data = (payload['data'] as List<dynamic>? ?? <dynamic>[])
@@ -118,8 +131,22 @@ class ChatApiService {
     return data;
   }
 
+  Future<ChatAppModel> fetchAppFeatures() async {
+    final response = await _dio.get('/app/features');
+    final payload = response.data as Map<String, dynamic>;
+    final rawApp = payload['app'];
+    if (payload['ok'] != true || rawApp is! Map) {
+      throw StateError('Feature flags were not confirmed by the server');
+    }
+    return _normalizeAppModel(
+      ChatAppModel.fromJson(Map<String, dynamic>.from(rawApp)),
+      _appUrl,
+    );
+  }
+
   Future<({String token, SessionUser user, ChatAppModel app})> login({
     required String appCode,
+    required String appUuid,
     required String username,
     required String password,
     required String deviceName,
@@ -128,6 +155,7 @@ class ChatApiService {
       '/mobile-chat/login',
       data: {
         'app_code': appCode,
+        'app_uuid': appUuid,
         'username': username,
         'password': password,
         'device_name': deviceName,
@@ -147,7 +175,9 @@ class ChatApiService {
     );
   }
 
-  Future<({String token, SessionUser user})> register({
+  Future<({String token, SessionUser user, ChatAppModel app})> register({
+    required String appCode,
+    required String appUuid,
     String? name,
     required String username,
     String? email,
@@ -157,6 +187,8 @@ class ChatApiService {
     final response = await _dio.post(
       '/auth/register',
       data: {
+        'app_code': appCode,
+        'app_uuid': appUuid,
         'name': name,
         'username': username,
         'email': email,
@@ -170,6 +202,10 @@ class ChatApiService {
       token: (payload['access_token'] ?? '').toString(),
       user: _normalizeSessionUser(
         SessionUser.fromJson(payload['user'] as Map<String, dynamic>),
+      ),
+      app: _normalizeAppModel(
+        ChatAppModel.fromJson(payload['app'] as Map<String, dynamic>),
+        _appUrl,
       ),
     );
   }
@@ -967,8 +1003,16 @@ class ChatApiService {
     await _dio.post('/realtime/chat/group/$roomId/read-all');
   }
 
-  Future<({String filePath, String fileName, int fileSize, String type})>
-  uploadFile(PlatformFile file) async {
+  Future<
+    ({
+      String filePath,
+      String fileName,
+      String storedFileName,
+      int fileSize,
+      String type,
+    })
+  >
+  uploadChatFile(PlatformFile file) async {
     final fileName = file.name.trim().isEmpty
         ? _fallbackFileName(file.path)
         : file.name.trim();
@@ -987,11 +1031,40 @@ class ChatApiService {
     final payload = response.data as Map<String, dynamic>;
 
     return (
-      filePath: _resolveStorageUrl((payload['path'] ?? '').toString()),
+      filePath: _resolveStorageUrl(
+        (payload['download_url'] ?? payload['path'] ?? '').toString(),
+      ),
       fileName: (payload['name'] ?? fileName).toString(),
+      storedFileName: (payload['file_name'] ?? '').toString(),
       fileSize: (payload['size'] as num?)?.toInt() ?? 0,
       type: (payload['type'] ?? 'file').toString(),
     );
+  }
+
+  Future<String> uploadPublicImage(PlatformFile file) async {
+    final fileName = file.name.trim().isEmpty
+        ? _fallbackFileName(file.path)
+        : file.name.trim();
+    final multipartFile = await _buildMultipartFile(
+      fileName: fileName,
+      filePath: file.path,
+      bytes: file.bytes,
+    );
+    final response = await _dio.post(
+      '/uploads/images',
+      data: FormData.fromMap({'file': multipartFile}),
+    );
+    final payload = response.data as Map<String, dynamic>;
+    final rawUrl =
+        (payload['public_url'] ??
+                payload['download_url'] ??
+                payload['path'] ??
+                '')
+            .toString();
+    if (rawUrl.trim().isEmpty) {
+      throw StateError('Public image upload did not return a URL');
+    }
+    return _normalizeMediaUrl(rawUrl);
   }
 
   Future<MultipartFile> _buildMultipartFile({
@@ -1080,6 +1153,14 @@ class ChatApiService {
       return app;
     }
 
+    final configuredSocket = Uri.tryParse(
+      AppConstants.chatCallBaseUrlOverride.trim(),
+    );
+    final socketOverride =
+        configuredSocket != null && configuredSocket.host.isNotEmpty
+        ? configuredSocket
+        : null;
+
     return ChatAppModel(
       uuid: app.uuid,
       code: app.code,
@@ -1090,6 +1171,10 @@ class ChatApiService {
           _replaceUrlHost(app.apiBaseUrl, preferred, ensureApiPath: true) ??
           '${preferred.toString().replaceAll(RegExp(r"/+$"), "")}/api',
       socketUrl:
+          (socketOverride == null
+              ? null
+              : _replaceUrlHost(app.socketUrl, socketOverride) ??
+                    socketOverride.toString()) ??
           _replaceUrlHost(
             app.socketUrl,
             preferred,
@@ -1108,7 +1193,7 @@ class ChatApiService {
   MovieItem _normalizeMovieItem(MovieItem movie) {
     final paymentsEnabled = AppConstants.moviePaymentsEnabled;
     final hostedPlaybackEnabled = AppConstants.hostedMoviePlaybackEnabled;
-    final youtubePlayable = movie.isYoutubeEmbedReady;
+    final youtubePlayable = movie.youtubePlaybackAvailable;
     final hostedPlayable = hostedPlaybackEnabled && movie.isHosted;
     final canWatch =
         youtubePlayable ||
@@ -1123,13 +1208,13 @@ class ChatApiService {
       posterUrl: _normalizeMediaUrl(movie.posterUrl),
       bannerUrl: _normalizeMediaUrl(movie.bannerUrl),
       thirdPartyProvider: movie.thirdPartyProvider,
-      thirdPartyUrl: movie.isYoutube || hostedPlaybackEnabled
+      thirdPartyUrl: youtubePlayable || hostedPlaybackEnabled
           ? _normalizeMediaUrl(movie.thirdPartyUrl)
           : '',
       sourceType: movie.sourceType,
-      youtubeUrl: movie.youtubeUrl,
-      youtubeVideoId: movie.youtubeVideoId,
-      youtubeEmbedUrl: movie.youtubeEmbedUrl,
+      youtubeUrl: youtubePlayable ? movie.youtubeUrl : '',
+      youtubeVideoId: youtubePlayable ? movie.youtubeVideoId : '',
+      youtubeEmbedUrl: youtubePlayable ? movie.youtubeEmbedUrl : '',
       hostedVideoUrl: hostedPlaybackEnabled
           ? _normalizeMediaUrl(movie.hostedVideoUrl)
           : '',
