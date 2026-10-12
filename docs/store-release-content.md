@@ -11,7 +11,7 @@ Use this file as the copy/paste source for App Store Connect, TestFlight review 
 - Google Play package: `com.ai.nailstalk`
 - Google Play Console app id: `4973353539970650110`
 - Google Play internal testing link: `https://play.google.com/apps/internaltest/4701153597150910194`
-- Current Flutter version: `1.0.2`; iOS build number is assigned by the GitHub Actions run number.
+- Current Flutter version: `1.0.3`; Android version code is `4`. The iOS build number is assigned by the GitHub Actions run number.
 - Live API: `http://54.205.74.122/api`
 - Live Socket: `http://54.205.74.122`
 
@@ -107,7 +107,7 @@ The app requires a test account or a new registration. Testers can create a new 
 
 Current feature configuration (verified 2026-10-12): Video and the community card game are disabled for all Nails Talk users, including reviewers. Their app sections are hidden, and the backend rejects feature-protected requests. They are not enabled based on reviewer identity or review status. If this configuration changes before submission, update these notes, screenshots, description, and age rating to match. The app has no in-app purchases, subscriptions, external checkout, paid video unlocks, or pay-per-view flow. Marketplace prices, job salary ranges, and room rent amounts are user listing information only; the app does not process those transactions. The former medical booking data has been removed; the service directory is limited to spa/beauty providers and is not a healthcare service.
 
-This update adds working Feedback (email to support), Privacy Policy, and About App entries under More. Share App copies the public App Store link; Help Center opens the in-app FAQ.
+This update adds working Feedback (email to support), Privacy Policy, and About App entries under More. Share App copies the matching public App Store or Google Play link; Help Center opens the in-app FAQ.
 
 UGC moderation for review: the EULA/community safety card appears before sign-in/registration. Posts and chat text are filtered before posting. Users can report chat messages, marketplace listings, job listings, and housing listings. Users can also block abusive users from chat and listing detail screens; blocking removes that user’s content from the current feed and notifies the moderation team. Safety reports are reviewed within 24 hours.
 
@@ -154,6 +154,37 @@ Tính năng nổi bật:
 
 Nails Talk tập trung vào các nhu cầu thiết thực: làm việc, sinh hoạt, mua bán, đặt dịch vụ làm đẹp và trao đổi thông tin.
 ```
+
+## Google Play 1.0.3 release content
+
+Release name: `1.0.3` (Android version code `4`). Production track follows the existing 100% rollout in the two currently enabled regions.
+
+Release notes (Vietnamese):
+
+```text
+Bổ sung Góp ý, Chính sách riêng tư và Giới thiệu ứng dụng trong mục Thêm. Cải thiện liên kết Chia sẻ ứng dụng và Trung tâm trợ giúp, đồng thời nâng độ ổn định của chat cộng đồng.
+```
+
+Release notes (English, if requested by Play Console):
+
+```text
+Added Feedback, Privacy Policy and About App to the More menu. Improved Share App and Help Center links, and refined community chat stability and usability.
+```
+
+Reviewer access and test flow:
+
+```text
+Please use the existing review account in App access, or register a new account after accepting the EULA/community safety rules. Open More > Feedback, Privacy Policy, About App, Share App, and Help Center. Browse salon jobs, housing and marketplace listings, then join a public chat room. Reporting and blocking are available from chat and listing details.
+
+Video and the community card game are disabled for all users, including reviewers. Their sections are hidden and protected backend requests are rejected. This state does not depend on reviewer identity or review status. No in-app purchases, subscriptions or external checkout are offered.
+
+Live API: http://54.205.74.122/api
+Socket.IO: http://54.205.74.122
+```
+
+Use `docs/google-play-assets/release-1.0.3/` for the updated feature graphic and genuine Android screenshots. Do not reuse the old movie screenshots or the old movie-themed feature graphic.
+
+Upload these four 1080 × 1920 genuine Android captures in this order: `03-jobs.png`, `04-housing.png`, `02-marketplace.png`, `04-more-tools.png`. The new 1024 × 500 feature graphic is `feature-graphic-1024x500.png`.
 
 ## Prepared screenshot assets
 

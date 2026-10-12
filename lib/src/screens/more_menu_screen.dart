@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
@@ -36,7 +37,9 @@ class MoreMenuScreen extends StatelessWidget {
   final VoidCallback onOpenSaved;
 
   static const _supportEmail = 'kietlamphim@gmail.com';
-  static const _shareUrl = 'https://apps.apple.com/app/id6799563113';
+  static const _iosShareUrl = 'https://apps.apple.com/app/id6799563113';
+  static const _androidShareUrl =
+      'https://play.google.com/store/apps/details?id=com.ai.nailstalk';
 
   Future<void> _openAccountSection(
     BuildContext context,
@@ -102,7 +105,10 @@ class MoreMenuScreen extends StatelessWidget {
   }
 
   Future<void> _shareApp(BuildContext context) async {
-    await Clipboard.setData(const ClipboardData(text: _shareUrl));
+    final shareUrl = defaultTargetPlatform == TargetPlatform.android
+        ? _androidShareUrl
+        : _iosShareUrl;
+    await Clipboard.setData(ClipboardData(text: shareUrl));
     if (context.mounted) {
       _showMessage(context, 'Nails Talk app link copied.');
     }
