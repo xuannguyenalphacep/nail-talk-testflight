@@ -36,7 +36,7 @@ class MoreMenuScreen extends StatelessWidget {
   final VoidCallback onOpenSaved;
 
   static const _supportEmail = 'kietlamphim@gmail.com';
-  static const _shareUrl = 'https://vietnamfilmproduction.com/nail-talk';
+  static const _shareUrl = 'https://apps.apple.com/app/id6799563113';
 
   Future<void> _openAccountSection(
     BuildContext context,

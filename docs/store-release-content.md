@@ -83,13 +83,13 @@ Lifestyle
 Support URL:
 
 ```text
-https://vietnamfilmproduction.com/nail-talk/support
+https://github.com/xuannguyenalphacep/nail-talk-testflight/blob/main/docs/support.md
 ```
 
 Privacy Policy URL:
 
 ```text
-https://vietnamfilmproduction.com/nail-talk/privacy
+https://github.com/xuannguyenalphacep/nail-talk-testflight/blob/main/docs/privacy-policy.md
 ```
 
 ## TestFlight beta information
@@ -107,7 +107,7 @@ The app requires a test account or a new registration. Testers can create a new 
 
 Current feature configuration (verified 2026-10-12): Video and the community card game are disabled for all Nails Talk users, including reviewers. Their app sections are hidden, and the backend rejects feature-protected requests. They are not enabled based on reviewer identity or review status. If this configuration changes before submission, update these notes, screenshots, description, and age rating to match. The app has no in-app purchases, subscriptions, external checkout, paid video unlocks, or pay-per-view flow. Marketplace prices, job salary ranges, and room rent amounts are user listing information only; the app does not process those transactions. The former medical booking data has been removed; the service directory is limited to spa/beauty providers and is not a healthcare service.
 
-This update adds working Feedback (email to support), Privacy Policy, and About App entries under More. Share App copies the public Nails Talk page link; Help Center opens the in-app FAQ.
+This update adds working Feedback (email to support), Privacy Policy, and About App entries under More. Share App copies the public App Store link; Help Center opens the in-app FAQ.
 
 UGC moderation for review: the EULA/community safety card appears before sign-in/registration. Posts and chat text are filtered before posting. Users can report chat messages, marketplace listings, job listings, and housing listings. Users can also block abusive users from chat and listing detail screens; blocking removes that user’s content from the current feed and notifies the moderation team. Safety reports are reviewed within 24 hours.
 
