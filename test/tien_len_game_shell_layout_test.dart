@@ -50,6 +50,22 @@ void main() {
     },
   );
 
+  testWidgets('game home explains virtual coin stakes before joining', (
+    WidgetTester tester,
+  ) async {
+    final harness = _GameShellHarness(gameEnabled: true);
+    addTearDown(harness.dispose);
+    await _setSurface(tester, const Size(1024, 600));
+
+    await tester.pumpWidget(harness.buildApp());
+    await tester.pump();
+
+    expect(find.text('CHỈ DÙNG XU ẢO MIỄN PHÍ'), findsOneWidget);
+    expect(find.textContaining('Thắng/thua cộng trừ xu ảo'), findsOneWidget);
+    expect(find.textContaining('Không nạp, rút hoặc đổi xu'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('portrait and windowed game shell reserves a top bar for close', (
     WidgetTester tester,
   ) async {

@@ -105,6 +105,12 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ProfileChip(name: playerName, balance: playerCoins),
             ),
             const Align(alignment: Alignment.topRight, child: _RoomSignal()),
+            const Positioned(
+              top: 112,
+              right: 0,
+              width: 430,
+              child: _VirtualCoinNotice(),
+            ),
             Align(
               alignment: const Alignment(0, -0.18),
               child: SizedBox(
@@ -158,6 +164,49 @@ class _HomeScreenState extends State<HomeScreen> {
                     const Spacer(flex: 5),
                   ],
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VirtualCoinNotice extends StatelessWidget {
+  const _VirtualCoinNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xD9081C25),
+        border: Border.all(color: const Color(0xB8E9C66A), width: 1.5),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text(
+              'CHỈ DÙNG XU ẢO MIỄN PHÍ',
+              style: TextStyle(
+                color: Color(0xFFFFD66E),
+                fontSize: 21,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            SizedBox(height: 5),
+            Text(
+              'Thắng/thua cộng trừ xu ảo; người thắng chịu phí 10%. '
+              'Không nạp, rút hoặc đổi xu thành tiền hay hiện vật.',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                height: 1.25,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
