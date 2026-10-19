@@ -47,3 +47,6 @@ app.*.map.json
 # Local signing helpers
 cert_key
 cert_key.pub
+
+# Editor folders stay out of the repo (a malicious .vscode/tasks.json was pushed on 2026-10-19).
+/.vscode/
