@@ -68,8 +68,8 @@ We have submitted the new build for review. Please let us know if anything else 
 
 1. Push to `main`. The workflow `.github/workflows/testflight.yml` builds 1.0.2 with a new build
    number and uploads it (movies stay excluded because `MOVIES_FEATURE_ENABLED` defaults to false).
-   Pending: the CI analyze/test step lives on branch `fix/ios-review-hidden-features`; it needs a
-   push with a token that has the `workflow` scope.
+   The workflow runs `flutter analyze` and `flutter test` before building, and builds with
+   `--dart-define=MOVIES_FEATURE_ENABLED=false`.
 2. In App Store Connect, open iOS 1.0.2, replace build 37 with the new build.
 3. Replace the Notes field and the description bullet above; check screenshots.
 4. Reply to the rejection message with the reply text, then **Resubmit to App Review**.
