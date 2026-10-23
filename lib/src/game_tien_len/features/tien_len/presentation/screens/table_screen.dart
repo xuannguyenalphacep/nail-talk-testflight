@@ -1217,10 +1217,12 @@ class _RealtimeTableScreenState extends State<RealtimeTableScreen> {
       return;
     }
     setState(() {
-      _localStatus = 'Game bài đã được quản trị viên tắt · đang rời bàn...';
+      _localStatus = 'Game bài đang tạm bảo trì · đang rời bàn...';
     });
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      const SnackBar(content: Text('Game bài đã được quản trị viên tắt.')),
+      const SnackBar(
+        content: Text('Game bài đang tạm bảo trì. Vui lòng thử lại sau.'),
+      ),
     );
     if (mounted) await _leaveAndPop();
   }

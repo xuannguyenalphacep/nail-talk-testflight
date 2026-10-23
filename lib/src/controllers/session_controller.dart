@@ -47,7 +47,9 @@ class SessionController extends ChangeNotifier {
   bool get hasChosenApp => _selectedApp != null;
   bool get isLoggedIn =>
       _selectedApp != null && _token != null && _user != null;
-  bool get videoFeatureEnabled => _selectedApp?.videoEnabled ?? false;
+  bool get videoFeatureEnabled =>
+      AppConstants.moviesFeatureEnabled &&
+      (_selectedApp?.videoEnabled ?? false);
 
   bool get hideVideoFeature => !videoFeatureEnabled;
   bool get cardGameFeatureEnabled => _selectedApp?.cardGameEnabled ?? false;
@@ -181,13 +183,9 @@ class SessionController extends ChangeNotifier {
         notify: notify,
       );
     } catch (_) {
-      if (!_isSelectedApp(currentApp)) return;
-      await _commitFeatureFlags(
-        currentApp,
-        videoEnabled: false,
-        cardGameEnabled: false,
-        notify: notify,
-      );
+      // A transient network error must not flip features off: that would
+      // eject players from their table on every flaky resume. Keep the last
+      // confirmed values; the server still enforces the real state.
     }
   }
 

@@ -381,12 +381,12 @@ class _GameFeatureUnavailable extends StatelessWidget {
                   const Icon(Icons.videogame_asset_off, size: 52),
                   const SizedBox(height: 16),
                   const Text(
-                    'Game bài đang tạm ẩn',
+                    'Game bài đang bảo trì',
                     style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'Tính năng này hiện được quản trị viên tắt.',
+                    'Máy chủ game đang tạm bảo trì. Vui lòng thử lại sau.',
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),

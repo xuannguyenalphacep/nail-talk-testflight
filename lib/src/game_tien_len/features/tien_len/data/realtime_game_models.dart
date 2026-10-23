@@ -1,5 +1,56 @@
 import 'game_data.dart';
 
+/// Tag shown next to every automated (system) player, so people always know
+/// when a seat is not a real person.
+const String systemOpponentLabel = 'BOT';
+
+String labelSystemOpponentName(String name) {
+  final trimmed = name.trim();
+  const suffix = '($systemOpponentLabel)';
+  if (trimmed.endsWith(suffix)) return trimmed;
+  return trimmed.isEmpty ? systemOpponentLabel : '$trimmed $suffix';
+}
+
+/// Rewrites server log lines so automated players carry the BOT tag there too.
+List<String> labelSystemOpponentsInLogs(
+  List<String> logs,
+  Iterable<TienLenRealtimePlayer> players,
+) {
+  final renames = <String, String>{
+    for (final player in players)
+      if (player.isSystemOpponent && player.rawName.trim().isNotEmpty)
+        player.rawName.trim(): player.name,
+  };
+  if (renames.isEmpty) return logs;
+  // Human names are matched too (longest first) so a person called
+  // "Minh Anh Tú" is never tagged because a BOT "Minh Anh" shares the table.
+  final names = <String>{
+    ...renames.keys,
+    for (final player in players)
+      if (!player.isSystemOpponent && player.rawName.trim().isNotEmpty)
+        player.rawName.trim(),
+  }.toList()..sort((a, b) => b.length.compareTo(a.length));
+  final pattern = RegExp(
+    r'(?<![\p{L}\p{N}])(?:' +
+        names.map(RegExp.escape).join('|') +
+        r')(?![\p{L}\p{N}])',
+    unicode: true,
+  );
+  return logs
+      .map(
+        (line) => line.replaceAllMapped(pattern, (match) {
+          final matched = match[0]!;
+          final label = renames[matched];
+          final alreadyLabelled = line.startsWith(
+            ' ($systemOpponentLabel)',
+            match.end,
+          );
+          return label == null || alreadyLabelled ? matched : label;
+        }),
+      )
+      .toList(growable: false);
+}
+
 class TienLenRealtimeCard {
   const TienLenRealtimeCard({
     required this.rank,
@@ -75,6 +126,7 @@ class TienLenRealtimePlayer {
     required this.seatIndex,
     required this.name,
     required this.isSystemOpponent,
+    this.rawName = '',
     required this.connected,
     required this.ready,
     required this.coins,
@@ -88,7 +140,12 @@ class TienLenRealtimePlayer {
 
   final String id;
   final int seatIndex;
+
+  /// Display name; automated players always end with "(BOT)".
   final String name;
+
+  /// Name exactly as sent by the server, used to tag BOTs in log lines.
+  final String rawName;
   final bool isSystemOpponent;
   final bool connected;
   final bool ready;
@@ -102,12 +159,15 @@ class TienLenRealtimePlayer {
 
   factory TienLenRealtimePlayer.fromJson(Map<String, dynamic> json) {
     final rawHand = json['hand'] as List<dynamic>? ?? const <dynamic>[];
+    final rawName = (json['name'] ?? '').toString();
+    final isSystemOpponent =
+        json['isSystemOpponent'] == true || json['isBot'] == true;
     return TienLenRealtimePlayer(
       id: (json['id'] ?? '').toString(),
       seatIndex: (json['seatIndex'] as num?)?.toInt() ?? 0,
-      name: (json['name'] ?? '').toString(),
-      isSystemOpponent:
-          json['isSystemOpponent'] == true || json['isBot'] == true,
+      name: isSystemOpponent ? labelSystemOpponentName(rawName) : rawName,
+      rawName: rawName,
+      isSystemOpponent: isSystemOpponent,
       connected: json['connected'] != false,
       ready: json['ready'] == true,
       coins: (json['coins'] as num?)?.toInt() ?? 0,
@@ -368,6 +428,20 @@ class TienLenRoomState extends TienLenRoomSummary {
         json['moneyEvents'] as List<dynamic>? ?? const <dynamic>[];
     final rawLastPlay = json['lastPlay'];
     final settlementError = (json['settlementError'] ?? '').toString().trim();
+    final players = rawPlayers
+        .whereType<Map>()
+        .map(
+          (item) =>
+              TienLenRealtimePlayer.fromJson(Map<String, dynamic>.from(item)),
+        )
+        .toList();
+    final spectators = rawSpectators
+        .whereType<Map>()
+        .map(
+          (item) =>
+              TienLenRealtimePlayer.fromJson(Map<String, dynamic>.from(item)),
+        )
+        .toList();
 
     return TienLenRoomState(
       roomId: (json['roomId'] ?? '').toString(),
@@ -409,25 +483,16 @@ class TienLenRoomState extends TienLenRoomSummary {
           : null,
       passedPlayerIds: rawPassed.map((item) => item.toString()).toSet(),
       finishedOrder: rawFinished.map((item) => item.toString()).toList(),
-      turnLogs: rawLogs.map((item) => item.toString()).toList(),
+      turnLogs: labelSystemOpponentsInLogs(
+        rawLogs.map((item) => item.toString()).toList(),
+        [...players, ...spectators],
+      ),
       chatMessages: rawChatMessages
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
           .toList(),
-      players: rawPlayers
-          .whereType<Map>()
-          .map(
-            (item) =>
-                TienLenRealtimePlayer.fromJson(Map<String, dynamic>.from(item)),
-          )
-          .toList(),
-      spectators: rawSpectators
-          .whereType<Map>()
-          .map(
-            (item) =>
-                TienLenRealtimePlayer.fromJson(Map<String, dynamic>.from(item)),
-          )
-          .toList(),
+      players: players,
+      spectators: spectators,
       moneyEvents: rawMoneyEvents
           .whereType<Map>()
           .map(

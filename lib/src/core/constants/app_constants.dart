@@ -15,6 +15,14 @@ class AppConstants {
   static const String chatCallBaseUrl = chatCallBaseUrlOverride == ''
       ? 'http://54.205.74.122'
       : chatCallBaseUrlOverride;
+  // Movies/video are excluded from release builds (App Store guideline
+  // 2.5.19: no dormant features). Every movie entry point is guarded by this
+  // compile-time constant, so the AOT tree shaker drops the movie screens and
+  // API calls; the server `video_enabled` flag alone cannot re-enable them.
+  static const bool moviesFeatureEnabled = bool.fromEnvironment(
+    'MOVIES_FEATURE_ENABLED',
+    defaultValue: false,
+  );
   static const bool moviePaymentsEnabled = bool.fromEnvironment(
     'MOVIE_PAYMENTS_ENABLED',
     defaultValue: false,

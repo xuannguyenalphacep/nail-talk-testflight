@@ -102,7 +102,9 @@ class SocialHubController extends ChangeNotifier {
   List<ClinicItem> get clinicItems => List.unmodifiable(_clinicItems);
   bool get _hasSelectedService => _sessionController.selectedApp != null;
   bool get _isLoggedIn => _sessionController.isLoggedIn;
-  bool get _videoFeatureEnabled => _sessionController.videoFeatureEnabled;
+  bool get _videoFeatureEnabled =>
+      AppConstants.moviesFeatureEnabled &&
+      _sessionController.videoFeatureEnabled;
 
   List<MovieItem> _safeVideoItems(List<MovieItem> movies) {
     return movies

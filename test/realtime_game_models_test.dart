@@ -335,4 +335,49 @@ void main() {
     expect(state.activePlayerCount, 2);
     expect(state.waitingPlayerCount, 1);
   });
+
+  test('tags automated players as BOT in seats and turn logs', () {
+    final state = TienLenRoomState.fromJson(<String, dynamic>{
+      'roomId': 'NT10002',
+      'phase': 'playing',
+      'viewerId': '7',
+      'turnLogs': <String>[
+        'Minh Anh đánh đôi 5',
+        'Lan bỏ lượt · Đến lượt Minh Anh',
+        'Thảo Vy (BOT) đã sẵn sàng',
+        'Minh Anh Tú vào xem bàn',
+      ],
+      'players': <Map<String, dynamic>>[
+        <String, dynamic>{'id': '7', 'name': 'Lan'},
+        <String, dynamic>{
+          'id': 'bot-1',
+          'name': 'Minh Anh',
+          'isSystemOpponent': true,
+        },
+      ],
+      'spectators': <Map<String, dynamic>>[
+        <String, dynamic>{'id': '9', 'name': 'Minh Anh Tú'},
+        <String, dynamic>{
+          'id': 'bot-2',
+          'name': 'Thảo Vy (BOT)',
+          'isBot': true,
+        },
+      ],
+    });
+
+    expect(state.players.first.name, 'Lan');
+    expect(state.players.last.name, 'Minh Anh (BOT)');
+    expect(state.spectators.last.name, 'Thảo Vy (BOT)');
+    expect(state.turnLogs, <String>[
+      'Minh Anh (BOT) đánh đôi 5',
+      'Lan bỏ lượt · Đến lượt Minh Anh (BOT)',
+      'Thảo Vy (BOT) đã sẵn sàng',
+      'Minh Anh Tú vào xem bàn',
+    ]);
+  });
+
+  test('labels an unnamed automated player as BOT', () {
+    expect(labelSystemOpponentName('  '), 'BOT');
+    expect(labelSystemOpponentName('Gia Huy'), 'Gia Huy (BOT)');
+  });
 }

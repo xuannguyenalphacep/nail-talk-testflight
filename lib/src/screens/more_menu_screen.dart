@@ -63,7 +63,7 @@ class MoreMenuScreen extends StatelessWidget {
     await session.refreshFeatureFlags();
     if (!context.mounted) return;
     if (!session.cardGameFeatureEnabled) {
-      _showMessage(context, 'Game bài hiện đang được quản trị viên tắt.');
+      _showMessage(context, 'Game bài đang tạm bảo trì. Vui lòng thử lại sau.');
       return;
     }
     await Navigator.of(
@@ -129,8 +129,8 @@ class MoreMenuScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final isLoggedIn = session.isLoggedIn;
-    final hideVideo = session.hideVideoFeature;
-    final showCardGame = session.cardGameFeatureEnabled;
+    final hideVideo =
+        !AppConstants.moviesFeatureEnabled || session.hideVideoFeature;
     final rawUsername = session.user?.username.trim() ?? '';
     final userHandle = !isLoggedIn
         ? '@guest'
@@ -176,13 +176,12 @@ class MoreMenuScreen extends StatelessWidget {
           tint: const Color(0xFFF66BA6),
           onTap: () => onNavigate(1),
         ),
-      if (showCardGame)
-        _MenuEntry(
-          label: 'Game bài',
-          icon: Icons.style_rounded,
-          tint: const Color(0xFFF35F86),
-          onTap: () => _openTienLenGame(context),
-        ),
+      _MenuEntry(
+        label: 'Game bài',
+        icon: Icons.style_rounded,
+        tint: const Color(0xFFF35F86),
+        onTap: () => _openTienLenGame(context),
+      ),
       _MenuEntry(
         label: 'Services',
         icon: Icons.room_service_rounded,

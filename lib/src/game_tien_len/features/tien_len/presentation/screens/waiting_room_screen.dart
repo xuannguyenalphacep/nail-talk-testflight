@@ -468,10 +468,12 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
       return;
     }
     setState(() {
-      _status = 'Game bài đã được quản trị viên tắt · đang rời bàn...';
+      _status = 'Game bài đang tạm bảo trì · đang rời bàn...';
     });
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      const SnackBar(content: Text('Game bài đã được quản trị viên tắt.')),
+      const SnackBar(
+        content: Text('Game bài đang tạm bảo trì. Vui lòng thử lại sau.'),
+      ),
     );
     if (mounted) await _leaveAndPop();
   }
@@ -823,7 +825,9 @@ class _WaitingPanel extends StatelessWidget {
     if (index >= 0 && index < _opponents.length) {
       final player = _opponents[index];
       if (player.isSystemOpponent) {
-        return player.ready ? 'Đã sẵn sàng' : 'Đang chuẩn bị';
+        return player.ready
+            ? 'Người chơi tự động · Đã sẵn sàng'
+            : 'Người chơi tự động · Đang chuẩn bị';
       }
       if (player.id == roomState?.hostId) {
         return player.ready

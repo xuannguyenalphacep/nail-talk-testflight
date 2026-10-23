@@ -630,8 +630,8 @@ class AppLocalizer {
     'Coming soon': 'Sắp ra mắt',
     'Community game space is coming soon.':
         'Không gian game cộng đồng sẽ sớm ra mắt.',
-    'Relax with friends and join light community activities when this space launches.':
-        'Thư giãn cùng bạn bè và tham gia hoạt động cộng đồng nhẹ nhàng khi khu này ra mắt.',
+    'Multiplayer card game with free virtual coins. Wins and losses change your balance; BOT players may fill seats.':
+        'Game bài nhiều người chơi dùng xu ảo miễn phí. Thắng/thua làm thay đổi số xu; người chơi BOT có thể vào ghế trống.',
     'The community game space is being polished for a future update.':
         'Không gian game cộng đồng đang được chuẩn bị cho bản cập nhật sau.',
     'Welcome back, {name}': 'Chào mừng quay lại, {name}',

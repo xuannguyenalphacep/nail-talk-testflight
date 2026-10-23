@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../controllers/session_controller.dart';
 import '../controllers/social_hub_controller.dart';
+import '../core/constants/app_constants.dart';
 import '../core/localization/app_localizer.dart';
 import 'chat_home_screen.dart';
 import 'dashboard_screen.dart';
@@ -134,7 +135,9 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hideVideo = context.watch<SessionController>().hideVideoFeature;
+    final hideVideo =
+        !AppConstants.moviesFeatureEnabled ||
+        context.watch<SessionController>().hideVideoFeature;
     if (hideVideo && _index == 1) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _index == 1) {
@@ -150,7 +153,10 @@ class _SocialHubShellScreenState extends State<SocialHubShellScreen> {
         onOpenServices: _openServices,
         onOpenSaved: _openSavedLanding,
       ),
-      hideVideo ? const MarketplaceScreen() : const MoviesScreen(),
+      // Const guard: lets the release tree shaker drop the movie screens.
+      AppConstants.moviesFeatureEnabled && !hideVideo
+          ? const MoviesScreen()
+          : const MarketplaceScreen(),
       const MarketplaceScreen(),
       const ChatHomeScreen(),
       MoreMenuScreen(

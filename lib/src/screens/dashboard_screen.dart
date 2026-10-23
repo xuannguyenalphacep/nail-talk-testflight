@@ -90,7 +90,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (!session.cardGameFeatureEnabled) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         const SnackBar(
-          content: Text('Game bài hiện đang được quản trị viên tắt.'),
+          content: Text('Game bài đang tạm bảo trì. Vui lòng thử lại sau.'),
         ),
       );
       return;
@@ -321,7 +321,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    if (context.read<SessionController>().videoFeatureEnabled) {
+    if (AppConstants.moviesFeatureEnabled &&
+        context.read<SessionController>().videoFeatureEnabled) {
       for (final item in social.movies) {
         final score = _matchScore(query, [
           item.title,
@@ -387,8 +388,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final session = context.watch<SessionController>();
     final social = context.watch<SocialHubController>();
     final chat = context.watch<ChatController>();
-    final hideVideo = session.hideVideoFeature;
-    final showCardGame = session.cardGameFeatureEnabled;
+    final hideVideo =
+        !AppConstants.moviesFeatureEnabled || session.hideVideoFeature;
     final summary = social.profile?.summary;
     final featuredMovie = !hideVideo && social.movies.isNotEmpty
         ? social.movies.first
@@ -586,13 +587,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                if (showCardGame) ...[
-                  _TienLenComingSoonBanner(
-                    key: const ValueKey('home-feature-card-game'),
-                    onTap: _openTienLenGame,
-                  ),
-                  const SizedBox(height: 14),
-                ],
+                _TienLenComingSoonBanner(
+                  key: const ValueKey('home-feature-card-game'),
+                  onTap: _openTienLenGame,
+                ),
+                const SizedBox(height: 14),
                 _ServicesHomeBanner(onTap: widget.onOpenServices),
                 const SizedBox(height: 14),
                 GridView.builder(
@@ -810,7 +809,9 @@ class _DashboardSearchSuggestionPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hideVideo = context.watch<SessionController>().hideVideoFeature;
+    final hideVideo =
+        !AppConstants.moviesFeatureEnabled ||
+        context.watch<SessionController>().hideVideoFeature;
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 180),
       child: suggestions.isEmpty
@@ -1595,7 +1596,7 @@ class _TienLenComingSoonBanner extends StatelessWidget {
                     width: 224,
                     child: Text(
                       context.tr(
-                        'Relax with friends and join light community activities when this space launches.',
+                        'Multiplayer card game with free virtual coins. Wins and losses change your balance; BOT players may fill seats.',
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,

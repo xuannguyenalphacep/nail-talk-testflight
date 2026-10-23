@@ -201,6 +201,7 @@ class _VirtualCoinNotice extends StatelessWidget {
             SizedBox(height: 5),
             Text(
               'Thắng/thua cộng trừ xu ảo; người thắng chịu phí 10%. '
+              'Ghế trống có thể có người chơi tự động, luôn gắn nhãn BOT. '
               'Không nạp, rút hoặc đổi xu thành tiền hay hiện vật.',
               style: TextStyle(
                 color: Colors.white,

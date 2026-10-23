@@ -83,8 +83,10 @@ void main() {
       await tester.pump();
       expect(socketService.addBotCalls, 0);
       expect(socketService.currentBotCount, 1);
-      expect(find.text('Minh Khang'), findsOne);
-      expect(find.text('Đã sẵn sàng'), findsOne);
+      // Automated opponents are always tagged so nobody mistakes them for
+      // real people.
+      expect(find.text('Minh Khang (BOT)'), findsOne);
+      expect(find.text('Người chơi tự động · Đã sẵn sàng'), findsOne);
       expect(find.text('Bạn · Chủ bàn · Chưa sẵn sàng'), findsOne);
       expect(find.textContaining('2/4 người chơi · Chờ Sẵn sàng'), findsOne);
       expect(
@@ -94,7 +96,7 @@ void main() {
         ),
         findsOne,
       );
-      expect(find.textContaining('BOT'), findsNothing);
+      expect(find.textContaining('(BOT)'), findsOne);
       expect(find.byKey(const ValueKey<String>('leave-room-button')), findsOne);
       expect(socketService.readyCalls, 0);
       expect(socketService.startCalls, 0);
@@ -463,9 +465,11 @@ void main() {
       findsOneWidget,
     );
     expect(socketService.startCalls, 1);
+    // Internal error codes stay hidden; the only BOT text is the seat tag.
     expect(find.textContaining('bot'), findsNothing);
-    expect(find.textContaining('BOT'), findsNothing);
     expect(find.textContaining('bankroll'), findsNothing);
+    expect(find.textContaining('BOT'), findsOne);
+    expect(find.textContaining('(BOT)'), findsOne);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });

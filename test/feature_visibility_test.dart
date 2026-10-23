@@ -23,88 +23,61 @@ void main() {
     SharedPreferences.setMockInitialValues(const <String, Object>{});
   });
 
-  testWidgets('disabled features are omitted from home, menu, and navigation', (
-    tester,
-  ) async {
-    await _setLargeSurface(tester);
-    final harness = _FeatureHarness(videoEnabled: false, gameEnabled: false);
-    addTearDown(harness.dispose);
+  testWidgets(
+    'card game is always listed and movies stay hidden when flags are off',
+    (tester) async {
+      await _setLargeSurface(tester);
+      final harness = _FeatureHarness(videoEnabled: false, gameEnabled: false);
+      addTearDown(harness.dispose);
 
-    await tester.pumpWidget(harness.wrap(_dashboard()));
-    await tester.pump();
-    expect(find.byKey(const ValueKey('home-feature-card-video')), findsNothing);
-    expect(find.byKey(const ValueKey('home-feature-card-game')), findsNothing);
-    await tester.enterText(find.byType(TextField).first, 'review only video');
-    await tester.pump();
-    expect(find.text('Review Only Video'), findsNothing);
+      await _expectGameShownAndMoviesHidden(tester, harness);
+    },
+  );
 
-    await tester.pumpWidget(harness.wrap(_moreMenu()));
-    await tester.pump();
-    expect(
-      find.byKey(const ValueKey('more-menu-feature-Videos')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const ValueKey('more-menu-feature-Game bài')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const ValueKey('more-menu-utility-Feedback')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('more-menu-utility-Privacy policy')),
-      findsOneWidget,
-    );
-
-    await tester.pumpWidget(
-      harness.wrap(const SocialHubShellScreen(), includeControllers: true),
-    );
-    await tester.pump();
-    expect(find.byKey(const ValueKey('bottom-navigation-video')), findsNothing);
-  });
-
-  testWidgets('enabled features appear in home, menu, and navigation', (
+  testWidgets('server video flag cannot bring movies back into this build', (
     tester,
   ) async {
     await _setLargeSurface(tester);
     final harness = _FeatureHarness(videoEnabled: true, gameEnabled: true);
     addTearDown(harness.dispose);
 
-    await tester.pumpWidget(harness.wrap(_dashboard()));
-    await tester.pump();
-    expect(
-      find.byKey(const ValueKey('home-feature-card-video')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('home-feature-card-game')),
-      findsOneWidget,
-    );
-    await tester.enterText(find.byType(TextField).first, 'review only video');
-    await tester.pump();
-    expect(find.text('Review Only Video'), findsOneWidget);
-
-    await tester.pumpWidget(harness.wrap(_moreMenu()));
-    await tester.pump();
-    expect(
-      find.byKey(const ValueKey('more-menu-feature-Videos')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('more-menu-feature-Game bài')),
-      findsOneWidget,
-    );
-
-    await tester.pumpWidget(
-      harness.wrap(const SocialHubShellScreen(), includeControllers: true),
-    );
-    await tester.pump();
-    expect(
-      find.byKey(const ValueKey('bottom-navigation-video')),
-      findsOneWidget,
-    );
+    await _expectGameShownAndMoviesHidden(tester, harness);
   });
+}
+
+Future<void> _expectGameShownAndMoviesHidden(
+  WidgetTester tester,
+  _FeatureHarness harness,
+) async {
+  await tester.pumpWidget(harness.wrap(_dashboard()));
+  await tester.pump();
+  expect(find.byKey(const ValueKey('home-feature-card-video')), findsNothing);
+  expect(find.byKey(const ValueKey('home-feature-card-game')), findsOneWidget);
+  await tester.enterText(find.byType(TextField).first, 'review only video');
+  await tester.pump();
+  expect(find.text('Review Only Video'), findsNothing);
+
+  await tester.pumpWidget(harness.wrap(_moreMenu()));
+  await tester.pump();
+  expect(find.byKey(const ValueKey('more-menu-feature-Videos')), findsNothing);
+  expect(
+    find.byKey(const ValueKey('more-menu-feature-Game bài')),
+    findsOneWidget,
+  );
+  expect(
+    find.byKey(const ValueKey('more-menu-utility-Feedback')),
+    findsOneWidget,
+  );
+  expect(
+    find.byKey(const ValueKey('more-menu-utility-Privacy policy')),
+    findsOneWidget,
+  );
+
+  await tester.pumpWidget(
+    harness.wrap(const SocialHubShellScreen(), includeControllers: true),
+  );
+  await tester.pump();
+  expect(find.byKey(const ValueKey('bottom-navigation-video')), findsNothing);
 }
 
 Future<void> _setLargeSurface(WidgetTester tester) async {

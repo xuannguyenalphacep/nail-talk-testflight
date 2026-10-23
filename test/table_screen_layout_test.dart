@@ -253,9 +253,10 @@ void main() {
       ),
       findsOneWidget,
     );
+    // Internal error codes stay hidden; BOT text may only be a seat tag.
     expect(find.textContaining('bot'), findsNothing);
-    expect(find.textContaining('BOT'), findsNothing);
     expect(find.textContaining('bankroll'), findsNothing);
+    expect(find.textContaining(RegExp(r'BOT(?!\))')), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
